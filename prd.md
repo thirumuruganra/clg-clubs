@@ -45,7 +45,7 @@ The code must be organized into two distinct directories under the root:
 ### Frontend (Folder: `/frontend`)
 
 * **Framework:** React.js (Vite) + Tailwind CSS.
-* **Calendar UI:** [`@event-calendar/react`](https://www.google.com/search?q=%5Bhttps://github.com/origin-space/event-calendar%5D(https://github.com/origin-space/event-calendar)).
+* **Calendar UI:** [`@event-calendar/react`](https://github.com/origin-space/event-calendar).
 * **HTTP Client:** Axios (for API calls).
 
 ---
