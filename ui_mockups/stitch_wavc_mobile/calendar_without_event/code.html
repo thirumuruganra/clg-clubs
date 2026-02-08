@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WAVC - Mobile Event Calendar</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "surface-dark": "#1e293b",
+                        "surface-light": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                    keyframes: {
+                        slideUp: {
+                            '0%': { transform: 'translateY(100%)' },
+                            '100%': { transform: 'translateY(0)' },
+                        }
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-slate-200 dark:bg-slate-900 font-display text-slate-900 dark:text-white antialiased flex items-center justify-center min-h-screen py-8 px-4">
+<div class="relative w-full max-w-[400px] bg-white dark:bg-[#111a22] rounded-[2rem] shadow-2xl overflow-hidden h-[840px] border-[8px] border-slate-900 dark:border-[#233648] flex flex-col ring-8 ring-slate-900/10 dark:ring-black/30">
+<div class="absolute top-0 left-0 right-0 h-10 z-20 flex justify-between items-end px-6 pb-2 bg-gradient-to-b from-white/90 to-white/0 dark:from-[#111a22]/90 dark:to-transparent">
+<span class="text-xs font-bold dark:text-white">9:41</span>
+<div class="flex gap-1.5 items-center">
+<span class="material-symbols-outlined text-[16px]">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[16px]">wifi</span>
+<span class="material-symbols-outlined text-[16px] filled">battery_full</span>
+</div>
+</div>
+<header class="pt-12 pb-2 px-6 flex items-center justify-between z-10 bg-white dark:bg-[#111a22]">
+<div>
+<h1 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">WAVC Calendar</h1>
+<p class="text-xs font-medium text-slate-500 dark:text-slate-400">What's active today?</p>
+</div>
+<div class="size-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 overflow-hidden">
+<img alt="User" class="size-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVBNxHRygBOIgfT74hU07fMoUhwlNl9KJLR4vGBtE5D_7A4k4Xz-n67KphdJlhLkPAhp8fPu8JV-hlVMlAFapq1xA7ea58pxUfCEXr5PzSpUVFNw0TW-3dF6xCBoEo_k8fGnGMKe07ht01mhRYeBKLT8mSx50_XqBBFenzAu953TKoS5Fw8QeI1OK8Uso1ggcaRYtPVe8AGOGbYl_pvKjdfgJAvpzXfnEevLtjqqTRHPAifJC23zQAEik5m5W6Jufwl6W-E152DEA"/>
+</div>
+</header>
+<div class="px-4 pb-4 border-b border-slate-100 dark:border-slate-800/50">
+<div class="flex items-center justify-between mb-6 px-2 pt-2">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined text-xl">chevron_left</span>
+</button>
+<h2 class="text-lg font-bold text-slate-900 dark:text-white">October 2023</h2>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined text-xl">chevron_right</span>
+</button>
+</div>
+<div class="grid grid-cols-7 text-center mb-4">
+<span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Sun</span>
+<span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Mon</span>
+<span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Tue</span>
+<span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Wed</span>
+<span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Thu</span>
+<span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Fri</span>
+<span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Sat</span>
+</div>
+<div class="grid grid-cols-7 text-center gap-y-2">
+<div class="flex items-center justify-center h-12 text-slate-300 dark:text-slate-700 text-sm font-medium">29</div>
+<div class="flex items-center justify-center h-12 text-slate-300 dark:text-slate-700 text-sm font-medium">30</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">1</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">2</div>
+<div class="flex flex-col items-center justify-center h-12 relative">
+<span class="text-sm font-bold text-slate-900 dark:text-white">3</span>
+<span class="absolute bottom-1 w-1 h-1 bg-primary rounded-full"></span>
+</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">4</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">5</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">6</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">7</div>
+<div class="flex flex-col items-center justify-center h-12 relative">
+<span class="text-sm font-bold text-slate-900 dark:text-white">8</span>
+<span class="absolute bottom-1 w-1 h-1 bg-orange-500 rounded-full"></span>
+</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">9</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">10</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">11</div>
+<div class="flex items-center justify-center h-12 relative">
+<div class="w-9 h-9 flex items-center justify-center bg-primary text-white rounded-full shadow-lg shadow-blue-500/30 text-sm font-bold">12</div>
+</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">13</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">14</div>
+<div class="flex flex-col items-center justify-center h-12 relative">
+<span class="text-sm font-bold text-slate-900 dark:text-white">15</span>
+<span class="absolute bottom-1 w-1 h-1 bg-primary rounded-full"></span>
+</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">16</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">17</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">18</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">19</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">20</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">21</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">22</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">23</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">24</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">25</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">26</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">27</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">28</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">29</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">30</div>
+<div class="flex items-center justify-center h-12 text-sm font-medium text-slate-600 dark:text-slate-400">31</div>
+<div class="flex items-center justify-center h-12 text-slate-300 dark:text-slate-700 text-sm font-medium">1</div>
+<div class="flex items-center justify-center h-12 text-slate-300 dark:text-slate-700 text-sm font-medium">2</div>
+</div>
+</div>
+<div class="px-6 py-4 flex gap-2.5 overflow-x-auto no-scrollbar">
+<button class="px-4 py-1.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold whitespace-nowrap shadow-sm">
+            All
+        </button>
+<button class="px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold whitespace-nowrap hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors border border-transparent hover:border-blue-200 dark:hover:border-slate-600">
+            Tech
+        </button>
+<button class="px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold whitespace-nowrap hover:bg-orange-50 dark:hover:bg-slate-700 transition-colors border border-transparent hover:border-orange-200 dark:hover:border-slate-600">
+            Non-Tech
+        </button>
+</div>
+<div class="flex-1 overflow-y-auto px-6 pb-24 scrollbar-hide">
+<h3 class="text-xs font-bold text-slate-500 dark:text-slate-500 mb-4 uppercase tracking-wider flex items-center gap-2">
+<span>October 12</span>
+<div class="h-px bg-slate-200 dark:bg-slate-800 flex-1"></div>
+</h3>
+<div class="flex flex-col gap-3">
+<div class="group flex items-center p-4 bg-white dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.99]">
+<div class="w-1.5 h-1.5 rounded-full bg-primary mr-4 shrink-0"></div>
+<span class="text-sm font-bold text-slate-500 dark:text-slate-400 w-20 shrink-0">10:00 AM</span>
+<span class="text-sm font-bold text-slate-900 dark:text-white truncate">Intro to Python</span>
+</div>
+<div class="group flex items-center p-4 bg-white dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.99]">
+<div class="w-1.5 h-1.5 rounded-full bg-orange-500 mr-4 shrink-0"></div>
+<span class="text-sm font-bold text-slate-500 dark:text-slate-400 w-20 shrink-0">02:00 PM</span>
+<span class="text-sm font-bold text-slate-900 dark:text-white truncate">Debate Finals</span>
+</div>
+<div class="group flex items-center p-4 bg-white dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/50 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.99] opacity-75">
+<div class="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 mr-4 shrink-0"></div>
+<span class="text-sm font-bold text-slate-500 dark:text-slate-400 w-20 shrink-0">04:30 PM</span>
+<span class="text-sm font-bold text-slate-900 dark:text-white truncate">Music Jam</span>
+</div>
+</div>
+</div>
+<div class="absolute bottom-0 left-0 right-0 bg-white dark:bg-[#111a22] border-t border-slate-100 dark:border-slate-800 px-6 py-3 pb-6 flex justify-between items-center z-20">
+<button class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined filled">calendar_month</span>
+<span class="text-[10px] font-bold">Calendar</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">groups</span>
+<span class="text-[10px] font-bold">Clubs</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold">Profile</span>
+</button>
+</div>
+</div>
+
+</body></html>

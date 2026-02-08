@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WAVC - Event Calendar</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                        "surface-dark": "#192633",
+                        "surface-border": "#233648",
+                        "text-secondary": "#92adc9",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111a22; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #233648; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #344c63; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-hidden h-screen flex flex-col">
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-surface-border bg-[#111a22] px-6 py-3 shrink-0 z-20">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-white cursor-pointer">
+<div class="size-8 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-3xl">waves</span>
+</div>
+<h2 class="text-white text-xl font-bold leading-tight tracking-[-0.015em]">WAVC</h2>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-text-secondary hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Home</a>
+<a class="text-white text-sm font-medium leading-normal" href="#">Events</a>
+<a class="text-text-secondary hover:text-white text-sm font-medium leading-normal transition-colors" href="#">Clubs</a>
+<a class="text-text-secondary hover:text-white text-sm font-medium leading-normal transition-colors" href="#">My Profile</a>
+</nav>
+</div>
+<div class="flex flex-1 justify-end gap-6">
+<label class="hidden md:flex flex-col min-w-40 !h-10 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-xl h-full">
+<div class="text-text-secondary flex border-none bg-surface-dark items-center justify-center pl-4 rounded-l-xl border-r-0">
+<span class="material-symbols-outlined text-[20px]">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border-none bg-surface-dark focus:border-none h-full placeholder:text-text-secondary px-4 rounded-l-none border-l-0 pl-2 text-sm font-normal leading-normal" placeholder="Search events" value=""/>
+</div>
+</label>
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center size-10 rounded-full hover:bg-surface-dark text-white transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border border-surface-border cursor-pointer" data-alt="User profile avatar showing a smiling student" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDctRmn_P7HySoerKLS8pt1fHwQLW-aXF5_vvW-ICsfLTh8VRaYlep5zvJt5RH_LWbe-GMJkH_zFMuQW8ycqgnNbT__k6ecd7HJR1xREbg4X4kfK8EU8Gxo1IdI8WMF0qv2wo6_T4MWpG_DNKYSAZXa_NmJtj-yi0DlvOIEWtmTG7_jC3Ge7qBqfv3as_hU7OWds75xNN7Pm2sMfgayF6PK8u_gZt6lu-YLA7UHOViAfDSxtJeVjC01Ntke5ezjMNkdTfnFcYGFGn8");'></div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-72 bg-[#111a22] border-r border-surface-border flex flex-col overflow-y-auto hidden lg:flex shrink-0">
+<div class="p-4 border-b border-surface-border">
+<div class="flex items-center justify-between mb-4 px-2">
+<span class="text-white text-sm font-bold">October 2023</span>
+<div class="flex gap-1">
+<button class="text-text-secondary hover:text-white p-1 rounded-full hover:bg-surface-dark"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button>
+<button class="text-text-secondary hover:text-white p-1 rounded-full hover:bg-surface-dark"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>
+</div>
+</div>
+<div class="grid grid-cols-7 gap-y-2 text-center mb-2">
+<span class="text-text-secondary text-xs font-medium">S</span>
+<span class="text-text-secondary text-xs font-medium">M</span>
+<span class="text-text-secondary text-xs font-medium">T</span>
+<span class="text-text-secondary text-xs font-medium">W</span>
+<span class="text-text-secondary text-xs font-medium">T</span>
+<span class="text-text-secondary text-xs font-medium">F</span>
+<span class="text-text-secondary text-xs font-medium">S</span>
+</div>
+<div class="grid grid-cols-7 gap-y-1 text-center">
+<button class="text-text-secondary/40 text-xs size-8 rounded-full hover:bg-surface-dark">27</button>
+<button class="text-text-secondary/40 text-xs size-8 rounded-full hover:bg-surface-dark">28</button>
+<button class="text-text-secondary/40 text-xs size-8 rounded-full hover:bg-surface-dark">29</button>
+<button class="text-text-secondary/40 text-xs size-8 rounded-full hover:bg-surface-dark">30</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">1</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">2</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">3</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">4</button>
+<button class="bg-primary text-white text-xs size-8 rounded-full shadow-md shadow-primary/20">5</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">6</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">7</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">8</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">9</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">10</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">11</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">12</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">13</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">14</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">15</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">16</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">17</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">18</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">19</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">20</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">21</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">22</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">23</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">24</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">25</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">26</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">27</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">28</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">29</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">30</button>
+<button class="text-white text-xs size-8 rounded-full hover:bg-surface-dark">31</button>
+</div>
+</div>
+<div class="p-6 flex flex-col gap-6">
+<div>
+<h3 class="text-white text-sm font-bold mb-3 uppercase tracking-wider text-xs text-text-secondary">Club Categories</h3>
+<div class="flex flex-col gap-2">
+<label class="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-dark cursor-pointer group hover:bg-surface-border transition-colors">
+<div class="size-4 rounded border border-primary bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xs font-bold">check</span>
+</div>
+<span class="text-white text-sm font-medium">All Events</span>
+</label>
+<label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer group hover:bg-surface-dark transition-colors">
+<div class="size-4 rounded border border-[#9333ea] bg-[#9333ea] flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xs font-bold">check</span>
+</div>
+<span class="text-white text-sm font-medium">Tech Clubs</span>
+</label>
+<label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer group hover:bg-surface-dark transition-colors">
+<div class="size-4 rounded border border-[#10b981] bg-[#10b981] flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xs font-bold">check</span>
+</div>
+<span class="text-white text-sm font-medium">Non-Tech Clubs</span>
+</label>
+<label class="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer group hover:bg-surface-dark transition-colors">
+<div class="size-4 rounded border border-[#f59e0b] bg-transparent flex items-center justify-center"></div>
+<span class="text-text-secondary text-sm font-medium">Sports</span>
+</label>
+</div>
+</div>
+<div>
+<h3 class="text-white text-sm font-bold mb-3 uppercase tracking-wider text-xs text-text-secondary">My Schedule</h3>
+<div class="flex items-center gap-3 px-3 py-2">
+<span class="material-symbols-outlined text-text-secondary">event_available</span>
+<p class="text-text-secondary text-sm">3 events this week</p>
+</div>
+</div>
+</div>
+<div class="mt-auto p-4">
+<button class="w-full flex items-center justify-center gap-2 bg-surface-dark hover:bg-surface-border text-white py-3 rounded-xl transition-colors text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                    Request Event
+                </button>
+</div>
+</aside>
+<main class="flex-1 flex flex-col bg-background-dark overflow-hidden relative">
+<div class="flex items-center justify-between px-6 py-4 border-b border-surface-border shrink-0">
+<div class="flex items-center gap-4">
+<h1 class="text-2xl font-bold text-white">October 2023</h1>
+<div class="flex bg-surface-dark rounded-lg p-1 border border-surface-border">
+<button class="px-3 py-1 text-sm font-medium text-text-secondary hover:text-white rounded-md">Day</button>
+<button class="px-3 py-1 text-sm font-medium text-text-secondary hover:text-white rounded-md">Week</button>
+<button class="px-3 py-1 text-sm font-medium bg-background-dark text-white shadow rounded-md">Month</button>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Today
+                    </button>
+<div class="flex gap-1 bg-surface-dark rounded-lg p-1">
+<button class="p-1 hover:bg-surface-border rounded text-white"><span class="material-symbols-outlined">chevron_left</span></button>
+<button class="p-1 hover:bg-surface-border rounded text-white"><span class="material-symbols-outlined">chevron_right</span></button>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-7 border-b border-surface-border shrink-0 bg-[#111a22]">
+<div class="py-3 text-center border-r border-surface-border last:border-r-0">
+<span class="text-sm font-semibold text-text-secondary">SUN</span>
+</div>
+<div class="py-3 text-center border-r border-surface-border last:border-r-0">
+<span class="text-sm font-semibold text-text-secondary">MON</span>
+</div>
+<div class="py-3 text-center border-r border-surface-border last:border-r-0">
+<span class="text-sm font-semibold text-text-secondary">TUE</span>
+</div>
+<div class="py-3 text-center border-r border-surface-border last:border-r-0">
+<span class="text-sm font-semibold text-text-secondary">WED</span>
+</div>
+<div class="py-3 text-center border-r border-surface-border last:border-r-0">
+<span class="text-sm font-semibold text-text-secondary">THU</span>
+</div>
+<div class="py-3 text-center border-r border-surface-border last:border-r-0">
+<span class="text-sm font-semibold text-text-secondary">FRI</span>
+</div>
+<div class="py-3 text-center border-r border-surface-border last:border-r-0">
+<span class="text-sm font-semibold text-text-secondary">SAT</span>
+</div>
+</div>
+<div class="flex-1 grid grid-cols-7 grid-rows-5 overflow-y-auto">
+<div class="min-h-[120px] bg-[#111a22]/50 border-r border-b border-surface-border p-2">
+<span class="text-text-secondary/30 text-sm font-medium">27</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22]/50 border-r border-b border-surface-border p-2">
+<span class="text-text-secondary/30 text-sm font-medium">28</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22]/50 border-r border-b border-surface-border p-2">
+<span class="text-text-secondary/30 text-sm font-medium">29</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22]/50 border-r border-b border-surface-border p-2">
+<span class="text-text-secondary/30 text-sm font-medium">30</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">1</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">2</span>
+<button class="mt-2 w-full text-left px-2 py-1 rounded bg-[#10b981]/20 border-l-2 border-[#10b981] hover:bg-[#10b981]/30 transition-colors">
+<p class="text-[#10b981] text-xs font-bold truncate">10:00 AM Yoga</p>
+</button>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r-0 border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">3</span>
+<button class="mt-2 w-full text-left px-2 py-1 rounded bg-[#9333ea]/20 border-l-2 border-[#9333ea] hover:bg-[#9333ea]/30 transition-colors">
+<p class="text-[#9333ea] text-xs font-bold truncate">14:00 PM Coding</p>
+</button>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors relative">
+<span class="text-white text-sm font-medium">4</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors relative">
+<span class="flex items-center justify-center size-7 rounded-full bg-primary text-white text-sm font-bold -ml-1.5 -mt-1.5 shadow-lg shadow-blue-500/40">5</span>
+<button class="mt-2 w-full text-left px-2 py-1 rounded bg-primary/20 border-l-2 border-primary hover:bg-primary/30 transition-colors mb-1">
+<p class="text-primary text-xs font-bold truncate">09:00 AM Hackathon</p>
+</button>
+<button class="w-full text-left px-2 py-1 rounded bg-[#f59e0b]/20 border-l-2 border-[#f59e0b] hover:bg-[#f59e0b]/30 transition-colors">
+<p class="text-[#f59e0b] text-xs font-bold truncate">18:00 PM Basketball</p>
+</button>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">6</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">7</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">8</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">9</span>
+<button class="mt-2 w-full text-left px-2 py-1 rounded bg-[#10b981]/20 border-l-2 border-[#10b981] hover:bg-[#10b981]/30 transition-colors">
+<p class="text-[#10b981] text-xs font-bold truncate">16:00 PM Debate</p>
+</button>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r-0 border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">10</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">11</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">12</span>
+<button class="mt-2 w-full text-left px-2 py-1 rounded bg-[#9333ea]/20 border-l-2 border-[#9333ea] hover:bg-[#9333ea]/30 transition-colors">
+<p class="text-[#9333ea] text-xs font-bold truncate">12:30 PM Robotics</p>
+</button>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">13</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">14</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">15</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">16</span>
+<button class="mt-2 w-full text-left px-2 py-1 rounded bg-[#f59e0b]/20 border-l-2 border-[#f59e0b] hover:bg-[#f59e0b]/30 transition-colors">
+<p class="text-[#f59e0b] text-xs font-bold truncate">15:00 PM Football</p>
+</button>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r-0 border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">17</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">18</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">19</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">20</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">21</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">22</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">23</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r-0 border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">24</span>
+<button class="mt-2 w-full text-left px-2 py-1 rounded bg-[#9333ea]/20 border-l-2 border-[#9333ea] hover:bg-[#9333ea]/30 transition-colors">
+<p class="text-[#9333ea] text-xs font-bold truncate">14:00 PM AI Workshop</p>
+</button>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">25</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">26</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">27</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">28</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">29</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">30</span>
+</div>
+<div class="min-h-[120px] bg-[#111a22] border-r-0 border-b border-surface-border p-2 group hover:bg-surface-dark/50 transition-colors">
+<span class="text-white text-sm font-medium">31</span>
+</div>
+</div>
+<div class="absolute inset-0 bg-black/60 z-30 flex items-center justify-center p-4 backdrop-blur-sm">
+<div class="bg-surface-dark w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden border border-surface-border flex flex-col md:flex-row animate-[fadeIn_0.2s_ease-out]">
+<div class="w-full md:w-5/12 h-48 md:h-auto bg-cover bg-center relative" data-alt="Abstract visualization of artificial intelligence with glowing blue neural networks" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAUjCLt0nFZcDNcETLM8uJX2HRyhF-4jWl9LH2JCwov3BNiRBRKRmZ9zPwTbrEn2-2iaHrfoiOjr4KkALdOcONJokbnST1Hv_8sxxXl3VFzqKDIzgHBlQr0PT_WhGad-lDi9aKQGbw8dFbP7rgjB_vzFD-eszzksXY9o3gj8rFqndgm2wv3Z5I7h8X_Yn9SGq1OXvlGoPYitIpMpHbJhmWT-UijCtR0Df-umOukX9BciAeQ_Odi_eBpvgXMQgmic8Ebwh0cprKGoaQ");'>
+<div class="absolute top-4 left-4">
+<span class="bg-surface-dark/90 text-white text-xs font-bold px-3 py-1 rounded-full border border-surface-border">
+                                Tech Club
+                            </span>
+</div>
+</div>
+<div class="p-6 md:p-8 flex-1 flex flex-col">
+<div class="flex items-start justify-between mb-2">
+<div>
+<h3 class="text-text-secondary text-sm font-medium mb-1">Oct 24 • Thursday</h3>
+<h2 class="text-2xl font-bold text-white tracking-tight">AI Workshop: Neural Networks</h2>
+</div>
+<button class="text-text-secondary hover:text-white rounded-full p-1 hover:bg-surface-border transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="flex flex-col gap-4 mt-2">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-text-secondary mt-0.5">schedule</span>
+<div>
+<p class="text-white text-sm font-medium">2:00 PM - 4:00 PM</p>
+<p class="text-text-secondary text-xs">2 hours</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-text-secondary mt-0.5">location_on</span>
+<div>
+<p class="text-white text-sm font-medium">Room 304, Engineering Block</p>
+<p class="text-text-secondary text-xs">North Campus</p>
+</div>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="flex h-2 w-2 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+</span>
+<p class="text-[#10b981] text-xs font-medium">20+ registered in last hour</p>
+</div>
+</div>
+<div class="mt-8 flex flex-col gap-3">
+<button class="w-full bg-primary hover:bg-blue-600 text-white font-semibold py-2.5 rounded-xl transition-colors shadow-lg shadow-blue-500/20">
+                                I will be there
+                             </button>
+<button class="w-full bg-surface-border hover:bg-[#2f455a] text-white font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+                                Add to Google Calendar
+                             </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
