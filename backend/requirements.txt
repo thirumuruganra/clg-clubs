@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+authlib
+httpx
+python-dotenv
+sqlalchemy
+psycopg2-binary
+pydantic
+itsdangerous
+starlette
+requests
+google-api-python-client
+google-auth-oauthlib
