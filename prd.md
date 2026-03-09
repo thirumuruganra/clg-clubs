@@ -1,7 +1,7 @@
 # Product Requirement Document (PRD): WAVC (FastAPI Edition)
 
 **App Name:** WAVC (What's Active in Various Clubs)
-**Platform:** Progressive Web App (PWA)
+**Platform:** Progressive Web App (PWA) with various viewports
 **Architecture:** Monorepo with separated Frontend/Backend.
 
 ## 1. Project Structure
@@ -45,7 +45,7 @@ The code must be organized into two distinct directories under the root:
 ### Frontend (Folder: `/frontend`)
 
 * **Framework:** React.js (Vite) + Tailwind CSS.
-* **Calendar UI:** [`@event-calendar/react`](https://github.com/origin-space/event-calendar).
+* **Calendar UI Reference:** [`@event-calendar/react`](https://github.com/origin-space/event-calendar).
 * **HTTP Client:** Axios (for API calls).
 
 ---
@@ -77,8 +77,6 @@ The code must be organized into two distinct directories under the root:
 
 
 5. **Fallback:** Assign `role = "STUDENT"` (Guest).
-
-
 
 ---
 
