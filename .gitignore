@@ -32,5 +32,9 @@ wavc/
 __pycache__/
 *.pyc
 sql_app.db
+venv/
+.venv/
 
 run.txt
+
+desktop.ini

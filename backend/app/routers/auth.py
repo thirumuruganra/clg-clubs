@@ -1,16 +1,15 @@
-from fastapi import APIRouter, Depends, Query, Request, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
-from app.core.security import oauth
+from app.core.security import oauth, create_access_token, get_current_user
 import re
-import urllib.parse
-from typing import Optional
+import json
 
 router = APIRouter()
 
-# Simple mock for allowed club emails (replace with DB lookup or config)
+# Allowed club admin emails (in production, move to DB table)
 ALLOWED_CLUB_EMAILS = {
     "ieeecs-ssn@ssn.edu.in",
     "acm-w@ssn.edu.in",
@@ -20,21 +19,19 @@ ALLOWED_CLUB_EMAILS = {
 # Regex for student emails
 STUDENT_EMAIL_REGEX = re.compile(r'.*[0-9]{4,}@ssn\.edu\.in$')
 
+
 @router.get('/login')
 async def login(request: Request):
-    """
-    Initiates the Google OAuth2 flow.
-    Redirects the user to Google's login page.
-    """
+    """Initiates the Google OAuth2 flow."""
     redirect_uri = request.url_for('auth_callback')
     return await oauth.google.authorize_redirect(request, redirect_uri)
+
 
 @router.get('/callback', name='auth_callback')
 async def auth_callback(request: Request, db: Session = Depends(get_db)):
     """
     Handles the callback from Google OAuth2.
-    Exchanges the authorization code for an access token.
-    Retrieves user info and assigns roles based on email pattern.
+    Sets a JWT cookie and redirects to frontend.
     """
     try:
         token = await oauth.google.authorize_access_token(request)
@@ -43,31 +40,29 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
 
     user_info = token.get('userinfo')
     if not user_info:
-        # Sometimes userinfo is inside 'id_token' claims or needs a separate fetch
-        # but modern Authlib usually handles it if scope 'openid' is present
         user_info = await oauth.google.userinfo(token=token)
 
     if not user_info:
-         raise HTTPException(status_code=400, detail="Could not retrieve user info")
+        raise HTTPException(status_code=400, detail="Could not retrieve user info")
 
     email = user_info.get('email')
+    if not email:
+        raise HTTPException(status_code=400, detail="Google account must provide an email address.")
+        
     name = user_info.get('name')
     picture = user_info.get('picture')
-    google_token = token.get('access_token') # Store access token for calendar integration
+    google_token = token.get('access_token')
 
-    # Determine Role
-    role = "STUDENT" # Default fallback
+    # Determine Role via regex
+    role = "STUDENT"
     if STUDENT_EMAIL_REGEX.match(email):
         role = "STUDENT"
     elif email in ALLOWED_CLUB_EMAILS:
         role = "CLUB_ADMIN"
-    else:
-        role = "STUDENT" # Guest/Fallback
 
-    # Check if user exists
+    # Upsert user
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        # Create new user
         user = User(
             email=email,
             name=name,
@@ -79,37 +74,56 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
     else:
-        # Update existing user's token and potentially role/name
         user.google_token = google_token
-        user.name = name # Update name if changed
-        user.picture = picture # Update picture if changed
-        # Role update logic could be complex (e.g. manual override), 
-        # but for now we re-evaluate on login or keep existing?
-        # Let's update role to keep it executing the logic:
-        user.role = role 
+        user.name = name
+        user.picture = picture
+        user.role = role
         db.commit()
-    
-    # In a real app, you'd create a JWT session here and return it or set a cookie.
-    # For now, redirect to frontend with a query param (simple demo)
-    # OR set a secure HTTPOnly cookie using FastAPI's response.
-    
-    encoded_name = urllib.parse.quote(user.name) if user.name else "Student"
-    encoded_picture = urllib.parse.quote(user.picture) if user.picture else ""
-    
-    # Redirect to Frontend dashboard (localhost:5173 for Vite dev)
-    # We'll attach a simple session token or just the user ID for now as a query param (INSECURE for prod)
-    # Better: Use a JWT
-    
-    redirect_url = f'http://localhost:5173/dashboard?user_id={user.id}&role={role}&name={encoded_name}&picture={encoded_picture}&email={user.email}'
-    
-    if not user.batch or not user.department:
-         redirect_url += "&incomplete_profile=true"
-    else:
-         redirect_url += f"&batch={user.batch}&department={user.department}&joined_clubs={urllib.parse.quote(user.joined_clubs)}"
 
-    return RedirectResponse(url=redirect_url)
+    # Create JWT token
+    jwt_token = create_access_token({
+        "user_id": user.id,
+        "email": user.email,
+        "role": user.role,
+    })
+
+    # Determine redirect URL
+    redirect_url = "http://localhost:5173/dashboard"
+    if not user.batch or not user.department:
+        redirect_url = "http://localhost:5173/profile"
+
+    # Set JWT as cookie and redirect
+    response = RedirectResponse(url=redirect_url, status_code=302)
+    response.set_cookie(
+        key="access_token",
+        value=jwt_token,
+        httponly=False,       # Frontend needs to read it for API calls
+        samesite="lax",
+        max_age=7 * 24 * 3600,  # 7 days
+        path="/",
+    )
+    return response
+
+
+@router.get('/me')
+async def get_me(current_user: User = Depends(get_current_user)):
+    """Get the currently authenticated user's info."""
+    joined_clubs_list = json.loads(current_user.joined_clubs) if current_user.joined_clubs else []
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "name": current_user.name,
+        "picture": current_user.picture,
+        "role": current_user.role,
+        "batch": current_user.batch,
+        "department": current_user.department,
+        "joined_clubs": joined_clubs_list,
+    }
+
 
 @router.get('/logout')
 async def logout(request: Request):
-    request.session.pop('user', None)
-    return RedirectResponse(url='/')
+    """Clear the JWT cookie and redirect to landing."""
+    response = RedirectResponse(url="http://localhost:5173/", status_code=302)
+    response.delete_cookie("access_token", path="/")
+    return response

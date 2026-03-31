@@ -4,10 +4,12 @@ authlib
 httpx
 python-dotenv
 sqlalchemy
-psycopg2-binary
+pymysql
+cryptography
 pydantic
 itsdangerous
 starlette
 requests
 google-api-python-client
 google-auth-oauthlib
+python-jose[cryptography]
