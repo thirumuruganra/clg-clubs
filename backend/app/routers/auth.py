@@ -9,11 +9,43 @@ import json
 
 router = APIRouter()
 
+
+def _safe_json_list(raw_value):
+    if not raw_value:
+        return []
+    try:
+        data = json.loads(raw_value)
+    except (TypeError, json.JSONDecodeError):
+        return []
+    return data if isinstance(data, list) else []
+
 # Allowed club admin emails (in production, move to DB table)
 ALLOWED_CLUB_EMAILS = {
+    # Test account
+    "thirumuruganra@gmail.com",
+    "vishmuralee1006@gmail.com",
+    "tanisha.sriram2006@gmail.com",
+    # Club accounts
+    "codingclub@ssn.edu.in",
+    "lakshya@ssn.edu.in",
     "ieeecs-ssn@ssn.edu.in",
+    "ssnieeewie@ssn.edu.in",
+    "ssnmusiclub@ssn.edu.in",
     "acm-w@ssn.edu.in",
+    "ssnelc@ssn.edu.in",
     "ssnacm@ssn.edu.in",
+    "buildclub@ssn.edu.in",
+    "sportium@ssn.edu.in",
+    "saeclub@ssn.edu.in",
+    "ssnieeevts@ssn.edu.in",
+    "sgc@ssn.edu.in",
+    "qfactorial@ssn.edu.in",
+    "filmclub@ssn.edu.in",
+    "ieeepels@ssn.edu.in",
+    "ieeepes@ssn.edu.in",
+    "gfgcampusbody@ssn.edu.in",
+    "ieeespssb@ssn.edu.in",
+    "saaraltamilmandram@ssn.edu.in",
 }
 
 # Regex for student emails
@@ -88,9 +120,14 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     })
 
     # Determine redirect URL
-    redirect_url = "http://localhost:5173/dashboard"
-    if not user.batch or not user.department:
-        redirect_url = "http://localhost:5173/profile"
+    # Club admins should go to the admin flow regardless of student profile completeness fields.
+    if user.role == "CLUB_ADMIN":
+        redirect_url = "http://localhost:5173/admin"
+    else:
+        user_interests = _safe_json_list(user.interests)
+        redirect_url = "http://localhost:5173/dashboard"
+        if not user.batch or not user.department or not user.register_number or len(user_interests) < 3:
+            redirect_url = "http://localhost:5173/profile"
 
     # Set JWT as cookie and redirect
     response = RedirectResponse(url=redirect_url, status_code=302)
@@ -108,7 +145,8 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
 @router.get('/me')
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get the currently authenticated user's info."""
-    joined_clubs_list = json.loads(current_user.joined_clubs) if current_user.joined_clubs else []
+    joined_clubs_list = _safe_json_list(current_user.joined_clubs)
+    interests_list = _safe_json_list(current_user.interests)
     return {
         "id": current_user.id,
         "email": current_user.email,
@@ -117,7 +155,9 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "role": current_user.role,
         "batch": current_user.batch,
         "department": current_user.department,
+        "register_number": current_user.register_number,
         "joined_clubs": joined_clubs_list,
+        "interests": interests_list,
     }
 
 

@@ -12,7 +12,9 @@ class UserBase(BaseModel):
     picture: Optional[str] = None
     batch: Optional[str] = None
     department: Optional[str] = None
+    register_number: Optional[str] = None
     joined_clubs: Optional[List[str]] = []
+    interests: Optional[List[str]] = []
 
 class UserCreate(UserBase):
     pass
@@ -26,7 +28,9 @@ class UserResponse(UserBase):
 class UserUpdate(BaseModel):
     batch: Optional[str] = None
     department: Optional[str] = None
+    register_number: Optional[str] = None
     joined_clubs: Optional[List[str]] = None
+    interests: Optional[List[str]] = None
 
 
 # ===== CLUB SCHEMAS =====
@@ -60,12 +64,13 @@ class ClubResponse(ClubBase):
 
 class EventBase(BaseModel):
     title: str
-    description: Optional[str] = None
+    description: Optional[str] = None          # Short description (max 100 words)
     location: Optional[str] = None
     start_time: datetime
     end_time: datetime
     tag: Optional[str] = None              # "TECH" or "NON_TECH"
     image_url: Optional[str] = None
+    keywords: Optional[str] = None
 
 class EventCreate(EventBase):
     club_id: int
@@ -78,6 +83,7 @@ class EventUpdate(BaseModel):
     end_time: Optional[datetime] = None
     tag: Optional[str] = None
     image_url: Optional[str] = None
+    keywords: Optional[str] = None
 
 class EventResponse(EventBase):
     id: int
@@ -95,11 +101,34 @@ class EventResponse(EventBase):
 class RSVPCreate(BaseModel):
     event_id: int
 
+class RSVPUpdate(BaseModel):
+    attended: bool
+
 class RSVPResponse(BaseModel):
     id: int
     user_id: int
     event_id: int
+    attended: Optional[bool] = False
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class EventRSVPUserResponse(BaseModel):
+    id: int
+    name: Optional[str] = None
+    email: str
+    department: Optional[str] = None
+    batch: Optional[str] = None
+    register_number: Optional[str] = None
+
+class EventRSVPResponse(BaseModel):
+    id: int
+    user_id: int
+    event_id: int
+    attended: Optional[bool] = False
+    created_at: datetime
+    user: EventRSVPUserResponse
 
     class Config:
         from_attributes = True

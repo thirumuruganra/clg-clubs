@@ -5,6 +5,15 @@ import wavcIcon from '../assets/WAVC-edit.png';
 
 const API = '';
 
+const eventMatchesSearch = (event, rawQuery) => {
+  const query = rawQuery.trim().toLowerCase();
+  if (!query) return true;
+
+  return [event.title, event.description, event.keywords]
+    .filter(Boolean)
+    .some((field) => field.toLowerCase().includes(query));
+};
+
 const Calendar = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -15,10 +24,11 @@ const Calendar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [clubs, setClubs] = useState([]);
 
   useEffect(() => {
     if (!loading && !user) { navigate('/login'); return; }
-    if (user) fetchEvents();
+    if (user) { fetchEvents(); fetchClubs(); }
   }, [user, loading]);
 
   const fetchEvents = async () => {
@@ -29,9 +39,31 @@ const Calendar = () => {
     finally { setLoadingEvents(false); }
   };
 
-  const handleRSVP = async (eventId) => {
+  const fetchClubs = async () => {
     try {
-      const res = await fetch(`${API}/api/rsvp/events/${eventId}/rsvp?user_id=${user.id}`, { method: 'POST' });
+      const res = await fetch(`${API}/api/clubs/?user_id=${user.id}`);
+      if (res.ok) setClubs(await res.json());
+    } catch (err) { console.error(err); }
+  };
+
+  const handleFollow = async (clubId) => {
+    try {
+      const res = await fetch(`${API}/api/follow/clubs/${clubId}/follow`, { method: 'POST' });
+      if (res.ok) { fetchClubs(); fetchEvents(); }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleUnfollow = async (clubId) => {
+    try {
+      const res = await fetch(`${API}/api/follow/clubs/${clubId}/follow`, { method: 'DELETE' });
+      if (res.ok) { fetchClubs(); fetchEvents(); }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleRSVP = async (eventId, isRegistered) => {
+    try {
+      const method = isRegistered ? 'DELETE' : 'POST';
+      const res = await fetch(`${API}/api/rsvp/events/${eventId}/rsvp`, { method });
       if (res.ok) {
         fetchEvents();
         if (selectedEvent?.id === eventId) {
@@ -63,7 +95,7 @@ const Calendar = () => {
   const filteredEvents = events.filter(e => {
     if (categoryFilter === 'tech' && e.tag !== 'TECH') return false;
     if (categoryFilter === 'nontech' && e.tag !== 'NON_TECH') return false;
-    if (searchQuery && !e.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (!eventMatchesSearch(e, searchQuery)) return false;
     return true;
   });
   
@@ -108,7 +140,7 @@ const Calendar = () => {
       )}
 
       {/* Left Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 w-72 flex-shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col p-6 overflow-y-auto transition-transform duration-300 ease-in-out`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 w-72 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col p-6 overflow-y-auto no-scrollbar transition-transform duration-300 ease-in-out`}>
         {/* Logo */}
         <div className="flex items-center gap-3 mb-8">
           <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
@@ -117,7 +149,7 @@ const Calendar = () => {
 
         {/* Nav */}
         <nav className="flex flex-col gap-1 mb-8">
-          {[{ label: 'Home', icon: 'home', path: '/dashboard' }, { label: 'Events', icon: 'event', path: '/calendar', active: true }, { label: 'Clubs', icon: 'groups', path: '/dashboard' }, { label: 'My Profile', icon: 'person', path: '/profile' }].map(item => (
+          {[{ label: 'Home', icon: 'home', path: '/dashboard' }, { label: 'Events', icon: 'event', path: '/calendar', active: true }, { label: 'Clubs', icon: 'groups', path: '/clubs' }, { label: 'My Profile', icon: 'person', path: '/profile' }].map(item => (
             <button key={item.label} onClick={() => navigate(item.path)} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${item.active ? 'bg-primary/10 text-primary' : 'text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648]'}`}>
               <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
               {item.label}
@@ -130,8 +162,8 @@ const Calendar = () => {
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-bold">{monthName}</span>
             <div className="flex gap-1">
-              <button onClick={prevMonth} className="p-1 rounded hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[18px]">chevron_left</span></button>
-              <button onClick={nextMonth} className="p-1 rounded hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[18px]">chevron_right</span></button>
+              <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">chevron_left</span></button>
+              <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">chevron_right</span></button>
             </div>
           </div>
           <div className="grid grid-cols-7 gap-0 text-center text-xs">
@@ -163,6 +195,41 @@ const Calendar = () => {
           ))}
         </div>
 
+        {/* Followed Clubs */}
+        <div className="mb-8">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9] mb-3">Your Clubs</h3>
+          <div className="space-y-1 max-h-40 overflow-y-auto no-scrollbar">
+            {clubs.filter(c => c.is_following).length === 0 && (
+              <p className="text-xs text-[#637588] dark:text-[#92adc9] italic px-3 py-2">Not following any clubs yet</p>
+            )}
+            {clubs.filter(c => c.is_following).map(club => (
+              <div key={club.id} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#f0f2f4] dark:hover:bg-[#233648] group transition-colors">
+                <div className="size-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                  {club.logo_url ? <img src={club.logo_url} alt="" className="w-full h-full object-cover" /> : <span className="text-primary text-xs font-bold">{club.name.charAt(0)}</span>}
+                </div>
+                <span className="text-sm flex-1 truncate">{club.name}</span>
+                <button onClick={() => handleUnfollow(club.id)} className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-500 transition-all" title="Unfollow">
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              </div>
+            ))}
+          </div>
+          {clubs.filter(c => !c.is_following).length > 0 && (
+            <div className="mt-3">
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9] mb-2 px-3">Discover Clubs</h4>
+              {clubs.filter(c => !c.is_following).slice(0, 4).map(club => (
+                <div key={club.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg">
+                  <div className="size-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                    {club.logo_url ? <img src={club.logo_url} alt="" className="w-full h-full object-cover" /> : <span className="text-primary text-xs font-bold">{club.name.charAt(0)}</span>}
+                  </div>
+                  <span className="text-sm flex-1 truncate text-[#92adc9]">{club.name}</span>
+                  <button onClick={() => handleFollow(club.id)} className="text-xs text-primary font-medium hover:underline">Follow</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* My Schedule */}
         <div className="mb-8">
           <h3 className="text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9] mb-3">My Schedule</h3>
@@ -183,24 +250,37 @@ const Calendar = () => {
       <main className="flex-1 flex flex-col overflow-hidden w-full">
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22]">
-          <div className="flex items-center gap-2 md:gap-4">
-            <button className="md:hidden p-1 rounded hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
+          <div className="flex items-center gap-2 md:gap-3">
+            <button className="md:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
-            <h1 className="text-xl md:text-2xl font-bold truncate max-w-[120px] md:max-w-none">{monthName}</h1>
-            <div className="flex gap-1 bg-[#233648] rounded-lg p-0.5">
-              {['Day', 'Week', 'Month'].map(v => <button key={v} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${v === 'Month' ? 'bg-primary text-white' : 'text-[#92adc9] hover:text-white'}`}>{v}</button>)}
-            </div>
+            <button onClick={prevMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
+              <span className="material-symbols-outlined text-[24px]">chevron_left</span>
+            </button>
+            <h1 className="text-xl md:text-2xl font-bold leading-none">{monthName}</h1>
+            <button onClick={nextMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
+              <span className="material-symbols-outlined text-[24px]">chevron_right</span>
+            </button>
           </div>
-          <div className="flex items-center gap-2 md:gap-4 flex-1 justify-end">
-            <label className="flex items-stretch rounded-xl h-9 bg-[#f0f2f4] dark:bg-[#233648] max-w-[150px] md:max-w-xs w-full">
-              <div className="flex items-center justify-center pl-3"><span className="material-symbols-outlined text-[18px] md:text-[20px] text-[#637588] dark:text-[#92adc9]">search</span></div>
+          <div className="flex items-center gap-3 md:gap-4">
+            <label className="hidden md:flex items-center rounded-xl h-9 bg-[#f0f2f4] dark:bg-[#233648] max-w-xs w-full">
+              <div className="flex items-center justify-center pl-3"><span className="material-symbols-outlined text-[20px] text-[#637588] dark:text-[#92adc9]">search</span></div>
               <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="bg-transparent border-none text-sm px-2 focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] w-full" placeholder="Search..." />
             </label>
-            <button className="p-2 rounded-full hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">notifications</span></button>
-            <button onClick={() => navigate('/profile')} className="focus:outline-none">
-              {user?.picture ? <div className="bg-center bg-cover rounded-full size-9 ring-2 ring-white/10" style={{ backgroundImage: `url("${user.picture}")` }}></div>
-                : <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">{(user?.name || 'S')[0]}</div>}
+            <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px] leading-none">notifications</span></button>
+            <button onClick={() => navigate('/profile')} className="w-10 h-10 focus:outline-none flex items-center justify-center rounded-full overflow-hidden">
+              {user?.picture && user.picture.trim() !== '' ? (
+                <img
+                  src={user.picture}
+                  alt={user?.name || 'User'}
+                  className="w-9 h-9 rounded-full ring-2 ring-white/10 object-cover"
+                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                  referrerPolicy="no-referrer"
+                />
+              ) : null}
+              <div className="w-9 h-9 rounded-full ring-2 ring-white/10 items-center justify-center font-bold text-white text-sm" style={{ background: 'linear-gradient(135deg, #137fec 0%, #0d5bab 100%)', display: user?.picture && user.picture.trim() !== '' ? 'none' : 'flex' }}>
+                {(user?.name || 'S')[0].toUpperCase()}
+              </div>
             </button>
           </div>
         </div>
@@ -216,7 +296,7 @@ const Calendar = () => {
             {calendarDays.map((d, i) => {
               const dayEvents = d.current ? getEventsForDay(d.day) : [];
               return (
-                <div key={i} className={`border-r border-b border-[#e5e7eb] dark:border-[#233648] min-h-[100px] p-1.5 ${!d.current ? 'bg-[#f9fafb] dark:bg-[#0c1218]' : 'bg-white dark:bg-[#111a22]'}`}>
+                <div key={i} className={`border-r border-b border-[#e5e7eb] dark:border-[#233648] min-h-25 p-1.5 ${!d.current ? 'bg-[#f9fafb] dark:bg-[#0c1218]' : 'bg-white dark:bg-[#111a22]'}`}>
                   <div className={`text-xs mb-1 ${isToday(d.day) && d.current ? 'bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center font-bold' : d.current ? 'text-[#111418] dark:text-white' : 'text-[#637588]/40'}`}>
                     {d.day}
                   </div>
@@ -239,7 +319,7 @@ const Calendar = () => {
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-[#e5e7eb] dark:border-[#233648]" onClick={e => e.stopPropagation()}>
             <div className="flex flex-col md:flex-row h-full">
               {/* Event Image */}
-              <div className="w-full md:w-2/5 min-h-[200px] md:min-h-[350px] bg-cover bg-center bg-gray-700 relative" style={selectedEvent.image_url ? { backgroundImage: `url("${selectedEvent.image_url}")` } : {}}>
+              <div className="w-full md:w-2/5 min-h-50 md:min-h-87.5 bg-cover bg-center bg-gray-700 relative" style={selectedEvent.image_url ? { backgroundImage: `url("${selectedEvent.image_url}")` } : {}}>
                 <div className="absolute top-3 left-3"><span className="bg-primary/90 text-white text-xs font-medium px-2 py-1 rounded-md">{selectedEvent.club_name}</span></div>
               </div>
               {/* Event Info */}
@@ -248,7 +328,7 @@ const Calendar = () => {
                   <span className="text-sm text-[#637588] dark:text-[#92adc9]">
                     {selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''} • {selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleDateString('en-US', { weekday: 'long' }) : ''}
                   </span>
-                  <button onClick={() => setSelectedEvent(null)} className="p-1 rounded-full hover:bg-[#233648]"><span className="material-symbols-outlined">close</span></button>
+                  <button onClick={() => setSelectedEvent(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
                 </div>
                 <h2 className="text-2xl font-bold mb-4">{selectedEvent.title}</h2>
 
@@ -277,9 +357,9 @@ const Calendar = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <button onClick={() => handleRSVP(selectedEvent.id)} disabled={selectedEvent.is_rsvped}
-                    className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${selectedEvent.is_rsvped ? 'bg-green-500/20 text-green-400 cursor-default' : 'bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/30 active:scale-[0.98]'}`}>
-                    {selectedEvent.is_rsvped ? '✓ You\'re going!' : 'I will be there'}
+                  <button onClick={() => handleRSVP(selectedEvent.id, selectedEvent.is_rsvped)}
+                    className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${selectedEvent.is_rsvped ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/30 active:scale-[0.98]'}`}>
+                    {selectedEvent.is_rsvped ? 'Unregister' : 'Register'}
                   </button>
                   <button onClick={addToGoogleCalendar} className="w-full py-3 rounded-xl font-bold text-sm border border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors flex items-center justify-center gap-2">
                     <span className="material-symbols-outlined text-[20px]">calendar_month</span>

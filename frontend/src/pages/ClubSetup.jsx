@@ -33,7 +33,7 @@ const ClubSetup = () => {
     if (!formData.name.trim()) { alert('Please enter a club name'); return; }
     setSaving(true);
     try {
-      const res = await fetch(`${API}/api/clubs/?admin_id=${user.id}`, {
+      const res = await fetch(`${API}/api/clubs/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -74,7 +74,7 @@ const ClubSetup = () => {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Logo Upload Area */}
           <div className="border border-dashed border-[#e5e7eb] dark:border-[#233648] rounded-xl p-8 flex items-center gap-8">
-            <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#637588]/30 flex items-center justify-center flex-shrink-0 bg-[#f0f2f4] dark:bg-[#233648]">
+            <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#637588]/30 flex items-center justify-center shrink-0 bg-[#f0f2f4] dark:bg-[#233648]">
               {formData.logo_url ? (
                 <img src={formData.logo_url} alt="Logo" className="w-full h-full rounded-full object-cover" />
               ) : (

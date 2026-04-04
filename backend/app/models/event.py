@@ -15,6 +15,7 @@ class Event(Base):
     end_time = Column(DateTime, nullable=False)
     tag = Column(String(50), nullable=True)             # "TECH" or "NON_TECH"
     image_url = Column(String(500), nullable=True)
+    keywords = Column(String(500), nullable=True)
 
     # Relationships
     club = relationship("Club", back_populates="events")

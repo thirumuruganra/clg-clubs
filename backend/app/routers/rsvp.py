@@ -3,13 +3,15 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.rsvp import RSVP
 from app.models.event import Event
+from app.models.user import User
+from app.core.security import get_current_user
 
 router = APIRouter()
 
 
 @router.post("/events/{event_id}/rsvp")
-def rsvp_to_event(event_id: int, user_id: int = Query(...), db: Session = Depends(get_db)):
-    """RSVP to an event (register / 'I will be there')."""
+def rsvp_to_event(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """RSVP to an event (register / 'I will be there'). Requires authentication."""
     # Verify event exists
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
@@ -17,12 +19,12 @@ def rsvp_to_event(event_id: int, user_id: int = Query(...), db: Session = Depend
 
     # Check if user already RSVPed
     existing = db.query(RSVP).filter(
-        RSVP.user_id == user_id, RSVP.event_id == event_id
+        RSVP.user_id == current_user.id, RSVP.event_id == event_id
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Already RSVPed to this event")
 
-    rsvp = RSVP(user_id=user_id, event_id=event_id)
+    rsvp = RSVP(user_id=current_user.id, event_id=event_id)
     db.add(rsvp)
     db.commit()
     db.refresh(rsvp)
@@ -35,10 +37,10 @@ def rsvp_to_event(event_id: int, user_id: int = Query(...), db: Session = Depend
 
 
 @router.delete("/events/{event_id}/rsvp")
-def cancel_rsvp(event_id: int, user_id: int = Query(...), db: Session = Depends(get_db)):
-    """Cancel an RSVP."""
+def cancel_rsvp(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Cancel an RSVP. Requires authentication."""
     rsvp = db.query(RSVP).filter(
-        RSVP.user_id == user_id, RSVP.event_id == event_id
+        RSVP.user_id == current_user.id, RSVP.event_id == event_id
     ).first()
     if not rsvp:
         raise HTTPException(status_code=404, detail="RSVP not found")
@@ -65,8 +67,39 @@ def get_event_rsvps(event_id: int, db: Session = Depends(get_db)):
             {
                 "id": r.id,
                 "user_id": r.user_id,
+                "attended": r.attended,
                 "created_at": r.created_at.isoformat() if r.created_at else None,
+                "user": {
+                    "id": r.user.id,
+                    "name": r.user.name,
+                    "email": r.user.email,
+                    "department": r.user.department,
+                    "batch": r.user.batch,
+                    "register_number": r.user.register_number
+                } if r.user else None
             }
             for r in rsvps
         ],
     }
+
+from pydantic import BaseModel
+
+class RSVPAttendUpdate(BaseModel):
+    attended: bool
+
+@router.patch("/rsvps/{rsvp_id}")
+def update_rsvp_attendance(rsvp_id: int, update_data: RSVPAttendUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Update RSVP attendance status. Typically requires Club Admin."""
+    if current_user.role != "CLUB_ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    rsvp = db.query(RSVP).filter(RSVP.id == rsvp_id).first()
+    if not rsvp:
+        raise HTTPException(status_code=404, detail="RSVP not found")
+
+    # Optionally verify that current user admin matches the event's club admin
+    
+    rsvp.attended = update_data.attended
+    db.commit()
+    
+    return {"status": "success", "attended": rsvp.attended}

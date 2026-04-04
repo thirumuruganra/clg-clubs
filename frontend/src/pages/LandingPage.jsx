@@ -23,7 +23,7 @@ const LandingPage = () => {
           </nav>
           <button 
             onClick={() => window.location.href = '/login'}
-            className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20">
+            className="flex min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20">
             <span className="truncate">Login</span>
           </button>
         </div>
@@ -49,7 +49,7 @@ const LandingPage = () => {
 
       {/* Mobile Navigation Dropdown */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-[65px] z-40 bg-white/95 dark:bg-[#111a22]/95 backdrop-blur-xl animate-in fade-in slide-in-from-top-5 duration-200">
+        <div className="md:hidden fixed inset-0 top-16.25 z-40 bg-white/95 dark:bg-[#111a22]/95 backdrop-blur-xl animate-in fade-in slide-in-from-top-5 duration-200">
            <nav className="flex flex-col items-center justify-center p-8 gap-8 h-full">
             {['About', 'Clubs', 'Contact'].map((item) => (
               <a key={item} 
@@ -62,7 +62,7 @@ const LandingPage = () => {
             ))}
             <button 
               onClick={() => window.location.href = '/login'}
-              className="mt-4 w-full max-w-[200px] h-14 rounded-xl bg-primary text-white text-lg font-bold shadow-xl shadow-blue-500/30"
+              className="mt-4 w-full max-w-50 h-14 rounded-xl bg-primary text-white text-lg font-bold shadow-xl shadow-blue-500/30"
             >
               Login
             </button>
@@ -70,22 +70,22 @@ const LandingPage = () => {
         </div>
       )}
 
-      <main className="flex-grow flex flex-col justify-center">
+      <main className="grow flex flex-col justify-center">
         <section className="flex flex-col items-center justify-center px-4 py-12 lg:px-40 lg:py-20">
-          <div className="layout-content-container flex flex-col max-w-[960px] w-full">
+          <div className="layout-content-container flex flex-col max-w-240 w-full">
             <div className="@container">
               <div className="">
                 <div 
-                  className="relative flex min-h-[50vh] md:min-h-[60vh] flex-col gap-6 overflow-hidden rounded-3xl bg-cover bg-[center_30%] bg-no-repeat items-center justify-center p-6 md:p-12 text-center shadow-2xl transition-transform hover:scale-[1.01] duration-500" 
+                  className="relative flex min-h-[50vh] md:min-h-[60vh] flex-col gap-6 overflow-hidden rounded-3xl bg-cover bg-position-[center_30%] bg-no-repeat items-center justify-center p-6 md:p-12 text-center shadow-2xl transition-transform hover:scale-[1.01] duration-500" 
                   data-alt="Group of diverse college students laughing together outdoors" 
                   style={{ backgroundImage: 'linear-gradient(rgba(19, 127, 236, 0.4) 0%, rgba(17, 26, 34, 0.9) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuDFz8Sp13s0cFzmpOBbUsIuW1qaQx3sSlvaM3FW-fQJiV76a1OWm0mD0yJq2vPUFIV1b6_c6S7eWTWpwcmqdkDAKpNds1aGanbjWDSRASLUs94a6YLzd7IATej5VQD5_WsT3g5kiHvXY1uzJfBdVeFvhdsLoqh9KsvKHQP4x7buVQXRecw_nabFOI_btwgWck6ndH4rLnEd80EZ8Xk_xhU0I81W8MUU-BYZeQncPOr7sgG6gd_WQj-JPyOe0spjfQMQKEM4Jx3AW4c")' }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-t from-background-dark/90 to-transparent pointer-events-none"></div>
-                  <div className="relative z-10 flex flex-col gap-4 max-w-[700px]">
+                  <div className="absolute inset-0 bg-linear-to-t from-background-dark/90 to-transparent pointer-events-none"></div>
+                  <div className="relative z-10 flex flex-col gap-4 max-w-175">
                     <h1 className="text-white text-4xl sm:text-5xl md:text-7xl font-black leading-tight tracking-[-0.033em] drop-shadow-2xl">
                       Stay in the loop.<br/>Stay in the club.
                     </h1>
-                    <h2 className="text-white/90 text-lg sm:text-xl font-medium leading-relaxed max-w-[600px] mx-auto drop-shadow-lg">
+                    <h2 className="text-white/90 text-lg sm:text-xl font-medium leading-relaxed max-w-150 mx-auto drop-shadow-lg">
                       Discover events, join communities, and manage club activities all in one unified campus platform.
                     </h2>
                   </div>
@@ -110,7 +110,7 @@ const LandingPage = () => {
       </main>
 
       <footer className="flex flex-col gap-6 px-5 py-10 text-center border-t border-slate-200 dark:border-[#233648] bg-slate-50 dark:bg-[#111a22] mt-auto">
-        <div className="layout-content-container mx-auto flex flex-col max-w-[960px] w-full">
+        <div className="layout-content-container mx-auto flex flex-col max-w-240 w-full">
           <div className="flex flex-col items-center justify-center gap-6 mb-8">
             <div className="flex items-center gap-2 text-slate-900 dark:text-white mb-2">
               <div className="w-10 h-10 flex items-center justify-center text-primary overflow-hidden">

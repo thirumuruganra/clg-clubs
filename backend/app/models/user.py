@@ -13,4 +13,6 @@ class User(Base):
     picture = Column(String(500))        # Profile picture URL
     batch = Column(String(10), nullable=True)       # e.g. "2024"
     department = Column(String(100), nullable=True)  # e.g. "CSE"
+    register_number = Column(String(50), nullable=True) # e.g. "3122XXXXXXXX"
     joined_clubs = Column(Text, default="[]")        # JSON string of club names
+    interests = Column(Text, default="[]")           # JSON string of selected interests

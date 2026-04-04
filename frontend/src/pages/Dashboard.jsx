@@ -5,14 +5,25 @@ import wavcIcon from '../assets/WAVC-edit.png';
 
 const API = '';
 
+const eventMatchesSearch = (event, rawQuery) => {
+    const query = rawQuery.trim().toLowerCase();
+    if (!query) return true;
+
+    return [event.title, event.description, event.keywords]
+        .filter(Boolean)
+        .some((field) => field.toLowerCase().includes(query));
+};
+
 const Dashboard = () => {
-    const { user, loading, logout } = useAuth();
+    const { user, loading } = useAuth();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [currentDate, setCurrentDate] = useState('');
     const [forYouEvents, setForYouEvents] = useState([]);
     const [discoverEvents, setDiscoverEvents] = useState([]);
+    const [clubs, setClubs] = useState([]);
     const [loadingEvents, setLoadingEvents] = useState(true);
+    const [pictureError, setPictureError] = useState(false);
 
     useEffect(() => {
         const date = new Date();
@@ -24,23 +35,28 @@ const Dashboard = () => {
             navigate('/login');
             return;
         }
-        if (user && (!user.batch || !user.department)) {
+        if (
+            user &&
+            user.role !== 'CLUB_ADMIN' &&
+            (!user.batch || !user.department || (user.interests || []).length < 3)
+        ) {
             navigate('/profile');
             return;
         }
         if (user) {
             fetchEvents();
+            fetchClubs();
         }
     }, [user, loading]);
 
     const fetchEvents = async () => {
         try {
-            const [forYouRes, discoverRes] = await Promise.all([
-                fetch(`${API}/api/events/feed?type=following&user_id=${user.id}`),
-                fetch(`${API}/api/events/feed?type=discover&user_id=${user.id}`)
-            ]);
-            if (forYouRes.ok) setForYouEvents(await forYouRes.json());
-            if (discoverRes.ok) setDiscoverEvents(await discoverRes.json());
+            const recommendedRes = await fetch(`${API}/api/events/feed?type=recommended&user_id=${user.id}`);
+            if (recommendedRes.ok) {
+                const recommendedEvents = await recommendedRes.json();
+                setForYouEvents(recommendedEvents);
+                setDiscoverEvents(recommendedEvents.filter((event) => !event.is_from_followed_club));
+            }
         } catch (err) {
             console.error('Error fetching events:', err);
         } finally {
@@ -48,15 +64,23 @@ const Dashboard = () => {
         }
     };
 
-    const handleRSVP = async (eventId) => {
+    const handleRSVP = async (eventId, isRegistered) => {
         try {
-            const res = await fetch(`${API}/api/rsvp/events/${eventId}/rsvp?user_id=${user.id}`, { method: 'POST' });
+            const method = isRegistered ? 'DELETE' : 'POST';
+            const res = await fetch(`${API}/api/rsvp/events/${eventId}/rsvp`, { method });
             if (res.ok) fetchEvents();
             else {
                 const data = await res.json();
-                alert(data.detail || 'Already registered');
+                alert(data.detail || (isRegistered ? 'Failed to unregister' : 'Already registered'));
             }
         } catch (err) { console.error(err); }
+    };
+
+    const fetchClubs = async () => {
+        try {
+            const res = await fetch(`${API}/api/clubs/?user_id=${user.id}`);
+            if (res.ok) setClubs(await res.json());
+        } catch (err) { console.error('Error fetching clubs:', err); }
     };
 
     if (loading) return (
@@ -68,6 +92,7 @@ const Dashboard = () => {
     const name = user?.name || 'Student';
     const role = user?.role || 'STUDENT';
     const picture = user?.picture;
+    const hasValidPicture = picture && picture.trim() !== '' && !pictureError;
 
     const formatDate = (iso) => {
         if (!iso) return { month: '', day: '' };
@@ -94,14 +119,13 @@ const Dashboard = () => {
                     <div className="mt-auto flex items-center justify-between">
                         <div className="flex items-center gap-1 text-[#637588] dark:text-[#92adc9]">
                             <span className="material-symbols-outlined text-[16px]">group</span>
-                            <span className="text-xs font-medium">{event.rsvp_count || 0} going</span>
+                            <span className="text-xs font-medium">{event.rsvp_count || 0} registered</span>
                         </div>
                         <button
-                            onClick={() => handleRSVP(event.id)}
-                            disabled={event.is_rsvped}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${event.is_rsvped ? 'bg-green-500/10 text-green-500 cursor-default' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
+                            onClick={() => handleRSVP(event.id, event.is_rsvped)}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${event.is_rsvped ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
                         >
-                            {event.is_rsvped ? '✓ Registered' : 'Register'}
+                            {event.is_rsvped ? 'Unregister' : 'Register'}
                         </button>
                     </div>
                 </div>
@@ -150,7 +174,7 @@ const Dashboard = () => {
                             </div>
                             <h2 className="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">WAVC</h2>
                         </div>
-                        <label className="hidden md:flex flex-col min-w-40 !h-10 max-w-64">
+                        <label className="hidden md:flex flex-col min-w-40 h-10! max-w-64">
                             <div className="flex w-full flex-1 items-stretch rounded-xl h-full">
                                 <div className="text-[#637588] dark:text-[#92adc9] flex border-none bg-[#f0f2f4] dark:bg-[#233648] items-center justify-center pl-4 rounded-l-xl">
                                     <span className="material-symbols-outlined text-[24px]">search</span>
@@ -167,21 +191,28 @@ const Dashboard = () => {
                     <div className="flex flex-1 justify-end gap-4 md:gap-8">
                         <div className="hidden md:flex items-center gap-9">
                             <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/dashboard">Dashboard</a>
+                            <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/clubs">Clubs</a>
                             <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/calendar">Events</a>
                             {role === 'CLUB_ADMIN' && (
                                 <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/admin">Admin</a>
                             )}
                         </div>
                         {role === 'CLUB_ADMIN' && (
-                            <button onClick={() => navigate('/admin')} className="hidden md:flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+                            <button onClick={() => navigate('/admin')} className="hidden md:flex min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
                                 <span className="truncate">Create Event</span>
                             </button>
                         )}
                         <button onClick={() => navigate('/profile')} className="focus:outline-none transition-transform active:scale-95">
-                            {picture ? (
-                                <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 ring-2 ring-white/10" style={{ backgroundImage: `url("${picture}")` }}></div>
+                            {hasValidPicture ? (
+                                <img
+                                    src={picture}
+                                    alt={name}
+                                    className="size-10 rounded-full ring-2 ring-white/10 object-cover"
+                                    onError={() => setPictureError(true)}
+                                    referrerPolicy="no-referrer"
+                                />
                             ) : (
-                                <div className="size-10 rounded-full ring-2 ring-white/10 bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+                                <div className="size-10 rounded-full ring-2 ring-white/10 flex items-center justify-center font-bold text-lg text-white" style={{ background: 'linear-gradient(135deg, #137fec 0%, #0d5bab 100%)' }}>
                                     {name.charAt(0).toUpperCase()}
                                 </div>
                             )}
@@ -191,7 +222,7 @@ const Dashboard = () => {
 
                 {/* Main Content */}
                 <main className="px-4 md:px-10 lg:px-40 flex flex-1 justify-center py-8">
-                    <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
+                    <div className="layout-content-container flex flex-col max-w-240 flex-1">
                         {/* Welcome */}
                         <div className="flex justify-between items-end pb-3 pt-6 px-4">
                             <div>
@@ -207,7 +238,7 @@ const Dashboard = () => {
                         {/* Calendar Tile */}
                         <div className="grid grid-cols-1 gap-4 p-4">
                             <div onClick={() => navigate('/calendar')} className="group relative cursor-pointer overflow-hidden rounded-xl shadow-sm transition-all hover:shadow-md h-80">
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/20 transition-transform duration-500 group-hover:scale-105 bg-cover bg-center"
+                                <div className="absolute inset-0 bg-linear-to-t from-black/70 to-black/20 transition-transform duration-500 group-hover:scale-105 bg-cover bg-center"
                                     style={{ backgroundImage: 'linear-gradient(0deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuB3zrC2zWTw2D4ivcIDWAb6vufiRs4bu3TgruhnB8zNBUeKci7kXQow7VafPKRga4Lua80PMNk1-QDne8Jz2xL8sVt3D4vk8aly08_J7ECW6ibdVKe9cK___pbaTzgl6Ao0GGmlrhdkYYcHHKC28MFxi-5Mx_ilnkcmxWj5IIVBLlLxQYWXwPOekKPJDW0-W2SFeW-zf9V-A-3yzcHNOiIBjXVzDYVZKSGxx5ZgP8Wqr1aIRU71sDUnwUvmUITWOzvvnhPYUWOcoek")' }}
                                 ></div>
                                 <div className="absolute inset-0 flex flex-col justify-end p-8">
@@ -223,17 +254,40 @@ const Dashboard = () => {
                             <div className="flex items-center justify-between px-4 pb-4">
                                 <div>
                                     <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">For You</h2>
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Upcoming events from clubs you follow</p>
+                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Interest-matched events ranked for you across all clubs</p>
                                 </div>
                                 <button onClick={() => navigate('/calendar')} className="text-primary text-sm font-bold hover:underline">View All</button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
                                 {!loadingEvents && forYouEvents.length === 0 && (
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm col-span-3 italic">Follow some clubs to see events here!</p>
+                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm col-span-3 italic">No personalized events yet. Add more interests in your profile.</p>
                                 )}
                                 {forYouEvents
-                                    .filter(e => !searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                                    .filter(e => eventMatchesSearch(e, searchQuery))
                                     .slice(0, 3).map(e => <EventCard key={e.id} event={e} />)}
+                            </div>
+                        </div>
+
+                        {/* Clubs CTA */}
+                        <div className="mt-10">
+                            <div className="flex items-center justify-between px-4 pb-4">
+                                <div>
+                                    <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">Clubs</h2>
+                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Follow clubs for stronger priority in your personalized feed</p>
+                                </div>
+                                <button onClick={() => navigate('/clubs')} className="text-primary text-sm font-bold hover:underline">View All</button>
+                            </div>
+                            <div className="px-4">
+                                <div onClick={() => navigate('/clubs')} className="group cursor-pointer overflow-hidden rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] p-6 hover:shadow-lg hover:border-primary/30 transition-all flex items-center gap-6">
+                                    <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                                        <span className="material-symbols-outlined text-primary text-[32px]">groups</span>
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-lg font-bold text-[#111418] dark:text-white group-hover:text-primary transition-colors">Explore All Clubs</h3>
+                                        <p className="text-sm text-[#637588] dark:text-[#92adc9] mt-1">{clubs.length} clubs available &middot; {clubs.filter(c => c.is_following).length} following</p>
+                                    </div>
+                                    <span className="material-symbols-outlined text-[24px] text-[#637588] dark:text-[#92adc9] group-hover:text-primary group-hover:translate-x-1 transition-all">arrow_forward</span>
+                                </div>
                             </div>
                         </div>
 
@@ -241,16 +295,16 @@ const Dashboard = () => {
                         <div className="mt-10 mb-8">
                             <div className="flex items-center justify-between px-4 pb-4">
                                 <div>
-                                    <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">Random & Discover</h2>
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Explore events from clubs you haven't joined yet</p>
+                                    <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">Explore Beyond Your Clubs</h2>
+                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Great matches from clubs you do not follow yet</p>
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
                                 {!loadingEvents && discoverEvents.length === 0 && (
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm col-span-2 italic">No events to discover right now.</p>
+                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm col-span-2 italic">No extra recommendations right now.</p>
                                 )}
                                 {discoverEvents
-                                    .filter(e => !searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                                    .filter(e => eventMatchesSearch(e, searchQuery))
                                     .slice(0, 4).map(e => <DiscoverItem key={e.id} event={e} />)}
                             </div>
                         </div>

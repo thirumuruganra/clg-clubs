@@ -5,6 +5,7 @@ from app.models.club import Club
 from app.models.follow import Follow
 from app.models.user import User
 from app.schemas import ClubCreate, ClubUpdate
+from app.core.security import get_current_user
 from typing import Optional
 
 router = APIRouter()
@@ -63,17 +64,13 @@ def get_club(club_id: int, user_id: Optional[int] = Query(None), db: Session = D
 
 
 @router.post("/")
-def create_club(club: ClubCreate, admin_id: int = Query(...), db: Session = Depends(get_db)):
-    """Create a new club. admin_id is the user who owns the club."""
-    # Verify admin exists and is a CLUB_ADMIN
-    admin = db.query(User).filter(User.id == admin_id).first()
-    if not admin:
-        raise HTTPException(status_code=404, detail="Admin user not found")
-    if admin.role != "CLUB_ADMIN":
+def create_club(club: ClubCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Create a new club. Only CLUB_ADMIN users can create clubs."""
+    if current_user.role != "CLUB_ADMIN":
         raise HTTPException(status_code=403, detail="Only CLUB_ADMIN users can create clubs")
 
     # Check if admin already has a club
-    existing = db.query(Club).filter(Club.admin_id == admin_id).first()
+    existing = db.query(Club).filter(Club.admin_id == current_user.id).first()
     if existing:
         raise HTTPException(status_code=400, detail="This admin already manages a club")
 
@@ -82,7 +79,7 @@ def create_club(club: ClubCreate, admin_id: int = Query(...), db: Session = Depe
         logo_url=club.logo_url,
         category=club.category,
         instagram_handle=club.instagram_handle,
-        admin_id=admin_id,
+        admin_id=current_user.id,
     )
     db.add(db_club)
     db.commit()
@@ -101,11 +98,13 @@ def create_club(club: ClubCreate, admin_id: int = Query(...), db: Session = Depe
 
 
 @router.put("/{club_id}")
-def update_club(club_id: int, club_update: ClubUpdate, db: Session = Depends(get_db)):
-    """Update an existing club."""
+def update_club(club_id: int, club_update: ClubUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Update an existing club. Only the owning admin can update."""
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
+    if club.admin_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only update your own club")
 
     if club_update.name is not None:
         club.name = club_update.name
@@ -146,6 +145,7 @@ def get_club_events(club_id: int, db: Session = Depends(get_db)):
     result = []
     for event in events:
         rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
+        attended_count = db.query(RSVP).filter(RSVP.event_id == event.id, RSVP.attended == True).count()
         result.append({
             "id": event.id,
             "club_id": event.club_id,
@@ -157,6 +157,8 @@ def get_club_events(club_id: int, db: Session = Depends(get_db)):
             "end_time": event.end_time.isoformat() if event.end_time else None,
             "tag": event.tag,
             "image_url": event.image_url,
+            "keywords": event.keywords,
             "rsvp_count": rsvp_count,
+            "attended_count": attended_count,
         })
     return result

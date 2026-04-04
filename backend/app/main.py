@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 from starlette.middleware.sessions import SessionMiddleware
 from app.database import engine, Base
 from app.routers import auth, users, events, clubs, rsvp, follow
@@ -17,6 +18,82 @@ load_dotenv()
 
 # Create all tables in the database
 Base.metadata.create_all(bind=engine)
+
+
+def ensure_event_keywords_column() -> None:
+    """Add the keywords column for older databases that were created before this field existed."""
+    try:
+        inspector = inspect(engine)
+        if "events" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("events")}
+        if "keywords" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE events ADD COLUMN keywords VARCHAR(500)"))
+        print("ℹ️  Added missing 'keywords' column to events table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'keywords' column: {exc}")
+
+
+def ensure_user_interests_column() -> None:
+    """Add the interests column for older databases that were created before this field existed."""
+    try:
+        inspector = inspect(engine)
+        if "users" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("users")}
+        if "interests" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN interests TEXT"))
+        print("ℹ️  Added missing 'interests' column to users table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'interests' column: {exc}")
+
+def ensure_user_register_number_column() -> None:
+    """Add the register_number column for older databases that were created before this field existed."""
+    try:
+        inspector = inspect(engine)
+        if "users" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("users")}
+        if "register_number" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN register_number VARCHAR(50)"))
+        print("ℹ️  Added missing 'register_number' column to users table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'register_number' column: {exc}")
+
+def ensure_rsvp_attended_column() -> None:
+    """Add the attended column for older databases that were created before this field existed."""
+    try:
+        inspector = inspect(engine)
+        if "rsvps" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("rsvps")}
+        if "attended" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE rsvps ADD COLUMN attended BOOLEAN DEFAULT 0"))
+        print("ℹ️  Added missing 'attended' column to rsvps table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'attended' column: {exc}")
+
+
+ensure_event_keywords_column()
+ensure_user_interests_column()
+ensure_user_register_number_column()
+ensure_rsvp_attended_column()
 
 app = FastAPI(
     title="WAVC API",
