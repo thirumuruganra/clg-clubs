@@ -4,6 +4,7 @@ import { useAuth } from '../AuthContext';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import wavcIcon from '../assets/WAVC-edit.png';
+import AdminCalendar from './AdminCalendar';
 
 const API = '';
 const DESCRIPTION_WORD_LIMIT = 100;
@@ -61,15 +62,16 @@ const eventMatchesSearch = (event, rawQuery) => {
 const AdminDashboard = () => {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('events');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [club, setClub] = useState(null);
   const [events, setEvents] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   // Quick Create form
-  const [newEvent, setNewEvent] = useState({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '' });
+  const [newEvent, setNewEvent] = useState({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '' });
   const [creating, setCreating] = useState(false);
 
   // Edit Modal
@@ -87,8 +89,21 @@ const AdminDashboard = () => {
       const clubsRes = await fetch(`${API}/api/clubs/`);
       if (clubsRes.ok) {
         const clubs = await clubsRes.json();
-        const myClub = clubs.find(c => c.admin_id === user.id);
+        let myClub = clubs.find(c => c.admin_id === user.id);
         if (!myClub) { navigate('/club-setup'); return; }
+        
+        if (myClub.instagram_handle) {
+          try {
+            await fetch(`${API}/api/clubs/${myClub.id}/sync-instagram`, { method: 'POST' });
+            const updatedClubRes = await fetch(`${API}/api/clubs/${myClub.id}`);
+            if (updatedClubRes.ok) {
+              myClub = await updatedClubRes.json();
+            }
+          } catch (err) {
+            console.error('Failed to sync instagram logo', err);
+          }
+        }
+        
         setClub(myClub);
         const eventsRes = await fetch(`${API}/api/clubs/${myClub.id}/events`);
         if (eventsRes.ok) setEvents(await eventsRes.json());
@@ -128,8 +143,9 @@ const AdminDashboard = () => {
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        setNewEvent({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '' });
+        setNewEvent({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '' });
         fetchData();
+        setCreateModalOpen(false);
       } else {
         const data = await res.json();
         alert(data.detail || 'Failed to create event');
@@ -157,6 +173,7 @@ const AdminDashboard = () => {
       tag: event.tag || 'TECH',
       image_url: event.image_url || '',
       keywords: event.keywords || '',
+      payment_link: event.payment_link || '',
     });
   };
 
@@ -321,8 +338,6 @@ const AdminDashboard = () => {
   const sideNavItems = [
     { label: 'Dashboard', icon: 'dashboard', tab: 'dashboard' },
     { label: 'Event Management', icon: 'event', tab: 'events' },
-    { label: 'Members', icon: 'group', tab: 'members' },
-    { label: 'Analytics', icon: 'analytics', tab: 'analytics' },
   ];
 
   return (
@@ -334,11 +349,19 @@ const AdminDashboard = () => {
 
       {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 w-64 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col transition-transform duration-300 ease-in-out`}>
-        <div className="p-6 border-b border-[#233648]">
+        <div className="p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
           <div className="flex items-center gap-3 mb-1">
-            <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
-            <div>
-              <span className="text-lg font-bold">WAVC</span>
+            {club?.logo_url ? (
+              <div className="size-10 rounded-full overflow-hidden shrink-0 border border-primary/20 bg-primary/5 flex items-center justify-center">
+                <img src={club.logo_url} alt={club?.name || 'Club'} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
+            )}
+            <div className="flex-1 min-w-0">
+              <span className="text-lg font-bold truncate block" title={club?.name || 'WAVC'}>
+                {club?.name || 'WAVC'}
+              </span>
               <p className="text-xs text-[#637588] dark:text-[#92adc9]">Club Admin Portal</p>
             </div>
           </div>
@@ -390,19 +413,34 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden w-full">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 lg:px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22]">
+        <div className={`items-center justify-between px-4 lg:px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] ${activeTab === 'events' ? 'flex lg:hidden' : 'flex'}`}>
           <div className="flex items-center gap-2 flex-1">
             <button className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
-            <label className="flex items-stretch rounded-xl h-10 bg-[#f0f2f4] dark:bg-[#233648] md:min-w-75 w-full max-w-md">
-              <div className="flex items-center justify-center pl-4"><span className="material-symbols-outlined text-[20px] text-[#637588]">search</span></div>
-              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-transparent border-none text-sm px-3 focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1 w-full" placeholder="Search events..." />
-            </label>
+            {activeTab !== 'events' && (
+              <label className="flex items-stretch rounded-xl h-10 bg-[#f0f2f4] dark:bg-[#233648] md:min-w-75 w-full max-w-md">
+                <div className="flex items-center justify-center pl-4"><span className="material-symbols-outlined text-[20px] text-[#637588]">search</span></div>
+                <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-transparent border-none text-sm px-3 focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1 w-full" placeholder="Search events..." />
+              </label>
+            )}
           </div>
         </div>
 
         {/* Content Area */}
+        {activeTab === 'events' ? (
+          <div className="flex-1 overflow-hidden p-0">
+            <AdminCalendar 
+              club={club} 
+              searchQuery={searchQuery} 
+              onOpenEditModal={openEditModal} 
+              onOpenCreateModal={(date) => { 
+                setNewEvent({ title: '', description: '', keywords: '', location: '', start_time: date, end_time: new Date(date.getTime() + 60*60*1000), tag: 'TECH', image_url: '', payment_link: '' }); 
+                setCreateModalOpen(true); 
+              }} 
+            />
+          </div>
+        ) : (
         <div className="flex-1 overflow-y-auto p-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
@@ -558,12 +596,124 @@ const AdminDashboard = () => {
                   <div className="flex gap-3">
                     {[{ label: 'Tech', value: 'TECH', icon: 'computer' }, { label: 'Non-Tech', value: 'NON_TECH', icon: 'palette' }].map(tag => (
                       <button key={tag.value} type="button" onClick={() => setNewEvent(p => ({ ...p, tag: tag.value }))}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium border transition-all ${
                           newEvent.tag === tag.value
                             ? 'border-primary bg-primary/10 text-primary'
                             : 'border-[#233648] text-[#92adc9] hover:border-[#34485c]'
                         }`}>
                         <span className="material-symbols-outlined text-[18px]">{tag.icon}</span>
+                        {tag.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-2 block">Location</label>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
+                    <span className="material-symbols-outlined text-[18px] text-[#637588]">location_on</span>
+                    <input type="text" value={newEvent.location} onChange={e => setNewEvent(p => ({ ...p, location: e.target.value }))}
+                      placeholder="Add location"
+                      className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
+                    <span className="material-symbols-outlined text-[18px] text-[#637588]">link</span>
+                    <input type="url" value={newEvent.payment_link || ''} onChange={e => setNewEvent(p => ({ ...p, payment_link: e.target.value }))}
+                      placeholder="e.g. https://rzp.io/l/..."
+                      className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
+                  </div>
+                </div>
+                <button type="submit" disabled={creating}
+                  className="w-full py-3 rounded-xl bg-white dark:bg-[#233648] text-[#111418] dark:text-white font-bold text-sm border border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f0f2f4] dark:hover:bg-[#34485c] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                  {creating ? 'Publishing...' : 'Publish Event'}
+                  {!creating && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+        )}
+      </main>
+      {/* Create Event Modal */}
+      {createModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setCreateModalOpen(false)}>
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
+              <h2 className="text-xl font-bold">Create Event</h2>
+              <button onClick={() => setCreateModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+            </div>
+            <form onSubmit={handleCreateEvent} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Title</label>
+                <input type="text" required value={newEvent.title} onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
+                  placeholder="e.g. Winter Coding Bootcamp"
+                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Short Description (max 100 words)</label>
+                <textarea value={newEvent.description} onChange={e => setNewEvent(p => ({ ...p, description: e.target.value }))}
+                  placeholder="Describe the event..."
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] resize-none" />
+                <p className={`mt-1 text-xs ${isDescriptionTooLong(newEvent.description) ? 'text-red-500' : 'text-[#637588] dark:text-[#92adc9]'}`}>
+                  {countWords(newEvent.description)}/{DESCRIPTION_WORD_LIMIT} words
+                </p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Keywords</label>
+                <input type="text" value={newEvent.keywords} onChange={e => setNewEvent(p => ({ ...p, keywords: e.target.value }))}
+                  placeholder="e.g. workshop, python, machine learning"
+                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Start Time</label>
+                  <DatePicker
+                    selected={newEvent.start_time}
+                    onChange={(date) => setNewEvent((p) => ({ ...p, start_time: date }))}
+                    showTimeInput
+                    dateFormat="dd MMM yyyy, h:mm aa"
+                    placeholderText="Select start date and time"
+                    className="modern-datetime-input w-full"
+                    calendarClassName="modern-datepicker-calendar"
+                    popperClassName="modern-datepicker-popper"
+                    popperPlacement="bottom-start"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">End Time</label>
+                  <DatePicker
+                    selected={newEvent.end_time}
+                    onChange={(date) => setNewEvent((p) => ({ ...p, end_time: date }))}
+                    showTimeInput
+                    dateFormat="dd MMM yyyy, h:mm aa"
+                    placeholderText="Select end date and time"
+                    minDate={newEvent.start_time || undefined}
+                    className="modern-datetime-input w-full"
+                    calendarClassName="modern-datepicker-calendar"
+                    popperClassName="modern-datepicker-popper"
+                    popperPlacement="bottom-start"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Category</label>
+                  <div className="flex bg-[#f0f2f4] dark:bg-[#233648] rounded-lg p-1">
+                    {[
+                      { value: 'TECH', label: 'Tech' },
+                      { value: 'NON_TECH', label: 'Non-Tech' }
+                    ].map(tag => (
+                      <button type="button" key={tag.value} onClick={() => setNewEvent(p => ({ ...p, tag: tag.value }))}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${
+                          newEvent.tag === tag.value
+                            ? 'bg-white dark:bg-[#34485c] text-[#111418] dark:text-white shadow-sm'
+                            : 'text-[#637588] dark:text-[#92adc9] hover:bg-black/5 dark:hover:bg-white/5'
+                        }`}>
                         {tag.label}
                       </button>
                     ))}
@@ -578,16 +728,27 @@ const AdminDashboard = () => {
                       className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
                   </div>
                 </div>
-                <button type="submit" disabled={creating}
-                  className="w-full py-3 rounded-xl bg-white dark:bg-[#233648] text-[#111418] dark:text-white font-bold text-sm border border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f0f2f4] dark:hover:bg-[#34485c] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-                  {creating ? 'Publishing...' : 'Publish Event'}
-                  {!creating && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
+                  <span className="material-symbols-outlined text-[18px] text-[#637588]">link</span>
+                  <input type="url" value={newEvent.payment_link || ''} onChange={e => setNewEvent(p => ({ ...p, payment_link: e.target.value }))}
+                    placeholder="e.g. https://rzp.io/l/..."
+                    className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button type="button" onClick={() => setCreateModalOpen(false)} className="px-4 py-2 rounded-xl text-sm font-bold text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">Cancel</button>
+                <button type="submit" disabled={creating} className="px-6 py-2 rounded-xl bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors disabled:opacity-50">
+                  {creating ? 'Saving...' : 'Create Event'}
                 </button>
-              </form>
-            </div>
+              </div>
+            </form>
           </div>
         </div>
-      </main>
+      )}
       {/* Edit Event Modal */}
       {editEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setEditEvent(null)}>
@@ -653,6 +814,12 @@ const AdminDashboard = () => {
               <div>
                 <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Location</label>
                 <input type="text" value={editEvent.location} onChange={e => setEditEvent(p => ({ ...p, location: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
+                <input type="url" value={editEvent.payment_link || ''} onChange={e => setEditEvent(p => ({ ...p, payment_link: e.target.value }))}
+                  placeholder="e.g. https://rzp.io/l/..."
                   className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white" />
               </div>
               <div>

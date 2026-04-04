@@ -71,6 +71,7 @@ class EventBase(BaseModel):
     tag: Optional[str] = None              # "TECH" or "NON_TECH"
     image_url: Optional[str] = None
     keywords: Optional[str] = None
+    payment_link: Optional[str] = None
 
 class EventCreate(EventBase):
     club_id: int
@@ -84,6 +85,7 @@ class EventUpdate(BaseModel):
     tag: Optional[str] = None
     image_url: Optional[str] = None
     keywords: Optional[str] = None
+    payment_link: Optional[str] = None
 
 class EventResponse(EventBase):
     id: int

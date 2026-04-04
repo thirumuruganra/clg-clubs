@@ -267,8 +267,8 @@ const Calendar = () => {
               <div className="flex items-center justify-center pl-3"><span className="material-symbols-outlined text-[20px] text-[#637588] dark:text-[#92adc9]">search</span></div>
               <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="bg-transparent border-none text-sm px-2 focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] w-full" placeholder="Search..." />
             </label>
-            <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px] leading-none">notifications</span></button>
-            <button onClick={() => navigate('/profile')} className="w-10 h-10 focus:outline-none flex items-center justify-center rounded-full overflow-hidden">
+            <button className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-[#f0f2f4] dark:bg-[#233648] hover:bg-[#e5e7eb] dark:hover:bg-[#324b61] transition-colors"><span className="material-symbols-outlined text-[20px] leading-none">notifications</span></button>
+            <button onClick={() => navigate('/profile')} className="w-10 h-10 shrink-0 focus:outline-none flex items-center justify-center rounded-full bg-[#f0f2f4] dark:bg-[#233648] overflow-hidden">
               {user?.picture && user.picture.trim() !== '' ? (
                 <img
                   src={user.picture}
