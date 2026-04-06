@@ -82,6 +82,28 @@ def get_event_rsvps(event_id: int, db: Session = Depends(get_db)):
         ],
     }
 
+@router.get("/rsvps/me/activity")
+def get_user_activity(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get all attended events for the current user."""
+    from app.models.club import Club
+    rsvps = (
+        db.query(RSVP)
+        .join(Event, RSVP.event_id == Event.id)
+        .join(Club, Event.club_id == Club.id)
+        .filter(RSVP.user_id == current_user.id, RSVP.attended == True)
+        .all()
+    )
+
+    activities = []
+    for r in rsvps:
+        activities.append({
+            "event_name": r.event.title,
+            "club_name": r.event.club.name if r.event.club else "Unknown Club",
+            "start_time": r.event.start_time.isoformat() if r.event.start_time else None,
+            "end_time": r.event.end_time.isoformat() if r.event.end_time else None,
+        })
+    return activities
+
 from pydantic import BaseModel
 
 class RSVPAttendUpdate(BaseModel):

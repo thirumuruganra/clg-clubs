@@ -23,6 +23,8 @@ const Dashboard = () => {
     const [discoverEvents, setDiscoverEvents] = useState([]);
     const [clubs, setClubs] = useState([]);
     const [loadingEvents, setLoadingEvents] = useState(true);
+    const [activities, setActivities] = useState([]);
+    const [loadingActivities, setLoadingActivities] = useState(true);
     const [pictureError, setPictureError] = useState(false);
 
     useEffect(() => {
@@ -46,6 +48,7 @@ const Dashboard = () => {
         if (user) {
             fetchEvents();
             fetchClubs();
+            fetchActivities();
         }
     }, [user, loading]);
 
@@ -81,6 +84,16 @@ const Dashboard = () => {
             const res = await fetch(`${API}/api/clubs/?user_id=${user.id}`);
             if (res.ok) setClubs(await res.json());
         } catch (err) { console.error('Error fetching clubs:', err); }
+    };
+
+    const fetchActivities = async () => {
+        try {
+            const res = await fetch(`${API}/api/rsvp/rsvps/me/activity`);
+            if (res.ok) {
+                setActivities(await res.json());
+            }
+        } catch (err) { console.error('Error fetching activities:', err); }
+        finally { setLoadingActivities(false); }
     };
 
     if (loading) return (
@@ -288,6 +301,55 @@ const Dashboard = () => {
                                     </div>
                                     <span className="material-symbols-outlined text-[24px] text-[#637588] dark:text-[#92adc9] group-hover:text-primary group-hover:translate-x-1 transition-all">arrow_forward</span>
                                 </div>
+                            </div>
+                        </div>
+
+                                                {/* Student Activity Tracker */}
+                        <div className="mt-10 mb-8">
+                            <div className="flex items-center justify-between px-4 pb-4">
+                                <div>
+                                    <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">Student Activity Tracker</h2>
+                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Events you have attended</p>
+                                </div>
+                            </div>
+                            <div className="px-4">
+                                {loadingActivities ? (
+                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm italic">Loading activities...</p>
+                                ) : activities.length === 0 ? (
+                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm italic">No attended events yet. Participate in events to earn activity points!</p>
+                                ) : (
+                                    <div className="overflow-x-auto rounded-xl border border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#1a2632]">
+                                        <table className="w-full text-left text-sm text-[#111418] dark:text-white">
+                                            <thead className="bg-[#f0f2f4] dark:bg-[#233648] text-xs uppercase text-[#637588] dark:text-[#92adc9]">
+                                                <tr>
+                                                    <th className="px-6 py-3 whitespace-nowrap">Event Name</th>
+                                                    <th className="px-6 py-3 whitespace-nowrap">Club Name</th>
+                                                    <th className="px-6 py-3 whitespace-nowrap">Date</th>
+                                                    <th className="px-6 py-3 whitespace-nowrap">Start Time</th>
+                                                    <th className="px-6 py-3 whitespace-nowrap">End Time</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y border-t border-[#e5e7eb] dark:border-[#233648] divide-[#e5e7eb] dark:divide-[#233648]">
+                                                {activities.map((act, i) => {
+                                                    const startD = new Date(act.start_time);
+                                                    const endD = new Date(act.end_time);
+                                                    const dateStr = startD.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                                    const startTimeStr = startD.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                                                    const endTimeStr = endD.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                                                    return (
+                                                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-[#111a22] transition-colors">
+                                                            <td className="px-6 py-4 font-medium">{act.event_name}</td>
+                                                            <td className="px-6 py-4">{act.club_name}</td>
+                                                            <td className="px-6 py-4">{dateStr}</td>
+                                                            <td className="px-6 py-4">{startTimeStr}</td>
+                                                            <td className="px-6 py-4">{endTimeStr}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
