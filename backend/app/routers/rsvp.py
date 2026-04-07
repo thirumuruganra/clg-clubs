@@ -67,7 +67,7 @@ def get_event_rsvps(event_id: int, db: Session = Depends(get_db)):
             {
                 "id": r.id,
                 "user_id": r.user_id,
-                "attended": r.attended,
+                "attended": r.attended, "is_paid": r.is_paid,
                 "created_at": r.created_at.isoformat() if r.created_at else None,
                 "user": {
                     "id": r.user.id,
@@ -106,8 +106,10 @@ def get_user_activity(db: Session = Depends(get_db), current_user: User = Depend
 
 from pydantic import BaseModel
 
+from typing import Optional
 class RSVPAttendUpdate(BaseModel):
-    attended: bool
+    attended: Optional[bool] = None
+    is_paid: Optional[bool] = None
 
 @router.patch("/rsvps/{rsvp_id}")
 def update_rsvp_attendance(rsvp_id: int, update_data: RSVPAttendUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -121,7 +123,29 @@ def update_rsvp_attendance(rsvp_id: int, update_data: RSVPAttendUpdate, db: Sess
 
     # Optionally verify that current user admin matches the event's club admin
     
-    rsvp.attended = update_data.attended
+    if update_data.attended is not None:
+        rsvp.attended = update_data.attended
+    if update_data.is_paid is not None:
+        rsvp.is_paid = update_data.is_paid
     db.commit()
     
-    return {"status": "success", "attended": rsvp.attended}
+    return {"status": "success"}
+
+from typing import List
+
+class BulkRSVPUpdate(BaseModel):
+    rsvp_ids: List[int]
+    is_paid: bool
+
+@router.post("/events/{event_id}/bulk-payment")
+def bulk_update_payments(event_id: int, update_data: BulkRSVPUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != "CLUB_ADMIN":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.id.in_(update_data.rsvp_ids)
+    ).update({"is_paid": update_data.is_paid}, synchronize_session=False)
+    
+    db.commit()
+    return {"status": "success", "updated_count": len(update_data.rsvp_ids)}

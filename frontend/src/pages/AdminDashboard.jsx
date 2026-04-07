@@ -71,7 +71,7 @@ const AdminDashboard = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   // Quick Create form
-  const [newEvent, setNewEvent] = useState({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '' });
+  const [newEvent, setNewEvent] = useState({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '', is_paid: false, registration_fees: '' });
   const [creating, setCreating] = useState(false);
 
   // Edit Modal
@@ -143,7 +143,7 @@ const AdminDashboard = () => {
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        setNewEvent({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '' });
+        setNewEvent({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '', is_paid: false, registration_fees: '' });
         fetchData();
         setCreateModalOpen(false);
       } else {
@@ -174,6 +174,8 @@ const AdminDashboard = () => {
       image_url: event.image_url || '',
       keywords: event.keywords || '',
       payment_link: event.payment_link || '',
+      is_paid: event.is_paid || false,
+      registration_fees: event.registration_fees || '',
     });
   };
 
@@ -218,7 +220,7 @@ const AdminDashboard = () => {
     finally { setEditing(false); }
   };
 
-  const [rsvpModal, setRsvpModal] = useState({ open: false, event: null, rsvps: [], loading: false });
+  const [rsvpModal, setRsvpModal] = useState({ open: false, event: null, rsvps: [], loading: false, tab: "attendance" });
 
   const calculateYear = (batchStr) => {
     if (!batchStr) return '-';
@@ -238,7 +240,7 @@ const AdminDashboard = () => {
   };
 
   const openRsvpModal = async (eventObj) => {
-    setRsvpModal({ open: true, event: eventObj, rsvps: [], loading: true });
+    setRsvpModal({ open: true, event: eventObj, rsvps: [], loading: true, tab: "attendance" });
     try {
       const res = await fetch(`${API}/api/rsvp/events/${eventObj.id}/rsvps`);
       if (res.ok) {
@@ -286,6 +288,80 @@ const AdminDashboard = () => {
           return e;
       }));
     }
+  };
+
+
+  const handleTogglePayment = async (rsvpId, currentStatus) => {
+    const newStatus = !currentStatus;
+    setRsvpModal(prev => ({
+      ...prev,
+      rsvps: prev.rsvps.map(r => r.id === rsvpId ? { ...r, is_paid: newStatus } : r)
+    }));
+    try {
+      const res = await fetch(`${API}/api/rsvp/rsvps/${rsvpId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_paid: newStatus })
+      });
+      if (!res.ok) throw new Error("API Error");
+    } catch (e) {
+      console.error("Failed to update payment status:", e);
+      setRsvpModal(prev => ({
+        ...prev,
+        rsvps: prev.rsvps.map(r => r.id === rsvpId ? { ...r, is_paid: currentStatus } : r)
+      }));
+    }
+  };
+
+  const handleCsvUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    try {
+      const text = await file.text();
+      const normalize = (str) => str ? String(str).trim().toLowerCase() : "";
+      
+      const fileTokens = new Set(
+        text.split(/[,\s\n\r]+/)
+            .map(normalize)
+            .filter(Boolean)
+      );
+
+      const idsToUpdate = [];
+      
+      setRsvpModal(prev => {
+        const newRsvps = prev.rsvps.map(r => {
+          const u = r.user || {};
+          let isMatch = false;
+          if (u.email && fileTokens.has(normalize(u.email))) isMatch = true;
+          if (u.register_number && fileTokens.has(normalize(u.register_number))) isMatch = true;
+          
+          if (isMatch && !r.is_paid) {
+            idsToUpdate.push(r.id);
+            return { ...r, is_paid: true };
+          }
+          return r;
+        });
+        
+        return { ...prev, rsvps: newRsvps };
+      });
+      
+      if (idsToUpdate.length > 0) {
+        await fetch(`${API}/api/rsvp/events/${rsvpModal.event.id}/bulk-payment`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rsvp_ids: idsToUpdate, is_paid: true })
+        });
+        alert(`Successfully marked ${idsToUpdate.length} students as paid based on CSV.`);
+      } else {
+        alert("No new matching payments found in the CSV based on email or register number.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to process CSV file.");
+    }
+    
+    e.target.value = null; // reset
   };
 
   const exportAttendanceCSV = () => {
@@ -435,7 +511,7 @@ const AdminDashboard = () => {
               searchQuery={searchQuery} 
               onOpenEditModal={openEditModal} 
               onOpenCreateModal={(date) => { 
-                setNewEvent({ title: '', description: '', keywords: '', location: '', start_time: date, end_time: new Date(date.getTime() + 60*60*1000), tag: 'TECH', image_url: '', payment_link: '' }); 
+                setNewEvent({ title: '', description: '', keywords: '', location: '', start_time: date, end_time: new Date(date.getTime() + 60*60*1000), tag: 'TECH', image_url: '', payment_link: '', is_paid: false, registration_fees: '' }); 
                 setCreateModalOpen(true); 
               }} 
             />
@@ -553,7 +629,7 @@ const AdminDashboard = () => {
                   </p>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Keywords</label>
+                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Keywords (comma separated)</label>
                   <input type="text" value={newEvent.keywords} onChange={e => setNewEvent(p => ({ ...p, keywords: e.target.value }))}
                     placeholder="e.g. workshop, python, machine learning"
                     className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
@@ -616,15 +692,33 @@ const AdminDashboard = () => {
                       className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
                   </div>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
-                    <span className="material-symbols-outlined text-[18px] text-[#637588]">link</span>
-                    <input type="url" value={newEvent.payment_link || ''} onChange={e => setNewEvent(p => ({ ...p, payment_link: e.target.value }))}
-                      placeholder="e.g. https://rzp.io/l/..."
-                      className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
-                  </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <input type="checkbox" id="is_paid" checked={newEvent.is_paid || false} onChange={e => setNewEvent(p => ({ ...p, is_paid: e.target.checked }))} className="w-4 h-4 text-blue-500 bg-gray-100 dark:bg-[#1a2632] border-gray-300 dark:border-[#34485c] rounded-full focus:ring-blue-500 focus:ring-2 cursor-pointer" />
+                  <label htmlFor="is_paid" className="text-sm font-medium text-[#111418] dark:text-white">Is this a paid event?</label>
                 </div>
+                
+                {newEvent.is_paid && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Registration Fees</label>
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
+                        <span className="material-symbols-outlined text-[18px] text-[#637588]">payments</span>
+                        <input type="text" value={newEvent.registration_fees || ""} onChange={e => setNewEvent(p => ({ ...p, registration_fees: e.target.value }))}
+                          placeholder="e.g. ₹500"
+                          className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
+                        <span className="material-symbols-outlined text-[18px] text-[#637588]">link</span>
+                        <input type="url" value={newEvent.payment_link || ""} onChange={e => setNewEvent(p => ({ ...p, payment_link: e.target.value }))}
+                          placeholder="e.g. https://rzp.io/l/..."
+                          className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <button type="submit" disabled={creating}
                   className="w-full py-3 rounded-xl bg-white dark:bg-[#233648] text-[#111418] dark:text-white font-bold text-sm border border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f0f2f4] dark:hover:bg-[#34485c] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
                   {creating ? 'Publishing...' : 'Publish Event'}
@@ -662,7 +756,7 @@ const AdminDashboard = () => {
                 </p>
               </div>
               <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Keywords</label>
+                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Keywords (comma separated)</label>
                 <input type="text" value={newEvent.keywords} onChange={e => setNewEvent(p => ({ ...p, keywords: e.target.value }))}
                   placeholder="e.g. workshop, python, machine learning"
                   className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
@@ -729,15 +823,33 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
-                  <span className="material-symbols-outlined text-[18px] text-[#637588]">link</span>
-                  <input type="url" value={newEvent.payment_link || ''} onChange={e => setNewEvent(p => ({ ...p, payment_link: e.target.value }))}
-                    placeholder="e.g. https://rzp.io/l/..."
-                    className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
-                </div>
+              <div className="flex items-center gap-2 mb-2">
+                <input type="checkbox" id="modal_is_paid" checked={newEvent.is_paid || false} onChange={e => setNewEvent(p => ({ ...p, is_paid: e.target.checked }))} className="w-4 h-4 text-blue-500 bg-gray-100 dark:bg-[#1a2632] border-gray-300 dark:border-[#34485c] rounded-full focus:ring-blue-500 focus:ring-2 cursor-pointer" />
+                <label htmlFor="modal_is_paid" className="text-sm font-medium text-[#111418] dark:text-white">Is this a paid event?</label>
               </div>
+
+              {newEvent.is_paid && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Registration Fees</label>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
+                      <span className="material-symbols-outlined text-[18px] text-[#637588]">payments</span>
+                      <input type="text" value={newEvent.registration_fees || ""} onChange={e => setNewEvent(p => ({ ...p, registration_fees: e.target.value }))}
+                        placeholder="e.g. ₹500"
+                        className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
+                      <span className="material-symbols-outlined text-[18px] text-[#637588]">link</span>
+                      <input type="url" value={newEvent.payment_link || ""} onChange={e => setNewEvent(p => ({ ...p, payment_link: e.target.value }))}
+                        placeholder="e.g. https://rzp.io/l/..."
+                        className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setCreateModalOpen(false)} className="px-4 py-2 rounded-xl text-sm font-bold text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">Cancel</button>
@@ -773,7 +885,7 @@ const AdminDashboard = () => {
                 </p>
               </div>
               <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Keywords</label>
+                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Keywords (comma separated)</label>
                 <input type="text" value={editEvent.keywords} onChange={e => setEditEvent(p => ({ ...p, keywords: e.target.value }))}
                   placeholder="e.g. workshop, python, machine learning"
                   className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
@@ -816,12 +928,27 @@ const AdminDashboard = () => {
                 <input type="text" value={editEvent.location} onChange={e => setEditEvent(p => ({ ...p, location: e.target.value }))}
                   className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white" />
               </div>
-              <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
-                <input type="url" value={editEvent.payment_link || ''} onChange={e => setEditEvent(p => ({ ...p, payment_link: e.target.value }))}
-                  placeholder="e.g. https://rzp.io/l/..."
-                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white" />
+              <div className="flex items-center gap-2 mb-2">
+                <input type="checkbox" id="edit_is_paid" checked={editEvent.is_paid || false} onChange={e => setEditEvent(p => ({ ...p, is_paid: e.target.checked }))} className="w-4 h-4 text-blue-500 bg-gray-100 dark:bg-[#1a2632] border-gray-300 dark:border-[#34485c] rounded-full focus:ring-blue-500 focus:ring-2 cursor-pointer" />
+                <label htmlFor="edit_is_paid" className="text-sm font-medium text-[#111418] dark:text-white">Is this a paid event?</label>
               </div>
+
+              {editEvent.is_paid && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Registration Fees</label>
+                    <input type="text" value={editEvent.registration_fees || ""} onChange={e => setEditEvent(p => ({ ...p, registration_fees: e.target.value }))}
+                      placeholder="e.g. ₹500"
+                      className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
+                    <input type="url" value={editEvent.payment_link || ""} onChange={e => setEditEvent(p => ({ ...p, payment_link: e.target.value }))}
+                      placeholder="e.g. https://rzp.io/l/..."
+                      className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white" />
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-2 block">Category</label>
                 <div className="flex gap-3">
@@ -863,11 +990,27 @@ const AdminDashboard = () => {
       {rsvpModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-4xl border border-[#e5e7eb] dark:border-[#233648] flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648] gap-4">
               <div>
-                <h2 className="text-xl font-bold">{rsvpModal.event?.title || 'Event'} - Attendees</h2>
+                <h2 className="text-xl font-bold">{rsvpModal.event?.title || "Event"} - Attendees</h2>
                 <p className="text-xs text-[#637588] dark:text-[#92adc9] mt-1">{rsvpModal.rsvps.length} Students Registered</p>
               </div>
+              
+              {rsvpModal.event?.is_paid && (
+                <div className="flex bg-[#f0f2f4] dark:bg-[#233648] p-1 rounded-xl w-full sm:w-auto">
+                    <button 
+                      onClick={() => setRsvpModal(p => ({ ...p, tab: "attendance" }))} 
+                      className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-colors ${rsvpModal.tab !== "payment" ? "bg-white dark:bg-[#1a2632] shadow-sm text-primary" : "text-[#637588] dark:text-[#92adc9] hover:text-[#111418] hover:dark:text-white"}`}>
+                      Student OD
+                    </button>
+                    <button 
+                      onClick={() => setRsvpModal(p => ({ ...p, tab: "payment" }))} 
+                      className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-colors ${rsvpModal.tab === "payment" ? "bg-white dark:bg-[#1a2632] shadow-sm text-primary" : "text-[#637588] dark:text-[#92adc9] hover:text-[#111418] hover:dark:text-white"}`}>
+                      Payments
+                    </button>
+                </div>
+              )}
+              
               <div className="flex items-center gap-3">
                 <button onClick={exportAttendanceCSV} disabled={rsvpModal.loading || rsvpModal.rsvps.length === 0} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/10 text-green-600 dark:text-green-400 text-sm font-bold hover:bg-green-600/20 transition-colors disabled:opacity-50">
                   <span className="material-symbols-outlined text-[18px]">download</span> Export CSV
@@ -882,41 +1025,64 @@ const AdminDashboard = () => {
               ) : rsvpModal.rsvps.length === 0 ? (
                 <div className="text-center py-12 text-[#637588] dark:text-[#92adc9]">No students have registered for this event yet.</div>
               ) : (
-                <div className="border border-[#e5e7eb] dark:border-[#233648] rounded-xl overflow-hidden">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-[#f9fafb] dark:bg-[#111a22] text-xs uppercase text-[#637588] dark:text-[#92adc9] font-bold border-b border-[#e5e7eb] dark:border-[#233648]">
-                      <tr>
-                        <th className="px-4 py-3">S.NO</th>
-                        <th className="px-4 py-3">NAME</th>
-                        <th className="px-4 py-3">DEPARTMENT</th>
-                        <th className="px-4 py-3">YEAR</th>
-                        <th className="px-4 py-3">REGISTER NO</th>
-                        <th className="px-4 py-3 text-center border-l border-[#e5e7eb] dark:border-[#233648]">ATTENDED</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#233648]">
-                      {rsvpModal.rsvps.map((rsvp, index) => {
-                        const u = rsvp.user || {};
-                        return (
-                          <tr key={rsvp.id} className="hover:bg-[#f9fafb] dark:hover:bg-[#233648]/30 transition-colors">
-                            <td className="px-4 py-3 font-medium">{index + 1}</td>
-                            <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{u.name || '-'}</td>
-                            <td className="px-4 py-3">{u.department || '-'}</td>
-                            <td className="px-4 py-3">{calculateYear(u.batch)}</td>
-                            <td className="px-4 py-3 font-mono text-xs">{u.register_number || '-'}</td>
-                            <td className="px-4 py-3 text-center border-l border-[#e5e7eb] dark:border-[#233648]">
-                              <input 
-                                type="checkbox" 
-                                checked={rsvp.attended || false}
-                                onChange={() => handleToggleAttendance(rsvp.id, rsvp.attended)}
-                                className="w-5 h-5 rounded border-[#e5e7eb] dark:border-[#34485c] text-primary focus:ring-primary dark:bg-[#1a2632] cursor-pointer"
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="flex flex-col gap-4">
+                  {rsvpModal.tab === "payment" && rsvpModal.event?.is_paid && (
+                    <div className="flex items-center justify-between pb-2">
+                        <div className="text-sm text-[#637588]">Upload a CSV with student details to auto-check payments.</div>
+                        <label className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition-colors">
+                            <span className="material-symbols-outlined text-[18px]">upload_file</span> Upload CSV
+                            <input type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
+                        </label>
+                    </div>
+                  )}
+
+                  <div className="border border-[#e5e7eb] dark:border-[#233648] rounded-xl overflow-hidden">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-[#f9fafb] dark:bg-[#111a22] text-xs uppercase text-[#637588] dark:text-[#92adc9] font-bold border-b border-[#e5e7eb] dark:border-[#233648]">
+                        <tr>
+                          <th className="px-4 py-3">S.NO</th>
+                          <th className="px-4 py-3">NAME</th>
+                          <th className="px-4 py-3">DEPARTMENT</th>
+                          <th className="px-4 py-3">YEAR</th>
+                          <th className="px-4 py-3">REGISTER NO</th>
+                          <th className="px-4 py-3 text-center border-l border-[#e5e7eb] dark:border-[#233648]">
+                              {rsvpModal.tab === "payment" ? "PAID" : "ATTENDED"}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#233648]">
+                        {rsvpModal.rsvps.map((rsvp, index) => {
+                          const u = rsvp.user || {};
+                          return (
+                            <tr key={rsvp.id} className="hover:bg-[#f9fafb] dark:hover:bg-[#233648]/30 transition-colors">
+                              <td className="px-4 py-3 font-medium">{index + 1}</td>
+                              <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{u.name || "-"}</td>
+                              <td className="px-4 py-3">{u.department || "-"}</td>
+                              <td className="px-4 py-3">{calculateYear(u.batch)}</td>
+                              <td className="px-4 py-3 font-mono text-xs">{u.register_number || "-"}</td>
+                              <td className="px-4 py-3 text-center border-l border-[#e5e7eb] dark:border-[#233648]">
+                                {rsvpModal.tab === "payment" ? (
+                                    <input 
+                                      type="checkbox" 
+                                      checked={rsvp.is_paid || false}
+                                      onChange={() => handleTogglePayment(rsvp.id, rsvp.is_paid)}
+                                      className="w-5 h-5 rounded border-[#e5e7eb] dark:border-[#34485c] text-primary focus:ring-primary dark:bg-[#1a2632] cursor-pointer"
+                                    />
+                                ) : (
+                                    <input 
+                                      type="checkbox" 
+                                      checked={rsvp.attended || false}
+                                      onChange={() => handleToggleAttendance(rsvp.id, rsvp.attended)}
+                                      className="w-5 h-5 rounded border-[#e5e7eb] dark:border-[#34485c] text-primary focus:ring-primary dark:bg-[#1a2632] cursor-pointer"
+                                    />
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>

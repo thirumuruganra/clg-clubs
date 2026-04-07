@@ -72,6 +72,8 @@ class EventBase(BaseModel):
     image_url: Optional[str] = None
     keywords: Optional[str] = None
     payment_link: Optional[str] = None
+    is_paid: Optional[bool] = False
+    registration_fees: Optional[str] = None
 
 class EventCreate(EventBase):
     club_id: int
@@ -86,6 +88,8 @@ class EventUpdate(BaseModel):
     image_url: Optional[str] = None
     keywords: Optional[str] = None
     payment_link: Optional[str] = None
+    is_paid: Optional[bool] = None
+    registration_fees: Optional[str] = None
 
 class EventResponse(EventBase):
     id: int
@@ -104,13 +108,15 @@ class RSVPCreate(BaseModel):
     event_id: int
 
 class RSVPUpdate(BaseModel):
-    attended: bool
+    attended: Optional[bool] = None
+    is_paid: Optional[bool] = None
 
 class RSVPResponse(BaseModel):
     id: int
     user_id: int
     event_id: int
     attended: Optional[bool] = False
+    is_paid: Optional[bool] = False
     created_at: datetime
 
     class Config:
@@ -129,6 +135,7 @@ class EventRSVPResponse(BaseModel):
     user_id: int
     event_id: int
     attended: Optional[bool] = False
+    is_paid: Optional[bool] = False
     created_at: datetime
     user: EventRSVPUserResponse
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -17,6 +17,8 @@ class Event(Base):
     image_url = Column(String(500), nullable=True)
     keywords = Column(String(500), nullable=True)
     payment_link = Column(String(500), nullable=True)
+    is_paid = Column(Boolean, default=False)
+    registration_fees = Column(String(100), nullable=True)
 
     # Relationships
     club = relationship("Club", back_populates="events")

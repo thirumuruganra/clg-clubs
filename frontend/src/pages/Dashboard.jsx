@@ -128,7 +128,30 @@ const Dashboard = () => {
                 </div>
                 <div className="flex flex-col p-4 flex-1">
                     <h3 className="mb-1 text-lg font-bold text-[#111418] dark:text-white">{event.title}</h3>
-                    <p className="mb-4 text-sm text-[#637588] dark:text-[#92adc9] line-clamp-2">{event.description}</p>
+                    <p className="mb-2 text-sm text-[#637588] dark:text-[#92adc9] line-clamp-2">{event.description}</p>
+                    
+                    {event.keywords && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                            {event.keywords.split(",").map((kw, i) => (
+                                <span key={i} className="px-2 py-0.5 bg-gray-100 dark:bg-[#233648] text-[#637588] dark:text-[#92adc9] text-[10px] rounded-full border border-[#e5e7eb] dark:border-[#34485c]">{kw.trim()}</span>
+                            ))}
+                        </div>
+                    )}
+                    
+                    {event.is_paid && (
+                        <div className="mb-3 text-xs flex flex-col gap-1 bg-orange-50 dark:bg-orange-500/10 p-2 rounded-lg border border-orange-100 dark:border-orange-500/20">
+                            <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400 font-medium">
+                                <span className="material-symbols-outlined text-[14px]">payments</span>
+                                <span>Registration Fee: {event.registration_fees || "TBA"}</span>
+                            </div>
+                            {event.payment_link && (
+                                <a href={event.payment_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline" onClick={e => e.stopPropagation()}>
+                                    <span className="material-symbols-outlined text-[14px]">link</span>
+                                    <span>Payment Link</span>
+                                </a>
+                            )}
+                        </div>
+                    )}
                     <div className="mt-auto flex items-center justify-between">
                         <div className="flex items-center gap-1 text-[#637588] dark:text-[#92adc9]">
                             <span className="material-symbols-outlined text-[16px]">group</span>

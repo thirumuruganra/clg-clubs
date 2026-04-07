@@ -332,6 +332,31 @@ const Calendar = () => {
                 </div>
                 <h2 className="text-2xl font-bold mb-4">{selectedEvent.title}</h2>
 
+                {selectedEvent.description && <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-4 whitespace-pre-wrap">{selectedEvent.description}</p>}
+                
+                {selectedEvent.keywords && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                      {selectedEvent.keywords.split(",").map((kw, i) => (
+                          <span key={i} className="px-2.5 py-1 bg-gray-100 dark:bg-[#233648] text-[#637588] dark:text-[#92adc9] text-xs font-medium rounded-lg border border-[#e5e7eb] dark:border-[#34485c]">{kw.trim()}</span>
+                      ))}
+                  </div>
+                )}
+                
+                {selectedEvent.is_paid && (
+                    <div className="mb-4 p-3 rounded-xl bg-orange-50 dark:bg-orange-500/5 border border-orange-100 dark:border-orange-500/20">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1.5"><span className="material-symbols-outlined text-[18px]">payments</span> Registration Fee</span>
+                            <span className="text-sm font-bold text-[#111418] dark:text-white">{selectedEvent.registration_fees || "TBA"}</span>
+                        </div>
+                        {selectedEvent.payment_link && (
+                            <a href={selectedEvent.payment_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-primary hover:underline group">
+                                <span className="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">open_in_new</span>
+                                Pay via link
+                            </a>
+                        )}
+                    </div>
+                )}
+
                 <div className="space-y-3 mb-6 flex-1">
                   {selectedEvent.start_time && (
                     <div className="flex items-center gap-3 text-sm">

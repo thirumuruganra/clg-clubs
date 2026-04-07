@@ -107,6 +107,9 @@ def get_all_events(search: Optional[str] = Query(None), db: Session = Depends(ge
             "tag": event.tag,
             "image_url": event.image_url,
             "keywords": event.keywords,
+            "payment_link": event.payment_link,
+            "is_paid": event.is_paid,
+            "registration_fees": event.registration_fees,
             "rsvp_count": rsvp_count,
         })
     return result
@@ -197,6 +200,9 @@ def get_event_feed(
             "tag": event.tag,
             "image_url": event.image_url,
             "keywords": event.keywords,
+            "payment_link": event.payment_link,
+            "is_paid": event.is_paid,
+            "registration_fees": event.registration_fees,
             "rsvp_count": rsvp_count,
             "is_rsvped": is_rsvped,
             "is_from_followed_club": is_from_followed_club,
@@ -240,6 +246,9 @@ def get_event(event_id: int, user_id: Optional[int] = Query(None), db: Session =
         "tag": event.tag,
         "image_url": event.image_url,
         "keywords": event.keywords,
+            "payment_link": event.payment_link,
+            "is_paid": event.is_paid,
+            "registration_fees": event.registration_fees,
         "rsvp_count": rsvp_count,
         "is_rsvped": is_rsvped,
         "recent_activity": recent_rsvps,
@@ -270,6 +279,9 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
         tag=event.tag,
         image_url=event.image_url,
         keywords=event.keywords,
+        payment_link=event.payment_link,
+        is_paid=event.is_paid,
+        registration_fees=event.registration_fees,
     )
     db.add(db_event)
     db.commit()
@@ -287,6 +299,9 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
         "tag": db_event.tag,
         "image_url": db_event.image_url,
         "keywords": db_event.keywords,
+            "payment_link": db_event.payment_link,
+            "is_paid": db_event.is_paid,
+            "registration_fees": db_event.registration_fees,
         "rsvp_count": 0,
     }
 
@@ -319,6 +334,12 @@ def update_event(event_id: int, event_update: EventUpdate, db: Session = Depends
         event.image_url = event_update.image_url
     if event_update.keywords is not None:
         event.keywords = event_update.keywords
+    if event_update.payment_link is not None:
+        event.payment_link = event_update.payment_link
+    if event_update.is_paid is not None:
+        event.is_paid = event_update.is_paid
+    if event_update.registration_fees is not None:
+        event.registration_fees = event_update.registration_fees
 
     db.commit()
     db.refresh(event)
@@ -338,6 +359,9 @@ def update_event(event_id: int, event_update: EventUpdate, db: Session = Depends
         "tag": event.tag,
         "image_url": event.image_url,
         "keywords": event.keywords,
+            "payment_link": event.payment_link,
+            "is_paid": event.is_paid,
+            "registration_fees": event.registration_fees,
         "rsvp_count": rsvp_count,
     }
 
