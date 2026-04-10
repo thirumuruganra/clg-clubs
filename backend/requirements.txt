@@ -4,7 +4,7 @@ authlib
 httpx
 python-dotenv
 sqlalchemy
-pymysql
+psycopg2-binary
 cryptography
 pydantic
 itsdangerous

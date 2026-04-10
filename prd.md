@@ -38,7 +38,7 @@ The code must be organized into two distinct directories under the root:
 * **Framework:** **FastAPI** (High performance, async).
 * **Server:** Uvicorn.
 * **Database ORM:** **SQLAlchemy** (Async) with **Alembic** for migrations.
-* **Database:** MySQL.
+* **Database:** PostgreSQL.
 * **Authentication:** `authlib` (for Google OAuth2) + `python-jose` (for internal JWT handling).
 * **Google Integration:** `google-api-python-client` and `google-auth-oauthlib`.
 
@@ -172,7 +172,7 @@ class Event(Base):
 > "Create a full-stack project structure with two root folders: `frontend` and `backend`.
 > **For the Backend:**
 > Initialize a **FastAPI** application using Python 3.10+.
-> 1. Setup **SQLAlchemy** (Async) with MySQL.
+> 1. Setup **SQLAlchemy** (Async) with PostgreSQL.
 > 2. Create the models: User, Club, Event, RSVP, Follow.
 > 3. Implement **Google OAuth2** using `authlib`. In the callback, use Python Regex (`r'.*[0-9]{4,}@ssn\.edu\.in$'`) to auto-assign the 'STUDENT' role if the email matches; otherwise check a whitelist for 'CLUB_ADMIN'.
 > 4. Create an endpoint `POST /events/{id}/sync` that uses the `google-api-python-client` to insert the event into the user's Google Calendar.

@@ -31,8 +31,7 @@ dist-ssr
 wavc/
 __pycache__/
 *.pyc
-sql_app.db
-wavc_app.db
+*.db
 venv/
 .venv/
 
