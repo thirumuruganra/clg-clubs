@@ -72,6 +72,23 @@ def ensure_user_register_number_column() -> None:
     except Exception as exc:
         print(f"⚠️  Could not auto-add 'register_number' column: {exc}")
 
+def ensure_user_google_scopes_column() -> None:
+    """Add the google_scopes column for older databases that were created before this field existed."""
+    try:
+        inspector = inspect(engine)
+        if "users" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("users")}
+        if "google_scopes" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN google_scopes TEXT DEFAULT '[]'"))
+        print("ℹ️  Added missing 'google_scopes' column to users table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'google_scopes' column: {exc}")
+
 def ensure_rsvp_attended_column() -> None:
     """Add the attended column for older databases that were created before this field existed."""
     try:
@@ -93,6 +110,7 @@ def ensure_rsvp_attended_column() -> None:
 ensure_event_keywords_column()
 ensure_user_interests_column()
 ensure_user_register_number_column()
+ensure_user_google_scopes_column()
 ensure_rsvp_attended_column()
 
 app = FastAPI(

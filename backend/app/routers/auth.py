@@ -3,7 +3,13 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
-from app.core.security import oauth, create_access_token, get_current_user
+from app.core.security import (
+    oauth,
+    create_access_token,
+    get_current_user,
+    GOOGLE_CALENDAR_SCOPE,
+    build_google_scope,
+)
 import re
 import json
 
@@ -51,12 +57,70 @@ ALLOWED_CLUB_EMAILS = {
 # Regex for student emails
 STUDENT_EMAIL_REGEX = re.compile(r'.*[0-9]{4,}@ssn\.edu\.in$')
 
+FRONTEND_DEFAULT_ORIGIN = "http://localhost:5173"
+FRONTEND_ALLOWED_REDIRECT_ORIGINS = {
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+}
+
+
+def _resolve_safe_frontend_redirect(raw_redirect: str | None) -> str | None:
+    if not raw_redirect:
+        return None
+
+    redirect_value = str(raw_redirect).strip()
+    if not redirect_value:
+        return None
+
+    if redirect_value.startswith('/'):
+        return f"{FRONTEND_DEFAULT_ORIGIN}{redirect_value}"
+
+    if any(redirect_value.startswith(origin) for origin in FRONTEND_ALLOWED_REDIRECT_ORIGINS):
+        return redirect_value
+
+    return None
+
+
+async def _start_google_oauth_redirect(request: Request, include_calendar_scope: bool, post_auth_redirect: str | None = None):
+    redirect_uri = request.url_for('auth_callback')
+    scope = build_google_scope(include_calendar=include_calendar_scope)
+    safe_redirect = _resolve_safe_frontend_redirect(post_auth_redirect)
+
+    if safe_redirect:
+        request.session["post_auth_redirect"] = safe_redirect
+    else:
+        request.session.pop("post_auth_redirect", None)
+
+    return await oauth.google.authorize_redirect(
+        request,
+        redirect_uri,
+        scope=scope,
+        access_type='offline',
+        include_granted_scopes='true',
+    )
+
 
 @router.get('/login')
 async def login(request: Request):
     """Initiates the Google OAuth2 flow."""
-    redirect_uri = request.url_for('auth_callback')
-    return await oauth.google.authorize_redirect(request, redirect_uri)
+    next_redirect = request.query_params.get("next")
+    include_calendar_scope = request.query_params.get("include_calendar", "false").lower() == "true"
+    return await _start_google_oauth_redirect(
+        request,
+        include_calendar_scope=include_calendar_scope,
+        post_auth_redirect=next_redirect,
+    )
+
+
+@router.get('/login/calendar')
+async def login_with_calendar_scope(request: Request):
+    """Request Google Calendar scope incrementally after initial sign-in."""
+    next_redirect = request.query_params.get("next") or "/admin"
+    return await _start_google_oauth_redirect(
+        request,
+        include_calendar_scope=True,
+        post_auth_redirect=next_redirect,
+    )
 
 
 @router.get('/callback', name='auth_callback')
@@ -84,6 +148,9 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     name = user_info.get('name')
     picture = user_info.get('picture')
     google_token = token.get('access_token')
+    raw_scopes = token.get('scope', '')
+    granted_scopes = sorted({scope for scope in str(raw_scopes).split() if scope})
+    google_scopes_json = json.dumps(granted_scopes)
 
     # Determine Role via regex
     role = "STUDENT"
@@ -100,6 +167,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
             name=name,
             role=role,
             google_token=google_token,
+            google_scopes=google_scopes_json,
             picture=picture
         )
         db.add(user)
@@ -107,6 +175,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         db.refresh(user)
     else:
         user.google_token = google_token
+        user.google_scopes = google_scopes_json
         user.name = name
         user.picture = picture
         user.role = role
@@ -121,13 +190,15 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
 
     # Determine redirect URL
     # Club admins should go to the admin flow regardless of student profile completeness fields.
-    if user.role == "CLUB_ADMIN":
-        redirect_url = "http://localhost:5173/admin"
-    else:
-        user_interests = _safe_json_list(user.interests)
-        redirect_url = "http://localhost:5173/dashboard"
-        if not user.batch or not user.department or not user.register_number or len(user_interests) < 3:
-            redirect_url = "http://localhost:5173/profile"
+    redirect_url = request.session.pop("post_auth_redirect", None)
+    if not redirect_url:
+        if user.role == "CLUB_ADMIN":
+            redirect_url = "http://localhost:5173/admin"
+        else:
+            user_interests = _safe_json_list(user.interests)
+            redirect_url = "http://localhost:5173/dashboard"
+            if not user.batch or not user.department or not user.register_number or len(user_interests) < 3:
+                redirect_url = "http://localhost:5173/profile"
 
     # Set JWT as cookie and redirect
     response = RedirectResponse(url=redirect_url, status_code=302)
@@ -147,6 +218,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
     """Get the currently authenticated user's info."""
     joined_clubs_list = _safe_json_list(current_user.joined_clubs)
     interests_list = _safe_json_list(current_user.interests)
+    granted_scopes_list = _safe_json_list(current_user.google_scopes)
     return {
         "id": current_user.id,
         "email": current_user.email,
@@ -158,6 +230,8 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "register_number": current_user.register_number,
         "joined_clubs": joined_clubs_list,
         "interests": interests_list,
+        "google_scopes": granted_scopes_list,
+        "has_google_calendar_access": GOOGLE_CALENDAR_SCOPE in granted_scopes_list,
     }
 
 

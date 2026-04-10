@@ -255,6 +255,7 @@ const AdminDashboard = () => {
   const [rsvpError, setRsvpError] = useState('');
   const [paymentFeedback, setPaymentFeedback] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const calendarConsentUrl = '/api/auth/login/calendar?next=/admin';
 
   // Quick Create form
   const [newEvent, setNewEvent] = useState({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '', is_paid: false, registration_fees: '' });
@@ -805,6 +806,25 @@ const AdminDashboard = () => {
             )}
           </div>
         </div>
+
+        {user && user.has_google_calendar_access === false && (
+          <div className="mx-4 lg:mx-8 mt-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm">
+                Grant Google Calendar access only when needed for calendar-integrated admin actions.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = calendarConsentUrl;
+                }}
+                className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-amber-700"
+              >
+                Connect Google Calendar
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Content Area */}
         {activeTab === 'events' ? (

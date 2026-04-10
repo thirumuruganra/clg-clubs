@@ -6,6 +6,22 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 import os
+from typing import Iterable
+
+GOOGLE_BASE_SCOPES = "openid email profile"
+GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events"
+
+
+def build_google_scope(include_calendar: bool = False, extra_scopes: Iterable[str] | None = None) -> str:
+    """Build a deterministic Google OAuth scope string."""
+    scopes = GOOGLE_BASE_SCOPES.split()
+    if include_calendar:
+        scopes.append(GOOGLE_CALENDAR_SCOPE)
+    if extra_scopes:
+        scopes.extend([scope for scope in extra_scopes if scope])
+
+    ordered_unique_scopes = list(dict.fromkeys(scopes))
+    return " ".join(ordered_unique_scopes)
 
 # OAuth setup
 config = Config('.env')
@@ -15,7 +31,7 @@ oauth.register(
     name='google',
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={
-        'scope': 'openid email profile https://www.googleapis.com/auth/calendar.events',
+        'scope': build_google_scope(include_calendar=False),
     }
 )
 
