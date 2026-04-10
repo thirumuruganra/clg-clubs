@@ -38,3 +38,5 @@ venv/
 run.txt
 
 desktop.ini
+
+.*.csv
