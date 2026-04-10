@@ -310,6 +310,24 @@ const Dashboard = () => {
                             </div>
                         </div>
 
+                        {/* Discover */}
+                        <div className="mt-10 mb-8">
+                            <div className="flex items-center justify-between px-4 pb-4">
+                                <div>
+                                    <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">Explore Beyond Your Clubs</h2>
+                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Great matches from clubs you do not follow yet</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
+                                {!loadingEvents && discoverEvents.length === 0 && (
+                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm col-span-2 italic">No extra recommendations right now.</p>
+                                )}
+                                {discoverEvents
+                                    .filter(e => eventMatchesSearch(e, searchQuery))
+                                    .slice(0, 4).map(e => <DiscoverItem key={e.id} event={e} />)}
+                            </div>
+                        </div>
+
                         {/* Clubs CTA */}
                         <div className="mt-10">
                             <div className="flex items-center justify-between px-4 pb-4">
@@ -333,7 +351,7 @@ const Dashboard = () => {
                             </div>
                         </div>
 
-                                                {/* Student Activity Tracker */}
+                        {/* Student Activity Tracker */}
                         <div className="mt-10 mb-8">
                             <div className="flex items-center justify-between px-4 pb-4">
                                 <div>
@@ -379,24 +397,6 @@ const Dashboard = () => {
                                         </table>
                                     </div>
                                 )}
-                            </div>
-                        </div>
-
-                        {/* Discover */}
-                        <div className="mt-10 mb-8">
-                            <div className="flex items-center justify-between px-4 pb-4">
-                                <div>
-                                    <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">Explore Beyond Your Clubs</h2>
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Great matches from clubs you do not follow yet</p>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
-                                {!loadingEvents && discoverEvents.length === 0 && (
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm col-span-2 italic">No extra recommendations right now.</p>
-                                )}
-                                {discoverEvents
-                                    .filter(e => eventMatchesSearch(e, searchQuery))
-                                    .slice(0, 4).map(e => <DiscoverItem key={e.id} event={e} />)}
                             </div>
                         </div>
                     </div>

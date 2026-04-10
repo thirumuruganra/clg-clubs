@@ -21,6 +21,7 @@ const Calendar = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [selectedClubId, setSelectedClubId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [clubs, setClubs] = useState([]);
@@ -46,20 +47,6 @@ const Calendar = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (user) { void fetchEvents(); void fetchClubs(); }
   }, [user, loading, navigate, fetchEvents, fetchClubs]);
-
-  const handleFollow = async (clubId) => {
-    try {
-      const res = await fetch(`${API}/api/follow/clubs/${clubId}/follow`, { method: 'POST' });
-      if (res.ok) { fetchClubs(); fetchEvents(); }
-    } catch (err) { console.error(err); }
-  };
-
-  const handleUnfollow = async (clubId) => {
-    try {
-      const res = await fetch(`${API}/api/follow/clubs/${clubId}/follow`, { method: 'DELETE' });
-      if (res.ok) { fetchClubs(); fetchEvents(); }
-    } catch (err) { console.error(err); }
-  };
 
   const handleRSVP = async (eventId, isRegistered) => {
     try {
@@ -96,9 +83,32 @@ const Calendar = () => {
   const filteredEvents = events.filter(e => {
     if (categoryFilter === 'tech' && e.tag !== 'TECH') return false;
     if (categoryFilter === 'nontech' && e.tag !== 'NON_TECH') return false;
+    if (selectedClubId !== null && Number(e.club_id) !== selectedClubId) return false;
     if (!eventMatchesSearch(e, searchQuery)) return false;
     return true;
   });
+
+  const categoryLegend = [
+    { label: 'All Events', value: 'all', color: 'bg-gradient-to-r from-sky-400 via-primary to-green-500' },
+    { label: 'Tech Clubs', value: 'tech', color: 'bg-primary' },
+    { label: 'Non-Tech Clubs', value: 'nontech', color: 'bg-green-500' }
+  ];
+
+  const getEventPillClass = (tag) => (
+    tag === 'TECH'
+      ? 'bg-primary/20 text-primary hover:bg-primary/30'
+      : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+  );
+
+  const getMiniCalendarDotClass = (dayEvents) => {
+    const hasTech = dayEvents.some((event) => event.tag === 'TECH');
+    const hasNonTech = dayEvents.some((event) => event.tag === 'NON_TECH');
+
+    if (hasTech && hasNonTech) return 'bg-gradient-to-r from-primary to-green-500';
+    if (hasTech) return 'bg-primary';
+    if (hasNonTech) return 'bg-green-500';
+    return 'bg-[#637588]';
+  };
   
   const addToGoogleCalendar = () => {
     if (!selectedEvent || !selectedEvent.start_time) return;
@@ -141,25 +151,30 @@ const Calendar = () => {
       )}
 
       {/* Left Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 w-72 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col p-6 overflow-y-auto no-scrollbar transition-transform duration-300 ease-in-out`} style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top))', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
-        {/* Logo */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
-          <span className="text-lg font-bold">WAVC</span>
+      <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 w-72 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col p-6 overflow-hidden transition-transform duration-300 ease-in-out`} style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top))', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+        <div className="shrink-0">
+          {/* Logo */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
+            <span className="text-lg font-bold">WAVC</span>
+          </div>
+
+          {/* Nav */}
+          <nav className="flex flex-col gap-1 mb-1">
+            {[{ label: 'Home', icon: 'home', path: '/dashboard' }, { label: 'Events', icon: 'event', path: '/calendar', active: true }, { label: 'Clubs', icon: 'groups', path: '/clubs' }, { label: 'My Profile', icon: 'person', path: '/profile' }].map(item => (
+              <button key={item.label} onClick={() => navigate(item.path)} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${item.active ? 'bg-primary/10 text-primary' : 'text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648]'}`}>
+                <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+          </nav>
         </div>
 
-        {/* Nav */}
-        <nav className="flex flex-col gap-1 mb-8">
-          {[{ label: 'Home', icon: 'home', path: '/dashboard' }, { label: 'Events', icon: 'event', path: '/calendar', active: true }, { label: 'Clubs', icon: 'groups', path: '/clubs' }, { label: 'My Profile', icon: 'person', path: '/profile' }].map(item => (
-            <button key={item.label} onClick={() => navigate(item.path)} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${item.active ? 'bg-primary/10 text-primary' : 'text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648]'}`}>
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
+        <div className="h-px bg-[#e5e7eb] dark:bg-[#233648] my-5 shrink-0" aria-hidden="true"></div>
 
-        {/* Mini Calendar */}
-        <div className="mb-8">
+        <div className="flex-1 overflow-y-auto no-scrollbar pr-1">
+          {/* Mini Calendar */}
+          <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-bold">{monthName}</span>
             <div className="flex gap-1">
@@ -170,7 +185,9 @@ const Calendar = () => {
           <div className="grid grid-cols-7 gap-0 text-center text-xs">
             {['S','M','T','W','T','F','S'].map((d,i) => <div key={i} className="py-1 text-[#637588] dark:text-[#92adc9] font-medium">{d}</div>)}
             {calendarDays.map((d, i) => {
-              const hasEvents = d.current && getEventsForDay(d.day).length > 0;
+              const dayEvents = d.current ? getEventsForDay(d.day) : [];
+              const hasEvents = dayEvents.length > 0;
+              const dotClass = getMiniCalendarDotClass(dayEvents);
               return (
                 <div key={i} className={`py-1.5 rounded-full text-xs cursor-pointer transition-colors relative
                   ${!d.current ? 'text-[#637588]/40' : ''}
@@ -178,65 +195,66 @@ const Calendar = () => {
                   ${d.current && !isToday(d.day) ? 'hover:bg-[#233648]' : ''}
                 `}>
                   {d.day}
-                  {hasEvents && <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"></div>}
+                  {hasEvents && <div className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${dotClass}`}></div>}
                 </div>
               );
             })}
           </div>
-        </div>
+          </div>
 
-        {/* Club Categories */}
-        <div className="mb-8">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9] mb-3">Club Categories</h3>
-          {[{ label: 'All Events', value: 'all', color: 'bg-primary' }, { label: 'Tech Clubs', value: 'tech', color: 'bg-pink-500' }, { label: 'Non-Tech Clubs', value: 'nontech', color: 'bg-green-500' }].map(cat => (
-            <button key={cat.value} onClick={() => setCategoryFilter(cat.value)} className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors ${categoryFilter === cat.value ? 'bg-[#233648] text-white' : 'text-[#92adc9] hover:bg-[#233648]/50'}`}>
-              <div className={`w-4 h-4 rounded-full ${cat.color} ${categoryFilter === cat.value ? 'ring-2 ring-white/50' : 'opacity-50'}`}></div>
-              {cat.label}
-            </button>
-          ))}
-        </div>
+          {/* My Schedule */}
+          <div className="mb-8">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9] mb-3">My Schedule</h3>
+            <div className="flex items-center gap-3 px-3 py-2 text-sm text-[#92adc9]">
+              <span className="material-symbols-outlined text-[20px]">event_available</span>
+              {myScheduleCount} events this week
+            </div>
+          </div>
 
-        {/* Followed Clubs */}
-        <div className="mb-8">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9] mb-3">Your Clubs</h3>
-          <div className="space-y-1 max-h-40 overflow-y-auto no-scrollbar">
-            {clubs.filter(c => c.is_following).length === 0 && (
-              <p className="text-xs text-[#637588] dark:text-[#92adc9] italic px-3 py-2">Not following any clubs yet</p>
-            )}
-            {clubs.filter(c => c.is_following).map(club => (
-              <div key={club.id} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-[#f0f2f4] dark:hover:bg-[#233648] group transition-colors">
-                <div className="size-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                  {club.logo_url ? <img src={club.logo_url} alt="" className="w-full h-full object-cover" /> : <span className="text-primary text-xs font-bold">{club.name.charAt(0)}</span>}
-                </div>
-                <span className="text-sm flex-1 truncate">{club.name}</span>
-                <button aria-label={`Unfollow ${club.name}`} onClick={() => handleUnfollow(club.id)} className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-500 transition-all" title="Unfollow">
-                  <span className="material-symbols-outlined text-[16px]">close</span>
-                </button>
-              </div>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9] mb-3">Filters</h3>
+
+          {/* Club Categories */}
+          <div className="mb-8">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9] mb-3">Club Categories</h3>
+            {categoryLegend.map(cat => (
+              <button key={cat.value} onClick={() => setCategoryFilter(cat.value)} className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors ${categoryFilter === cat.value ? 'bg-[#233648] text-white' : 'text-[#92adc9] hover:bg-[#233648]/50'}`}>
+                <div className={`w-4 h-4 rounded-full ${cat.color} ${categoryFilter === cat.value ? 'ring-2 ring-white/50' : 'opacity-50'}`}></div>
+                {cat.label}
+              </button>
             ))}
           </div>
-          {clubs.filter(c => !c.is_following).length > 0 && (
-            <div className="mt-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9] mb-2 px-3">Discover Clubs</h4>
-              {clubs.filter(c => !c.is_following).slice(0, 4).map(club => (
-                <div key={club.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg">
+
+          {/* Clubs */}
+          <div className="mb-8">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9] mb-3">Clubs</h3>
+            <div className="space-y-1 max-h-48 overflow-y-auto no-scrollbar pr-1">
+              <button
+                onClick={() => setSelectedClubId(null)}
+                className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-sm transition-colors ${selectedClubId === null ? 'bg-[#233648] text-white' : 'text-[#92adc9] hover:bg-[#233648]/50'}`}
+              >
+                <div className="size-5 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[10px] leading-none">groups</span>
+                </div>
+                <span className="flex-1 truncate">All Clubs</span>
+              </button>
+
+              {clubs.length === 0 && (
+                <p className="text-xs text-[#637588] dark:text-[#92adc9] italic px-3 py-2">No clubs found</p>
+              )}
+
+              {clubs.map((club) => (
+                <button
+                  key={club.id}
+                  onClick={() => setSelectedClubId(club.id)}
+                  className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-sm transition-colors ${selectedClubId === club.id ? 'bg-[#233648] text-white' : 'text-[#92adc9] hover:bg-[#233648]/50'}`}
+                >
                   <div className="size-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                     {club.logo_url ? <img src={club.logo_url} alt="" className="w-full h-full object-cover" /> : <span className="text-primary text-xs font-bold">{club.name.charAt(0)}</span>}
                   </div>
-                  <span className="text-sm flex-1 truncate text-[#92adc9]">{club.name}</span>
-                  <button onClick={() => handleFollow(club.id)} className="text-xs text-primary font-medium hover:underline">Follow</button>
-                </div>
+                  <span className="flex-1 truncate">{club.name}</span>
+                </button>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* My Schedule */}
-        <div className="mb-8">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9] mb-3">My Schedule</h3>
-          <div className="flex items-center gap-3 px-3 py-2 text-sm text-[#92adc9]">
-            <span className="material-symbols-outlined text-[20px]">event_available</span>
-            {myScheduleCount} events this week
           </div>
         </div>
 
@@ -302,7 +320,7 @@ const Calendar = () => {
                     {d.day}
                   </div>
                   {dayEvents.slice(0, 2).map(ev => (
-                    <button key={ev.id} onClick={() => openEventDetail(ev.id)} className={`w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium mb-0.5 truncate transition-colors ${ev.tag === 'TECH' ? 'bg-primary/20 text-primary hover:bg-primary/30' : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'}`}>
+                    <button key={ev.id} onClick={() => openEventDetail(ev.id)} className={`w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium mb-0.5 truncate transition-colors ${getEventPillClass(ev.tag)}`}>
                       {ev.title}
                     </button>
                   ))}
