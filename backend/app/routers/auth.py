@@ -197,7 +197,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         else:
             user_interests = _safe_json_list(user.interests)
             redirect_url = "http://localhost:5173/dashboard"
-            if not user.batch or not user.department or not user.register_number or len(user_interests) < 3:
+            if not user.batch or not user.department or not user.degree or not user.register_number or len(user_interests) < 3:
                 redirect_url = "http://localhost:5173/profile"
 
     # Set JWT as cookie and redirect
@@ -227,6 +227,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
         "role": current_user.role,
         "batch": current_user.batch,
         "department": current_user.department,
+        "degree": current_user.degree,
         "register_number": current_user.register_number,
         "joined_clubs": joined_clubs_list,
         "interests": interests_list,

@@ -71,7 +71,7 @@ const Dashboard = () => {
         if (
             user &&
             user.role !== 'CLUB_ADMIN' &&
-            (!user.batch || !user.department || (user.interests || []).length < 3)
+            (!user.batch || !user.department || !user.degree || (user.interests || []).length < 3)
         ) {
             navigate('/profile');
             return;

@@ -12,6 +12,7 @@ class UserBase(BaseModel):
     picture: Optional[str] = None
     batch: Optional[str] = None
     department: Optional[str] = None
+    degree: Optional[str] = None
     register_number: Optional[str] = None
     joined_clubs: Optional[List[str]] = []
     interests: Optional[List[str]] = []
@@ -28,6 +29,7 @@ class UserResponse(UserBase):
 class UserUpdate(BaseModel):
     batch: Optional[str] = None
     department: Optional[str] = None
+    degree: Optional[str] = None
     register_number: Optional[str] = None
     joined_clubs: Optional[List[str]] = None
     interests: Optional[List[str]] = None
@@ -127,6 +129,7 @@ class EventRSVPUserResponse(BaseModel):
     name: Optional[str] = None
     email: str
     department: Optional[str] = None
+    degree: Optional[str] = None
     batch: Optional[str] = None
     register_number: Optional[str] = None
 

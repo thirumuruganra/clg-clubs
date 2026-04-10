@@ -50,6 +50,7 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
         "role": user.role,
         "batch": user.batch,
         "department": user.department,
+        "degree": user.degree,
         "register_number": user.register_number,
         "joined_clubs": joined_clubs_list,
         "interests": interests_list,
@@ -65,6 +66,8 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
         user.batch = user_update.batch
     if user_update.department is not None:
         user.department = user_update.department
+    if user_update.degree is not None:
+        user.degree = user_update.degree
     if user_update.register_number is not None:
         user.register_number = user_update.register_number
     if user_update.joined_clubs is not None:
@@ -88,6 +91,7 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
         "role": user.role,
         "batch": user.batch,
         "department": user.department,
+        "degree": user.degree,
         "joined_clubs": joined_clubs_list,
         "interests": interests_list,
     }

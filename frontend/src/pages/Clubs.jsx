@@ -27,7 +27,7 @@ const Clubs = () => {
 
   useEffect(() => {
     if (!loading && !user) { navigate('/login'); return; }
-    if (user && (!user.batch || !user.department)) { navigate('/profile'); return; }
+    if (user && (!user.batch || !user.department || !user.degree)) { navigate('/profile'); return; }
     if (user) void fetchClubs();
   }, [user, loading, navigate, fetchClubs]);
 

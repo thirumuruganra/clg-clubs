@@ -22,11 +22,34 @@ const PREDEFINED_INTERESTS = [
   'Public Speaking',
 ];
 
+const COURSE_OPTIONS = [
+  'Biomedical Engineering',
+  'Chemical Engineering',
+  'Civil Engineering',
+  'Artificial Intelligence and Data Science',
+  'Computer Science and Engineering',
+  'Computer Science and Engineering (Internet of Things)',
+  'Computer Science and Engineering (Cyber Security)',
+  'Electrical and Electronics Engineering',
+  'ECE',
+  'ECE (VLSI Design and Technology)',
+  'IT',
+  'Mechanical Engineering',
+];
+
+const DEGREE_OPTIONS = [
+  'B.E.',
+  'B.Tech',
+  'M.E.',
+  'M.Tech Integrated',
+  'M.Tech',
+];
+
 const Profile = () => {
   const { user, loading, logout, refetchUser } = useAuth();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({ register_number: '', batch: '', department: '', joined_clubs: [], interests: [] });
+  const [formData, setFormData] = useState({ register_number: '', batch: '', department: '', degree: '', joined_clubs: [], interests: [] });
   const [clubs, setClubs] = useState([]);
   const [saving, setSaving] = useState(false);
   const [pictureError, setPictureError] = useState(false);
@@ -35,7 +58,7 @@ const Profile = () => {
   const [interestInput, setInterestInput] = useState('');
   const [saveError, setSaveError] = useState('');
 
-  const isIncomplete = user && (!user.batch || !user.department || !user.register_number || (user.interests || []).length < 3);
+  const isIncomplete = user && (!user.batch || !user.department || !user.degree || !user.register_number || (user.interests || []).length < 3);
 
   // Check if the user has a valid picture URL
   const hasValidPicture = user?.picture && user.picture.trim() !== '' && !pictureError;
@@ -52,6 +75,7 @@ const Profile = () => {
         register_number: user.register_number || '',
         batch: user.batch || '',
         department: user.department || '',
+        degree: user.degree || '',
         joined_clubs: user.joined_clubs || [],
         interests: user.interests || []
       });
@@ -225,8 +249,22 @@ const Profile = () => {
                 <input type="text" name="batch" value={formData.batch} onChange={handleChange} required placeholder="e.g. 2024" className="w-full px-4 py-2 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none" />
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-[#111418] dark:text-white">Department <span className="text-red-500">*</span></label>
-                <input type="text" name="department" value={formData.department} onChange={handleChange} required placeholder="e.g. CSE" className="w-full px-4 py-2 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none" />
+                <label className="block text-sm font-medium text-[#111418] dark:text-white">Course <span className="text-red-500">*</span></label>
+                <select name="department" value={formData.department} onChange={handleChange} required className="w-full px-4 py-2 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none">
+                  <option value="" disabled>Select your course</option>
+                  {COURSE_OPTIONS.map((course) => (
+                    <option key={course} value={course}>{course}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-[#111418] dark:text-white">Degree <span className="text-red-500">*</span></label>
+                <select name="degree" value={formData.degree} onChange={handleChange} required className="w-full px-4 py-2 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none">
+                  <option value="" disabled>Select your degree</option>
+                  {DEGREE_OPTIONS.map((degree) => (
+                    <option key={degree} value={degree}>{degree}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

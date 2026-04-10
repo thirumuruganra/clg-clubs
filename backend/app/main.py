@@ -72,6 +72,23 @@ def ensure_user_register_number_column() -> None:
     except Exception as exc:
         print(f"⚠️  Could not auto-add 'register_number' column: {exc}")
 
+def ensure_user_degree_column() -> None:
+    """Add the degree column for older databases that were created before this field existed."""
+    try:
+        inspector = inspect(engine)
+        if "users" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("users")}
+        if "degree" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN degree VARCHAR(50)"))
+        print("ℹ️  Added missing 'degree' column to users table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'degree' column: {exc}")
+
 def ensure_user_google_scopes_column() -> None:
     """Add the google_scopes column for older databases that were created before this field existed."""
     try:
@@ -107,11 +124,41 @@ def ensure_rsvp_attended_column() -> None:
         print(f"⚠️  Could not auto-add 'attended' column: {exc}")
 
 
+def normalize_legacy_cse_entries() -> None:
+    """Normalize older user entries: CSE -> Computer Science and Engineering, degree -> B.E."""
+    try:
+        inspector = inspect(engine)
+        if "users" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("users")}
+        if "department" not in existing_columns or "degree" not in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            updated = conn.execute(
+                text(
+                    """
+                    UPDATE users
+                    SET department = 'Computer Science and Engineering',
+                        degree = 'B.E.'
+                    WHERE lower(trim(coalesce(department, ''))) = 'cse'
+                    """
+                )
+            )
+        if updated.rowcount and updated.rowcount > 0:
+            print(f"ℹ️  Normalized {updated.rowcount} legacy CSE user entries")
+    except Exception as exc:
+        print(f"⚠️  Could not normalize legacy CSE entries: {exc}")
+
+
 ensure_event_keywords_column()
 ensure_user_interests_column()
 ensure_user_register_number_column()
+ensure_user_degree_column()
 ensure_user_google_scopes_column()
 ensure_rsvp_attended_column()
+normalize_legacy_cse_entries()
 
 app = FastAPI(
     title="WAVC API",
