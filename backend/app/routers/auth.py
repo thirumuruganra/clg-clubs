@@ -115,7 +115,7 @@ async def login(request: Request):
 @router.get('/login/calendar')
 async def login_with_calendar_scope(request: Request):
     """Request Google Calendar scope incrementally after initial sign-in."""
-    next_redirect = request.query_params.get("next") or "/admin"
+    next_redirect = request.query_params.get("next") or "/club/dashboard"
     return await _start_google_oauth_redirect(
         request,
         include_calendar_scope=True,
@@ -189,16 +189,16 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     })
 
     # Determine redirect URL
-    # Club admins should go to the admin flow regardless of student profile completeness fields.
+    # Club admins should go to the club dashboard flow regardless of student profile completeness fields.
     redirect_url = request.session.pop("post_auth_redirect", None)
     if not redirect_url:
         if user.role == "CLUB_ADMIN":
-            redirect_url = "http://localhost:5173/admin"
+            redirect_url = "http://localhost:5173/club/dashboard"
         else:
             user_interests = _safe_json_list(user.interests)
-            redirect_url = "http://localhost:5173/dashboard"
+            redirect_url = "http://localhost:5173/student/dashboard"
             if not user.batch or not user.department or not user.degree or not user.register_number or len(user_interests) < 3:
-                redirect_url = "http://localhost:5173/profile"
+                redirect_url = "http://localhost:5173/student/profile"
 
     # Set JWT as cookie and redirect
     response = RedirectResponse(url=redirect_url, status_code=302)

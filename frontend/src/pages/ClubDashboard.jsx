@@ -4,7 +4,7 @@ import { useAuth } from '../auth-context';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import wavcIcon from '../assets/WAVC-edit.png';
-import AdminCalendar from './AdminCalendar';
+import ClubCalendar from './ClubCalendar';
 import { cn } from '../lib/utils';
 import {
   AlertDialog,
@@ -239,7 +239,7 @@ const evaluatePaymentMatch = (user, payment, calculatedYear) => {
   };
 };
 
-const AdminDashboard = () => {
+const ClubDashboard = () => {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -255,7 +255,7 @@ const AdminDashboard = () => {
   const [rsvpError, setRsvpError] = useState('');
   const [paymentFeedback, setPaymentFeedback] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const calendarConsentUrl = '/api/auth/login/calendar?next=/admin';
+  const calendarConsentUrl = '/api/auth/login/calendar?next=/club/dashboard';
 
   // Quick Create form
   const [newEvent, setNewEvent] = useState({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '', is_paid: false, registration_fees: '' });
@@ -273,7 +273,7 @@ const AdminDashboard = () => {
       if (clubsRes.ok) {
         const clubs = await clubsRes.json();
         let myClub = clubs.find(c => c.admin_id === user.id);
-        if (!myClub) { navigate('/club-setup'); return; }
+        if (!myClub) { navigate('/club/setup'); return; }
         
         if (myClub.instagram_handle) {
           try {
@@ -297,7 +297,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (!loading && !user) { navigate('/login'); return; }
-    if (user && user.role !== 'CLUB_ADMIN') { navigate('/dashboard'); return; }
+    if (user && user.role !== 'CLUB_ADMIN') { navigate('/student/dashboard'); return; }
     if (user) void fetchData();
   }, [user, loading, navigate, fetchData]);
 
@@ -704,7 +704,7 @@ const AdminDashboard = () => {
 
   if (loading || loadingData) return (
     <div className="min-h-dvh flex items-center justify-center bg-background-dark text-white">
-      <div className="animate-pulse text-lg">Loading admin panel...</div>
+      <div className="animate-pulse text-lg">Loading club dashboard...</div>
     </div>
   );
 
@@ -829,7 +829,7 @@ const AdminDashboard = () => {
         {/* Content Area */}
         {activeTab === 'events' ? (
           <div className="flex-1 overflow-hidden p-0">
-            <AdminCalendar 
+            <ClubCalendar 
               club={club} 
               searchQuery={searchQuery} 
               onOpenEditModal={openEditModal} 
@@ -1455,4 +1455,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default ClubDashboard;

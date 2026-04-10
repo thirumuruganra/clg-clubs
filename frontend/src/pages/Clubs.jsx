@@ -27,7 +27,7 @@ const Clubs = () => {
 
   useEffect(() => {
     if (!loading && !user) { navigate('/login'); return; }
-    if (user && (!user.batch || !user.department || !user.degree)) { navigate('/profile'); return; }
+    if (user && (!user.batch || !user.department || !user.degree)) { navigate('/student/profile'); return; }
     if (user) void fetchClubs();
   }, [user, loading, navigate, fetchClubs]);
 
@@ -91,7 +91,7 @@ const Clubs = () => {
         {/* Header */}
         <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#e5e7eb] dark:border-[#233648] px-4 md:px-10 py-3 bg-white dark:bg-[#111a22]">
           <div className="flex items-center gap-4 md:gap-8">
-            <div className="flex items-center gap-4 text-[#111418] dark:text-white cursor-pointer" onClick={() => navigate('/dashboard')}>
+            <div className="flex items-center gap-4 text-[#111418] dark:text-white cursor-pointer" onClick={() => navigate('/student/dashboard')}>
               <div className="size-8 text-primary flex items-center justify-center">
                 <img src={wavcIcon} alt="WAVC Logo" className="w-full h-full object-contain" />
               </div>
@@ -113,14 +113,14 @@ const Clubs = () => {
           </div>
           <div className="flex flex-1 justify-end gap-4 md:gap-8">
             <div className="hidden md:flex items-center gap-9">
-              <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/dashboard">Dashboard</a>
-              <a className="text-primary text-sm font-medium" href="/clubs">Clubs</a>
-              <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/calendar">Events</a>
+              <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/student/dashboard">Student Dashboard</a>
+              <a className="text-primary text-sm font-medium" href="/student/clubs">Clubs</a>
+              <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/student/calendar">Events</a>
               {role === 'CLUB_ADMIN' && (
-                <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/admin">Admin</a>
+                <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/club/dashboard">Club Dashboard</a>
               )}
             </div>
-            <button aria-label="Go to profile" onClick={() => navigate('/profile')} className="focus:outline-none transition-transform active:scale-95">
+            <button aria-label="Go to profile" onClick={() => navigate('/student/profile')} className="focus:outline-none transition-transform active:scale-95">
               {hasValidPicture ? (
                 <img
                   src={picture}

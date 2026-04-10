@@ -161,7 +161,7 @@ const Calendar = () => {
 
           {/* Nav */}
           <nav className="flex flex-col gap-1 mb-1">
-            {[{ label: 'Home', icon: 'home', path: '/dashboard' }, { label: 'Events', icon: 'event', path: '/calendar', active: true }, { label: 'Clubs', icon: 'groups', path: '/clubs' }, { label: 'My Profile', icon: 'person', path: '/profile' }].map(item => (
+            {[{ label: 'Home', icon: 'home', path: '/student/dashboard' }, { label: 'Events', icon: 'event', path: '/student/calendar', active: true }, { label: 'Clubs', icon: 'groups', path: '/student/clubs' }, { label: 'My Profile', icon: 'person', path: '/student/profile' }].map(item => (
               <button key={item.label} onClick={() => navigate(item.path)} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${item.active ? 'bg-primary/10 text-primary' : 'text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648]'}`}>
                 <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
                 {item.label}
@@ -287,7 +287,7 @@ const Calendar = () => {
               <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="bg-transparent border-none text-sm px-2 focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] w-full" placeholder="Search..." />
             </label>
             <button aria-label="Notifications" className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-[#f0f2f4] dark:bg-[#233648] hover:bg-[#e5e7eb] dark:hover:bg-[#324b61] transition-colors"><span className="material-symbols-outlined text-[20px] leading-none">notifications</span></button>
-            <button aria-label="Go to profile" onClick={() => navigate('/profile')} className="w-10 h-10 shrink-0 focus:outline-none flex items-center justify-center rounded-full bg-[#f0f2f4] dark:bg-[#233648] overflow-hidden">
+            <button aria-label="Go to profile" onClick={() => navigate('/student/profile')} className="w-10 h-10 shrink-0 focus:outline-none flex items-center justify-center rounded-full bg-[#f0f2f4] dark:bg-[#233648] overflow-hidden">
               {user?.picture && user.picture.trim() !== '' ? (
                 <img
                   src={user.picture}

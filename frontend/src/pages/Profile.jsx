@@ -146,7 +146,7 @@ const Profile = () => {
       });
       if (res.ok) {
         await refetchUser();
-        navigate('/dashboard');
+        navigate('/student/dashboard');
       } else {
         setSaveError('Failed to save profile.');
       }
@@ -196,8 +196,8 @@ const Profile = () => {
       <div className="w-full max-w-2xl bg-white dark:bg-[#1a2632] rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800">
         <div className="bg-primary h-32 relative">
           <div className="absolute top-4 left-4">
-            <button onClick={() => navigate('/dashboard')} className="flex items-center gap-1 text-white/80 hover:text-white transition-colors bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm text-sm font-medium">
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span> Back to Dashboard
+            <button onClick={() => navigate('/student/dashboard')} className="flex items-center gap-1 text-white/80 hover:text-white transition-colors bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm text-sm font-medium">
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span> Back to Student Dashboard
             </button>
           </div>
           <div className="absolute top-4 right-4">

@@ -14,7 +14,7 @@ const eventMatchesSearch = (event, rawQuery) => {
         .some((field) => field.toLowerCase().includes(query));
 };
 
-const Dashboard = () => {
+const StudentDashboard = () => {
     const { user, loading } = useAuth();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +73,7 @@ const Dashboard = () => {
             user.role !== 'CLUB_ADMIN' &&
             (!user.batch || !user.department || !user.degree || (user.interests || []).length < 3)
         ) {
-            navigate('/profile');
+            navigate('/student/profile');
             return;
         }
         if (user) {
@@ -194,7 +194,7 @@ const Dashboard = () => {
                         )}
                     </div>
                     <div className="flex items-center justify-end">
-                        <button onClick={() => navigate(`/calendar`)} className="flex items-center gap-1 rounded-lg border border-[#e5e7eb] dark:border-[#233648] bg-transparent px-3 py-1.5 text-xs font-bold text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
+                        <button onClick={() => navigate('/student/calendar')} className="flex items-center gap-1 rounded-lg border border-[#e5e7eb] dark:border-[#233648] bg-transparent px-3 py-1.5 text-xs font-bold text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
                             More Info
                         </button>
                     </div>
@@ -209,7 +209,7 @@ const Dashboard = () => {
                 {/* Header */}
                 <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#e5e7eb] dark:border-[#233648] px-4 md:px-10 py-3 bg-white dark:bg-[#111a22]">
                     <div className="flex items-center gap-4 md:gap-8">
-                        <div className="flex items-center gap-4 text-[#111418] dark:text-white cursor-pointer" onClick={() => navigate('/dashboard')}>
+                        <div className="flex items-center gap-4 text-[#111418] dark:text-white cursor-pointer" onClick={() => navigate('/student/dashboard')}>
                             <div className="size-8 text-primary flex items-center justify-center">
                                 <img src={wavcIcon} alt="WAVC Logo" className="w-full h-full object-contain" />
                             </div>
@@ -231,19 +231,19 @@ const Dashboard = () => {
                     </div>
                     <div className="flex flex-1 justify-end gap-4 md:gap-8">
                         <div className="hidden md:flex items-center gap-9">
-                            <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/dashboard">Dashboard</a>
-                            <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/clubs">Clubs</a>
-                            <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/calendar">Events</a>
+                            <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/student/dashboard">Student Dashboard</a>
+                            <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/student/clubs">Clubs</a>
+                            <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/student/calendar">Events</a>
                             {role === 'CLUB_ADMIN' && (
-                                <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/admin">Admin</a>
+                                <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/club/dashboard">Club Dashboard</a>
                             )}
                         </div>
                         {role === 'CLUB_ADMIN' && (
-                            <button onClick={() => navigate('/admin')} className="hidden md:flex min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
+                            <button onClick={() => navigate('/club/dashboard')} className="hidden md:flex min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
                                 <span className="truncate">Create Event</span>
                             </button>
                         )}
-                        <button aria-label="Go to profile" onClick={() => navigate('/profile')} className="focus:outline-none transition-transform active:scale-95">
+                        <button aria-label="Go to profile" onClick={() => navigate('/student/profile')} className="focus:outline-none transition-transform active:scale-95">
                             {hasValidPicture ? (
                                 <img
                                     src={picture}
@@ -279,7 +279,7 @@ const Dashboard = () => {
 
                         {/* Calendar Tile */}
                         <div className="grid grid-cols-1 gap-4 p-4">
-                            <div onClick={() => navigate('/calendar')} className="group relative cursor-pointer overflow-hidden rounded-xl shadow-sm transition-all hover:shadow-md h-80">
+                            <div onClick={() => navigate('/student/calendar')} className="group relative cursor-pointer overflow-hidden rounded-xl shadow-sm transition-all hover:shadow-md h-80">
                                 <div className="absolute inset-0 bg-linear-to-t from-black/70 to-black/20 transition-transform duration-500 group-hover:scale-105 bg-cover bg-center"
                                     style={{ backgroundImage: 'linear-gradient(0deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuB3zrC2zWTw2D4ivcIDWAb6vufiRs4bu3TgruhnB8zNBUeKci7kXQow7VafPKRga4Lua80PMNk1-QDne8Jz2xL8sVt3D4vk8aly08_J7ECW6ibdVKe9cK___pbaTzgl6Ao0GGmlrhdkYYcHHKC28MFxi-5Mx_ilnkcmxWj5IIVBLlLxQYWXwPOekKPJDW0-W2SFeW-zf9V-A-3yzcHNOiIBjXVzDYVZKSGxx5ZgP8Wqr1aIRU71sDUnwUvmUITWOzvvnhPYUWOcoek")' }}
                                 ></div>
@@ -298,7 +298,7 @@ const Dashboard = () => {
                                     <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">For You</h2>
                                     <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Interest-matched events ranked for you across all clubs</p>
                                 </div>
-                                <button onClick={() => navigate('/calendar')} className="text-primary text-sm font-bold hover:underline">View All</button>
+                                <button onClick={() => navigate('/student/calendar')} className="text-primary text-sm font-bold hover:underline">View All</button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
                                 {!loadingEvents && forYouEvents.length === 0 && (
@@ -335,10 +335,10 @@ const Dashboard = () => {
                                     <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">Clubs</h2>
                                     <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Follow clubs for stronger priority in your personalized feed</p>
                                 </div>
-                                <button onClick={() => navigate('/clubs')} className="text-primary text-sm font-bold hover:underline">View All</button>
+                                <button onClick={() => navigate('/student/clubs')} className="text-primary text-sm font-bold hover:underline">View All</button>
                             </div>
                             <div className="px-4">
-                                <div onClick={() => navigate('/clubs')} className="group cursor-pointer overflow-hidden rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] p-6 hover:shadow-lg hover:border-primary/30 transition-all flex items-center gap-6">
+                                <div onClick={() => navigate('/student/clubs')} className="group cursor-pointer overflow-hidden rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] p-6 hover:shadow-lg hover:border-primary/30 transition-all flex items-center gap-6">
                                     <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
                                         <span className="material-symbols-outlined text-primary text-[32px]">groups</span>
                                     </div>
@@ -406,4 +406,4 @@ const Dashboard = () => {
     );
 };
 
-export default Dashboard;
+export default StudentDashboard;

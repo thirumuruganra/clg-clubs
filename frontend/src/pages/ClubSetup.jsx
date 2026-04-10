@@ -25,7 +25,7 @@ const ClubSetup = () => {
   );
 
   if (!user || user.role !== 'CLUB_ADMIN') {
-    navigate('/dashboard');
+    navigate('/student/dashboard');
     return null;
   }
 
@@ -44,7 +44,7 @@ const ClubSetup = () => {
         body: JSON.stringify(formData),
       });
       if (res.ok) {
-        navigate('/admin');
+        navigate('/club/dashboard');
       } else {
         const data = await res.json();
         setFormError(data.detail || 'Failed to create club.');
@@ -168,7 +168,7 @@ const ClubSetup = () => {
 
           {/* Actions */}
           <div className="flex items-center justify-center gap-6 pt-6">
-            <button type="button" onClick={() => navigate('/dashboard')} className="text-sm font-bold text-[#637588] dark:text-[#92adc9] hover:text-white transition-colors">
+            <button type="button" onClick={() => navigate('/student/dashboard')} className="text-sm font-bold text-[#637588] dark:text-[#92adc9] hover:text-white transition-colors">
               Cancel
             </button>
             <button

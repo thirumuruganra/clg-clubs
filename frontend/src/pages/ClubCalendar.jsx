@@ -11,7 +11,7 @@ const eventMatchesSearch = (event, rawQuery) => {
     .some((field) => field.toLowerCase().includes(query));
 };
 
-const AdminCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal }) => {
+const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal }) => {
   const { user } = useAuth();
   const [allEvents, setAllEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -299,4 +299,4 @@ const AdminCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal }
   );
 };
 
-export default AdminCalendar;
+export default ClubCalendar;
