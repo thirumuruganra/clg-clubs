@@ -1,43 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
 
 const API = '';
 
 const Clubs = () => {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [clubs, setClubs] = useState([]);
   const [loadingClubs, setLoadingClubs] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [pictureError, setPictureError] = useState(false);
+  const [followError, setFollowError] = useState('');
 
-  useEffect(() => {
-    if (!loading && !user) { navigate('/login'); return; }
-    if (user && (!user.batch || !user.department)) { navigate('/profile'); return; }
-    if (user) fetchClubs();
-  }, [user, loading]);
+  const fetchClubs = useCallback(async () => {
+    if (!user?.id) return;
 
-  const fetchClubs = async () => {
     try {
       const res = await fetch(`${API}/api/clubs/?user_id=${user.id}`);
       if (res.ok) setClubs(await res.json());
     } catch (err) { console.error('Error fetching clubs:', err); }
     finally { setLoadingClubs(false); }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!loading && !user) { navigate('/login'); return; }
+    if (user && (!user.batch || !user.department)) { navigate('/profile'); return; }
+    if (user) void fetchClubs();
+  }, [user, loading, navigate, fetchClubs]);
 
   const handleFollow = async (e, clubId) => {
     e.stopPropagation();
+    setFollowError('');
     try {
       const res = await fetch(`${API}/api/follow/clubs/${clubId}/follow`, { method: 'POST' });
       if (res.ok) fetchClubs();
       else {
         const data = await res.json();
-        alert(data.detail || 'Could not follow club');
+        setFollowError(data.detail || 'Could not follow this club right now.');
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setFollowError('Unable to follow this club right now.');
+    }
   };
 
   const handleUnfollow = async (e, clubId) => {
@@ -56,7 +63,7 @@ const Clubs = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
+    <div className="min-h-dvh flex items-center justify-center bg-background-light dark:bg-background-dark">
       <div className="animate-pulse text-white text-lg">Loading...</div>
     </div>
   );
@@ -79,7 +86,7 @@ const Clubs = () => {
   const nonTechCount = clubs.filter(c => c.category === 'NON_TECH').length;
 
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark font-display overflow-x-hidden text-slate-900 dark:text-white">
+    <div className="relative flex h-auto min-h-dvh w-full flex-col bg-background-light dark:bg-background-dark font-display overflow-x-hidden text-slate-900 dark:text-white">
       <div className="layout-container flex h-full grow flex-col">
         {/* Header */}
         <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#e5e7eb] dark:border-[#233648] px-4 md:px-10 py-3 bg-white dark:bg-[#111a22]">
@@ -113,7 +120,7 @@ const Clubs = () => {
                 <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/admin">Admin</a>
               )}
             </div>
-            <button onClick={() => navigate('/profile')} className="focus:outline-none transition-transform active:scale-95">
+            <button aria-label="Go to profile" onClick={() => navigate('/profile')} className="focus:outline-none transition-transform active:scale-95">
               {hasValidPicture ? (
                 <img
                   src={picture}
@@ -191,6 +198,7 @@ const Clubs = () => {
                 />
               </div>
             </div>
+            {followError && <p className="mx-4 mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{followError}</p>}
 
             {/* Clubs Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pb-8">

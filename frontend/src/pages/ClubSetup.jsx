@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
 
 const API = '';
@@ -16,9 +16,10 @@ const ClubSetup = () => {
     logo_url: '',
   });
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-background-dark text-white">
+    <div className="min-h-dvh flex items-center justify-center bg-background-dark text-white">
       <div className="animate-pulse text-lg">Loading...</div>
     </div>
   );
@@ -30,7 +31,11 @@ const ClubSetup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) { alert('Please enter a club name'); return; }
+    setFormError('');
+    if (!formData.name.trim()) {
+      setFormError('Please enter a club name.');
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch(`${API}/api/clubs/`, {
@@ -42,14 +47,16 @@ const ClubSetup = () => {
         navigate('/admin');
       } else {
         const data = await res.json();
-        alert(data.detail || 'Failed to create club');
+        setFormError(data.detail || 'Failed to create club.');
       }
-    } catch { alert('Error creating club'); }
+    } catch {
+      setFormError('Error creating club.');
+    }
     finally { setSaving(false); }
   };
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white">
+    <div className="min-h-dvh bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white">
       {/* Top bar */}
       <header className="flex items-center justify-between px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22]">
         <div className="flex items-center gap-3">
@@ -72,6 +79,7 @@ const ClubSetup = () => {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-8">
+          {formError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{formError}</p>}
           {/* Logo Upload Area */}
           <div className="border border-dashed border-[#e5e7eb] dark:border-[#233648] rounded-xl p-8 flex items-center gap-8">
             <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#637588]/30 flex items-center justify-center shrink-0 bg-[#f0f2f4] dark:bg-[#233648]">

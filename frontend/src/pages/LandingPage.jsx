@@ -5,13 +5,13 @@ const LandingPage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-white dark:bg-[#111a22]">
+    <div className="relative flex min-h-dvh w-full flex-col overflow-x-hidden bg-white dark:bg-[#111a22]">
       <header className="sticky top-0 z-50 flex items-center justify-between border-b border-solid border-slate-200 dark:border-[#233648] bg-white/80 dark:bg-[#111a22]/80 backdrop-blur-md px-4 py-3 lg:px-10">
         <div className="flex items-center gap-4 text-slate-900 dark:text-white">
           <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary overflow-hidden">
             <img src={wavcIcon} alt="WAVC Logo" className="w-full h-full object-contain p-1" />
           </div>
-          <h2 className="text-xl font-bold leading-tight tracking-[-0.015em]">WAVC</h2>
+          <h2 className="text-xl font-bold leading-tight">WAVC</h2>
         </div>
         
         {/* Desktop Navigation */}
@@ -23,7 +23,7 @@ const LandingPage = () => {
           </nav>
           <button 
             onClick={() => window.location.href = '/login'}
-            className="flex min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20">
+            className="flex min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-white text-sm font-bold leading-normal hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20">
             <span className="truncate">Login</span>
           </button>
         </div>
@@ -31,6 +31,7 @@ const LandingPage = () => {
         {/* Mobile Menu Button */}
         <div className="md:hidden flex items-center">
           <button 
+            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors focus:outline-none"
           >
@@ -49,7 +50,7 @@ const LandingPage = () => {
 
       {/* Mobile Navigation Dropdown */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-16.25 z-40 bg-white/95 dark:bg-[#111a22]/95 backdrop-blur-xl animate-in fade-in slide-in-from-top-5 duration-200">
+        <div className="md:hidden fixed inset-0 top-16.25 z-40 bg-white/95 dark:bg-[#111a22]/95 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
            <nav className="flex flex-col items-center justify-center p-8 gap-8 h-full">
             {['About', 'Clubs', 'Contact'].map((item) => (
               <a key={item} 
@@ -82,10 +83,10 @@ const LandingPage = () => {
                 >
                   <div className="absolute inset-0 bg-linear-to-t from-background-dark/90 to-transparent pointer-events-none"></div>
                   <div className="relative z-10 flex flex-col gap-4 max-w-175">
-                    <h1 className="text-white text-4xl sm:text-5xl md:text-7xl font-black leading-tight tracking-[-0.033em] drop-shadow-2xl">
+                    <h1 className="text-balance text-white text-4xl sm:text-5xl md:text-7xl font-black leading-tight">
                       Stay in the loop.<br/>Stay in the club.
                     </h1>
-                    <h2 className="text-white/90 text-lg sm:text-xl font-medium leading-relaxed max-w-150 mx-auto drop-shadow-lg">
+                    <h2 className="text-pretty text-white/90 text-lg sm:text-xl font-medium leading-relaxed max-w-150 mx-auto">
                       Discover events, join communities, and manage club activities all in one unified campus platform.
                     </h2>
                   </div>

@@ -1,10 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../auth-context';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import wavcIcon from '../assets/WAVC-edit.png';
 import AdminCalendar from './AdminCalendar';
+import { cn } from '../lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 
 const API = '';
 const DESCRIPTION_WORD_LIMIT = 100;
@@ -59,6 +70,175 @@ const eventMatchesSearch = (event, rawQuery) => {
     .some((field) => field.toLowerCase().includes(query));
 };
 
+const normalizeValue = (value) => (value ? String(value).trim().toLowerCase() : '');
+
+const normalizeAlphaNum = (value) =>
+  normalizeValue(value)
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+
+const normalizeCompact = (value) => normalizeAlphaNum(value).replace(/\s+/g, '');
+
+const normalizeNameKey = (value) => {
+  const parts = normalizeAlphaNum(value).split(' ').filter(Boolean);
+  return parts.sort().join(' ');
+};
+
+const nameParts = (value) => normalizeAlphaNum(value).split(' ').filter(Boolean);
+
+const normalizeDepartment = (value) => {
+  const compact = normalizeCompact(value);
+  if (!compact) return '';
+
+  if (compact.includes('computer') && compact.includes('science')) return 'cse';
+  if (compact.includes('cse')) return 'cse';
+  if (compact.includes('ece')) return 'ece';
+  if (compact.includes('mech')) return 'mech';
+  if (compact.includes('civil')) return 'civil';
+  if (compact.includes('it')) return 'it';
+
+  return compact;
+};
+
+const normalizeYearLabel = (value) => {
+  const raw = normalizeValue(value);
+  if (!raw) return '';
+
+  if (/\b(iv|4|4th|fourth)\b/.test(raw)) return 'IV';
+  if (/\b(iii|3|3rd|third)\b/.test(raw)) return 'III';
+  if (/\b(ii|2|2nd|second)\b/.test(raw)) return 'II';
+  if (/\b(i|1|1st|first)\b/.test(raw)) return 'I';
+
+  return '';
+};
+
+const parseCsvRows = (text) => {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+
+    if (char === '"') {
+      if (inQuotes && text[i + 1] === '"') {
+        field += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      row.push(field);
+      field = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && text[i + 1] === '\n') i += 1;
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+      continue;
+    }
+
+    field += char;
+  }
+
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  return rows;
+};
+
+const buildTokenSet = (row) => {
+  const tokens = new Set();
+
+  row.forEach((value) => {
+    const normalized = normalizeAlphaNum(value);
+    if (!normalized) return;
+
+    normalized.split(' ').forEach((token) => {
+      if (token) tokens.add(token);
+    });
+
+    tokens.add(normalizeCompact(value));
+  });
+
+  tokens.delete('');
+  return tokens;
+};
+
+const getHeaderIndex = (normalizedHeaders, headerAliases) => {
+  for (const alias of headerAliases) {
+    const idx = normalizedHeaders.indexOf(alias);
+    if (idx !== -1) return idx;
+  }
+  return -1;
+};
+
+const evaluatePaymentMatch = (user, payment, calculatedYear) => {
+  const userEmail = normalizeValue(user.email);
+  const userRegister = normalizeCompact(user.register_number);
+  const userNameKey = normalizeNameKey(user.name);
+  const userNameParts = nameParts(user.name);
+  const userDepartment = normalizeDepartment(user.department);
+  const userYear = normalizeYearLabel(calculatedYear);
+
+  const paymentEmail = payment.email;
+  const paymentNameKey = payment.nameKey;
+  const paymentNameParts = payment.nameParts;
+
+  const emailMatch = Boolean(userEmail && paymentEmail && userEmail === paymentEmail);
+  const registerMatch = Boolean(userRegister && payment.tokens.has(userRegister));
+  const nameKeyMatch = Boolean(userNameKey && paymentNameKey && userNameKey === paymentNameKey);
+
+  let overlapCount = 0;
+  if (userNameParts.length && paymentNameParts.length) {
+    const paymentPartSet = new Set(paymentNameParts);
+    overlapCount = userNameParts.filter((part) => paymentPartSet.has(part)).length;
+  }
+
+  const nameOverlapMatch = overlapCount >= 2;
+  const departmentMatch = Boolean(userDepartment && payment.department && userDepartment === payment.department);
+  const yearMatch = Boolean(userYear && payment.year && userYear === payment.year);
+
+  const departmentConflict = Boolean(userDepartment && payment.department && userDepartment !== payment.department);
+  const yearConflict = Boolean(userYear && payment.year && userYear !== payment.year);
+
+  const primaryMatch = emailMatch || registerMatch || nameKeyMatch || (nameOverlapMatch && (departmentMatch || yearMatch));
+  if (!primaryMatch) {
+    return { isMatch: false, score: 0, detailConflicts: [] };
+  }
+
+  let score = 0;
+  if (emailMatch) score += 220;
+  if (registerMatch) score += 200;
+  if (nameKeyMatch) score += 160;
+  if (nameOverlapMatch) score += 100;
+  if (departmentMatch) score += 25;
+  if (yearMatch) score += 20;
+  if (departmentConflict) score -= 15;
+  if (yearConflict) score -= 10;
+
+  const detailConflicts = [];
+  if (departmentConflict) detailConflicts.push('department');
+  if (yearConflict) detailConflicts.push('year');
+
+  return {
+    isMatch: true,
+    score,
+    detailConflicts,
+  };
+};
+
 const AdminDashboard = () => {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
@@ -69,6 +249,12 @@ const AdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [editError, setEditError] = useState('');
+  const [tableError, setTableError] = useState('');
+  const [rsvpError, setRsvpError] = useState('');
+  const [paymentFeedback, setPaymentFeedback] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   // Quick Create form
   const [newEvent, setNewEvent] = useState({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '', is_paid: false, registration_fees: '' });
@@ -78,13 +264,9 @@ const AdminDashboard = () => {
   const [editEvent, setEditEvent] = useState(null);
   const [editing, setEditing] = useState(false);
 
-  useEffect(() => {
-    if (!loading && !user) { navigate('/login'); return; }
-    if (user && user.role !== 'CLUB_ADMIN') { navigate('/dashboard'); return; }
-    if (user) fetchData();
-  }, [user, loading]);
+  const fetchData = useCallback(async () => {
+    if (!user) return;
 
-  const fetchData = async () => {
     try {
       const clubsRes = await fetch(`${API}/api/clubs/`);
       if (clubsRes.ok) {
@@ -110,21 +292,28 @@ const AdminDashboard = () => {
       }
     } catch (err) { console.error(err); }
     finally { setLoadingData(false); }
-  };
+  }, [navigate, user]);
+
+  useEffect(() => {
+    if (!loading && !user) { navigate('/login'); return; }
+    if (user && user.role !== 'CLUB_ADMIN') { navigate('/dashboard'); return; }
+    if (user) void fetchData();
+  }, [user, loading, navigate, fetchData]);
 
   const handleCreateEvent = async (e) => {
     e.preventDefault();
     if (!club) return;
+    setCreateError('');
     if (!newEvent.start_time || !newEvent.end_time) {
-      alert('Please choose both start and end date/time');
+      setCreateError('Please choose both start and end date/time.');
       return;
     }
     if (newEvent.end_time <= newEvent.start_time) {
-      alert('End time must be after start time');
+      setCreateError('End time must be after start time.');
       return;
     }
     if (isDescriptionTooLong(newEvent.description)) {
-      alert(`Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer`);
+      setCreateError(`Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer.`);
       return;
     }
 
@@ -144,22 +333,35 @@ const AdminDashboard = () => {
       });
       if (res.ok) {
         setNewEvent({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '', is_paid: false, registration_fees: '' });
+        setCreateError('');
         fetchData();
         setCreateModalOpen(false);
       } else {
         const data = await res.json();
-        alert(data.detail || 'Failed to create event');
+        setCreateError(data.detail || 'Failed to create event.');
       }
-    } catch { alert('Error creating event'); }
+    } catch {
+      setCreateError('Error creating event.');
+    }
     finally { setCreating(false); }
   };
 
-  const handleDeleteEvent = async (eventId) => {
-    if (!confirm('Are you sure you want to delete this event?')) return;
+  const confirmDeleteEvent = async () => {
+    if (!deleteTarget) return;
+    setTableError('');
     try {
-      const res = await fetch(`${API}/api/events/${eventId}`, { method: 'DELETE' });
-      if (res.ok) fetchData();
-    } catch (err) { console.error(err); }
+      const res = await fetch(`${API}/api/events/${deleteTarget.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchData();
+        setDeleteTarget(null);
+      } else {
+        const data = await res.json();
+        setTableError(data.detail || 'Failed to delete event.');
+      }
+    } catch (err) {
+      console.error(err);
+      setTableError('Error deleting event.');
+    }
   };
 
   const openEditModal = (event) => {
@@ -182,16 +384,17 @@ const AdminDashboard = () => {
   const handleUpdateEvent = async (e) => {
     e.preventDefault();
     if (!editEvent) return;
+    setEditError('');
     if (!editEvent.start_time || !editEvent.end_time) {
-      alert('Please choose both start and end date/time');
+      setEditError('Please choose both start and end date/time.');
       return;
     }
     if (editEvent.end_time <= editEvent.start_time) {
-      alert('End time must be after start time');
+      setEditError('End time must be after start time.');
       return;
     }
     if (isDescriptionTooLong(editEvent.description)) {
-      alert(`Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer`);
+      setEditError(`Description must be ${DESCRIPTION_WORD_LIMIT} words or fewer.`);
       return;
     }
 
@@ -210,13 +413,16 @@ const AdminDashboard = () => {
         body: JSON.stringify(body),
       });
       if (res.ok) {
+        setEditError('');
         setEditEvent(null);
         fetchData();
       } else {
         const data = await res.json();
-        alert(data.detail || 'Failed to update event');
+        setEditError(data.detail || 'Failed to update event.');
       }
-    } catch { alert('Error updating event'); }
+    } catch {
+      setEditError('Error updating event.');
+    }
     finally { setEditing(false); }
   };
 
@@ -240,6 +446,8 @@ const AdminDashboard = () => {
   };
 
   const openRsvpModal = async (eventObj) => {
+    setRsvpError('');
+    setPaymentFeedback(null);
     setRsvpModal({ open: true, event: eventObj, rsvps: [], loading: true, tab: "attendance" });
     try {
       const res = await fetch(`${API}/api/rsvp/events/${eventObj.id}/rsvps`);
@@ -318,47 +526,140 @@ const AdminDashboard = () => {
     if (!file) return;
     
     try {
+      setPaymentFeedback(null);
       const text = await file.text();
-      const normalize = (str) => str ? String(str).trim().toLowerCase() : "";
-      
-      const fileTokens = new Set(
-        text.split(/[,\s\n\r]+/)
-            .map(normalize)
-            .filter(Boolean)
-      );
+      const parsedRows = parseCsvRows(text)
+        .map((row) => row.map((cell) => String(cell || '').trim()))
+        .filter((row) => row.some((cell) => normalizeValue(cell)));
 
+      if (parsedRows.length < 2) {
+        setPaymentFeedback({ type: 'error', text: 'CSV looks empty or has no payment rows.' });
+        return;
+      }
+
+      const headers = parsedRows[0];
+      const normalizedHeaders = headers.map((header) => normalizeCompact(header));
+
+      const paymentStatusIdx = getHeaderIndex(normalizedHeaders, ['paymentstatus', 'status']);
+      const studentNameIdx = getHeaderIndex(normalizedHeaders, ['nameofthestudent', 'studentname', 'name']);
+      const emailIdx = getHeaderIndex(normalizedHeaders, ['email', 'studentemail']);
+      const phoneIdx = getHeaderIndex(normalizedHeaders, ['phone', 'mobilenumber']);
+      const yearIdx = getHeaderIndex(normalizedHeaders, ['yearofthestudent', 'year']);
+      const departmentIdx = getHeaderIndex(normalizedHeaders, ['departmentofstudent', 'department', 'dept']);
+
+      if (paymentStatusIdx === -1) {
+        setPaymentFeedback({ type: 'error', text: 'CSV is missing payment status column.' });
+        return;
+      }
+
+      const payments = [];
+      let capturedRows = 0;
+      let failedRows = 0;
+
+      for (let i = 1; i < parsedRows.length; i += 1) {
+        const row = parsedRows[i];
+        const status = normalizeValue(row[paymentStatusIdx]);
+        if (!status) continue;
+
+        const isCaptured = ['captured', 'success', 'succeeded', 'paid'].includes(status);
+        if (!isCaptured) {
+          failedRows += 1;
+          continue;
+        }
+
+        capturedRows += 1;
+
+        const paymentName = studentNameIdx === -1 ? '' : row[studentNameIdx];
+        const paymentEmail = emailIdx === -1 ? '' : row[emailIdx];
+        const paymentPhone = phoneIdx === -1 ? '' : row[phoneIdx];
+        const paymentYear = yearIdx === -1 ? '' : row[yearIdx];
+        const paymentDepartment = departmentIdx === -1 ? '' : row[departmentIdx];
+
+        payments.push({
+          name: paymentName,
+          nameKey: normalizeNameKey(paymentName),
+          nameParts: nameParts(paymentName),
+          email: normalizeValue(paymentEmail),
+          phone: normalizeCompact(paymentPhone),
+          year: normalizeYearLabel(paymentYear),
+          department: normalizeDepartment(paymentDepartment),
+          tokens: buildTokenSet(row),
+        });
+      }
+
+      if (!payments.length) {
+        setPaymentFeedback({
+          type: 'error',
+          text: `No captured/success payments found in CSV. Failed/pending rows: ${failedRows}.`,
+        });
+        return;
+      }
+
+      const usedPaymentIndexes = new Set();
       const idsToUpdate = [];
+      let detailMismatchCount = 0;
       
-      setRsvpModal(prev => {
-        const newRsvps = prev.rsvps.map(r => {
-          const u = r.user || {};
-          let isMatch = false;
-          if (u.email && fileTokens.has(normalize(u.email))) isMatch = true;
-          if (u.register_number && fileTokens.has(normalize(u.register_number))) isMatch = true;
-          
-          if (isMatch && !r.is_paid) {
-            idsToUpdate.push(r.id);
-            return { ...r, is_paid: true };
+      setRsvpModal((prev) => {
+        const newRsvps = prev.rsvps.map((rsvp) => {
+          if (rsvp.is_paid) return rsvp;
+
+          const userData = rsvp.user || {};
+          const currentYear = calculateYear(userData.batch);
+
+          let bestPaymentIndex = -1;
+          let bestMatch = null;
+
+          payments.forEach((payment, paymentIndex) => {
+            if (usedPaymentIndexes.has(paymentIndex)) return;
+
+            const match = evaluatePaymentMatch(userData, payment, currentYear);
+            if (!match.isMatch) return;
+
+            if (!bestMatch || match.score > bestMatch.score) {
+              bestMatch = match;
+              bestPaymentIndex = paymentIndex;
+            }
+          });
+
+          if (bestPaymentIndex !== -1 && bestMatch) {
+            usedPaymentIndexes.add(bestPaymentIndex);
+            idsToUpdate.push(rsvp.id);
+            if (bestMatch.detailConflicts.length > 0) detailMismatchCount += 1;
+            return { ...rsvp, is_paid: true };
           }
-          return r;
+
+          return rsvp;
         });
         
         return { ...prev, rsvps: newRsvps };
       });
       
       if (idsToUpdate.length > 0) {
-        await fetch(`${API}/api/rsvp/events/${rsvpModal.event.id}/bulk-payment`, {
+        const updateRes = await fetch(`${API}/api/rsvp/events/${rsvpModal.event.id}/bulk-payment`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ rsvp_ids: idsToUpdate, is_paid: true })
         });
-        alert(`Successfully marked ${idsToUpdate.length} students as paid based on CSV.`);
+
+        if (!updateRes.ok) throw new Error('Bulk payment update failed');
+
+        const summary = [`Marked ${idsToUpdate.length} students as paid from CSV.`];
+        summary.push(`Captured/success rows checked: ${capturedRows}.`);
+        if (failedRows > 0) summary.push(`Ignored failed/pending rows: ${failedRows}.`);
+        if (detailMismatchCount > 0) {
+          summary.push(`Review suggested: ${detailMismatchCount} matched records had year/department differences.`);
+        }
+
+        setPaymentFeedback({ type: 'success', text: summary.join(' ') });
       } else {
-        alert("No new matching payments found in the CSV based on email or register number.");
+        setPaymentFeedback({
+          type: 'error',
+          text: `No new student matches found from ${capturedRows} captured/success rows. Try including email or clearer student details in payment records.`,
+        });
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to process CSV file.");
+      setPaymentFeedback({ type: 'error', text: 'Failed to process CSV file.' });
     }
     
     e.target.value = null; // reset
@@ -368,9 +669,10 @@ const AdminDashboard = () => {
     const rsvps = rsvpModal.rsvps || [];
     const attended = rsvps.filter(r => r.attended);
     if (!attended.length) {
-      alert('No attendees selected for export.');
+      setRsvpError('No attendees selected for export.');
       return;
     }
+    setRsvpError('');
     const headers = ['S.NO', 'NAME', 'DEPARTMENT', 'YEAR', 'REGISTER NO'];
     const rows = attended.map((r, index) => {
       const u = r.user || {};
@@ -400,7 +702,7 @@ const AdminDashboard = () => {
   };
 
   if (loading || loadingData) return (
-    <div className="min-h-screen flex items-center justify-center bg-background-dark text-white">
+    <div className="min-h-dvh flex items-center justify-center bg-background-dark text-white">
       <div className="animate-pulse text-lg">Loading admin panel...</div>
     </div>
   );
@@ -417,14 +719,14 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="flex h-screen w-full bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-hidden relative">
+    <div className="flex h-dvh w-full bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-hidden relative">
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setMobileMenuOpen(false)}></div>
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 w-64 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col transition-transform duration-300 ease-in-out`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 w-64 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col transition-transform duration-300 ease-in-out`} style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
           <div className="flex items-center gap-3 mb-1">
             {club?.logo_url ? (
@@ -448,11 +750,12 @@ const AdminDashboard = () => {
             <button
               key={item.tab}
               onClick={() => setActiveTab(item.tab)}
-              className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+              className={cn(
+                'flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all',
                 activeTab === item.tab
                   ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                  : 'text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648]'
-              }`}
+                  : 'text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648]',
+              )}
             >
               <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
               {item.label}
@@ -479,7 +782,7 @@ const AdminDashboard = () => {
               <p className="text-sm font-medium truncate">{user?.name}</p>
               <p className="text-xs text-[#637588] dark:text-[#92adc9]">Head Administrator</p>
             </div>
-            <button onClick={logout} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors">
+            <button onClick={logout} aria-label="Sign out" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors">
               <span className="material-symbols-outlined text-[20px] text-[#637588]">logout</span>
             </button>
           </div>
@@ -491,7 +794,7 @@ const AdminDashboard = () => {
         {/* Top bar */}
         <div className={`items-center justify-between px-4 lg:px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] ${activeTab === 'events' ? 'flex lg:hidden' : 'flex'}`}>
           <div className="flex items-center gap-2 flex-1">
-            <button className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
+            <button aria-label="Open sidebar" className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
             {activeTab !== 'events' && (
@@ -557,6 +860,7 @@ const AdminDashboard = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Upcoming Event Registration Tracker</h2>
               </div>
+              {tableError && <p className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{tableError}</p>}
               <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] overflow-hidden">
                 <table className="w-full">
                   <thead>
@@ -597,8 +901,8 @@ const AdminDashboard = () => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
-                            <button onClick={() => openEditModal(event)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[18px] text-[#637588]">edit</span></button>
-                            <button onClick={() => handleDeleteEvent(event.id)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-red-400">delete</span></button>
+                            <button aria-label={`Edit ${event.title}`} onClick={() => openEditModal(event)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[18px] text-[#637588]">edit</span></button>
+                            <button aria-label={`Delete ${event.title}`} onClick={() => setDeleteTarget(event)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-red-400">delete</span></button>
                           </div>
                         </td>
                       </tr>
@@ -612,6 +916,7 @@ const AdminDashboard = () => {
             <div>
               <h2 className="text-xl font-bold mb-4">Quick Create</h2>
               <form onSubmit={handleCreateEvent} className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] p-5 space-y-4">
+                {createError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{createError}</p>}
                 <div>
                   <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Title</label>
                   <input id="quickCreateTitle" type="text" required value={newEvent.title} onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
@@ -692,6 +997,15 @@ const AdminDashboard = () => {
                       className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
                   </div>
                 </div>
+                <div>
+                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Image URL (Optional)</label>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
+                    <span className="material-symbols-outlined text-[18px] text-[#637588]">image</span>
+                    <input type="url" value={newEvent.image_url || ""} onChange={e => setNewEvent(p => ({ ...p, image_url: e.target.value }))}
+                      placeholder="e.g. https://example.com/poster.jpg"
+                      className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
+                  </div>
+                </div>
                 <div className="flex items-center gap-2 mb-2">
                   <input type="checkbox" id="is_paid" checked={newEvent.is_paid || false} onChange={e => setNewEvent(p => ({ ...p, is_paid: e.target.checked }))} className="w-4 h-4 text-blue-500 bg-gray-100 dark:bg-[#1a2632] border-gray-300 dark:border-[#34485c] rounded-full focus:ring-blue-500 focus:ring-2 cursor-pointer" />
                   <label htmlFor="is_paid" className="text-sm font-medium text-[#111418] dark:text-white">Is this a paid event?</label>
@@ -732,13 +1046,14 @@ const AdminDashboard = () => {
       </main>
       {/* Create Event Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setCreateModalOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }} onClick={() => setCreateModalOpen(false)}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
               <h2 className="text-xl font-bold">Create Event</h2>
-              <button onClick={() => setCreateModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+              <button aria-label="Close create event dialog" onClick={() => setCreateModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
             </div>
             <form onSubmit={handleCreateEvent} className="p-6 space-y-4">
+              {createError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{createError}</p>}
               <div>
                 <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Title</label>
                 <input type="text" required value={newEvent.title} onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
@@ -863,13 +1178,14 @@ const AdminDashboard = () => {
       )}
       {/* Edit Event Modal */}
       {editEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setEditEvent(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }} onClick={() => setEditEvent(null)}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
               <h2 className="text-xl font-bold">Edit Event</h2>
-              <button onClick={() => setEditEvent(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+              <button aria-label="Close edit event dialog" onClick={() => setEditEvent(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
             </div>
             <form onSubmit={handleUpdateEvent} className="p-6 space-y-4">
+              {editError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{editError}</p>}
               <div>
                 <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Title</label>
                 <input type="text" required value={editEvent.title} onChange={e => setEditEvent(p => ({ ...p, title: e.target.value }))}
@@ -988,7 +1304,7 @@ const AdminDashboard = () => {
 
       {/* RSVP / Attendance Modal */}
       {rsvpModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }} onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-4xl border border-[#e5e7eb] dark:border-[#233648] flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648] gap-4">
               <div>
@@ -1015,7 +1331,7 @@ const AdminDashboard = () => {
                 <button onClick={exportAttendanceCSV} disabled={rsvpModal.loading || rsvpModal.rsvps.length === 0} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/10 text-green-600 dark:text-green-400 text-sm font-bold hover:bg-green-600/20 transition-colors disabled:opacity-50">
                   <span className="material-symbols-outlined text-[18px]">download</span> Export CSV
                 </button>
-                <button onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+                <button aria-label="Close attendees dialog" onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
               </div>
             </div>
             
@@ -1028,13 +1344,24 @@ const AdminDashboard = () => {
                 <div className="flex flex-col gap-4">
                   {rsvpModal.tab === "payment" && rsvpModal.event?.is_paid && (
                     <div className="flex items-center justify-between pb-2">
-                        <div className="text-sm text-[#637588]">Upload a CSV with student details to auto-check payments.</div>
+                      <div className="text-sm text-[#637588]">Upload payment CSV to auto-match captured/success rows using name, email, register no, year and department.</div>
                         <label className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition-colors">
                             <span className="material-symbols-outlined text-[18px]">upload_file</span> Upload CSV
                             <input type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
                         </label>
                     </div>
                   )}
+                  {paymentFeedback && (
+                    <p className={cn(
+                      'rounded-lg px-3 py-2 text-sm',
+                      paymentFeedback.type === 'success'
+                        ? 'border border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400'
+                        : 'border border-red-500/30 bg-red-500/10 text-red-500',
+                    )}>
+                      {paymentFeedback.text}
+                    </p>
+                  )}
+                  {rsvpError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{rsvpError}</p>}
 
                   <div className="border border-[#e5e7eb] dark:border-[#233648] rounded-xl overflow-hidden">
                     <table className="w-full text-sm text-left">
@@ -1089,6 +1416,21 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete event?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {deleteTarget?.title || 'this event'} and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteEvent}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

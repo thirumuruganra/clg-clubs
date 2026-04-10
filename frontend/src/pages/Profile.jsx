@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../auth-context';
 
 const API = '';
 
@@ -33,6 +33,7 @@ const Profile = () => {
   const [clubSearch, setClubSearch] = useState('');
   const [clubSearchOpen, setClubSearchOpen] = useState(false);
   const [interestInput, setInterestInput] = useState('');
+  const [saveError, setSaveError] = useState('');
 
   const isIncomplete = user && (!user.batch || !user.department || !user.register_number || (user.interests || []).length < 3);
 
@@ -106,8 +107,9 @@ const Profile = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    setSaveError('');
     if (formData.interests.length < 3) {
-      alert('Please select at least 3 interests.');
+      setSaveError('Please select at least 3 interests.');
       return;
     }
 
@@ -121,13 +123,17 @@ const Profile = () => {
       if (res.ok) {
         await refetchUser();
         navigate('/dashboard');
-      } else { alert('Failed to save profile.'); }
-    } catch { alert('An error occurred.'); }
+      } else {
+        setSaveError('Failed to save profile.');
+      }
+    } catch {
+      setSaveError('An error occurred while saving your profile.');
+    }
     finally { setSaving(false); }
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark text-white">
+    <div className="min-h-dvh flex items-center justify-center bg-background-light dark:bg-background-dark text-white">
       <div className="animate-pulse">Loading profile...</div>
     </div>
   );
@@ -162,7 +168,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark text-slate-900 dark:text-white flex items-center justify-center p-4">
+    <div className="min-h-dvh bg-background-light dark:bg-background-dark text-slate-900 dark:text-white flex items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white dark:bg-[#1a2632] rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800">
         <div className="bg-primary h-32 relative">
           <div className="absolute top-4 left-4">
@@ -200,6 +206,7 @@ const Profile = () => {
           </div>
 
           <form onSubmit={handleSave} className="space-y-6">
+            {saveError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{saveError}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-[#111418] dark:text-white">Full Name</label>

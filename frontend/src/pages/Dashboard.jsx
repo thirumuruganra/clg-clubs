@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
 
 const API = '';
@@ -18,7 +18,6 @@ const Dashboard = () => {
     const { user, loading } = useAuth();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
-    const [currentDate, setCurrentDate] = useState('');
     const [forYouEvents, setForYouEvents] = useState([]);
     const [discoverEvents, setDiscoverEvents] = useState([]);
     const [clubs, setClubs] = useState([]);
@@ -26,10 +25,42 @@ const Dashboard = () => {
     const [activities, setActivities] = useState([]);
     const [loadingActivities, setLoadingActivities] = useState(true);
     const [pictureError, setPictureError] = useState(false);
+    const [actionError, setActionError] = useState('');
 
-    useEffect(() => {
-        const date = new Date();
-        setCurrentDate(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+    const fetchEvents = useCallback(async () => {
+        if (!user?.id) return;
+
+        try {
+            const recommendedRes = await fetch(`${API}/api/events/feed?type=recommended&user_id=${user.id}`);
+            if (recommendedRes.ok) {
+                const recommendedEvents = await recommendedRes.json();
+                setForYouEvents(recommendedEvents);
+                setDiscoverEvents(recommendedEvents.filter((event) => !event.is_from_followed_club));
+            }
+        } catch (err) {
+            console.error('Error fetching events:', err);
+        } finally {
+            setLoadingEvents(false);
+        }
+    }, [user]);
+
+    const fetchClubs = useCallback(async () => {
+        if (!user?.id) return;
+
+        try {
+            const res = await fetch(`${API}/api/clubs/?user_id=${user.id}`);
+            if (res.ok) setClubs(await res.json());
+        } catch (err) { console.error('Error fetching clubs:', err); }
+    }, [user]);
+
+    const fetchActivities = useCallback(async () => {
+        try {
+            const res = await fetch(`${API}/api/rsvp/rsvps/me/activity`);
+            if (res.ok) {
+                setActivities(await res.json());
+            }
+        } catch (err) { console.error('Error fetching activities:', err); }
+        finally { setLoadingActivities(false); }
     }, []);
 
     useEffect(() => {
@@ -46,64 +77,38 @@ const Dashboard = () => {
             return;
         }
         if (user) {
-            fetchEvents();
-            fetchClubs();
-            fetchActivities();
+            void fetchEvents();
+            void fetchClubs();
+            void fetchActivities();
         }
-    }, [user, loading]);
-
-    const fetchEvents = async () => {
-        try {
-            const recommendedRes = await fetch(`${API}/api/events/feed?type=recommended&user_id=${user.id}`);
-            if (recommendedRes.ok) {
-                const recommendedEvents = await recommendedRes.json();
-                setForYouEvents(recommendedEvents);
-                setDiscoverEvents(recommendedEvents.filter((event) => !event.is_from_followed_club));
-            }
-        } catch (err) {
-            console.error('Error fetching events:', err);
-        } finally {
-            setLoadingEvents(false);
-        }
-    };
+    }, [user, loading, navigate, fetchEvents, fetchClubs, fetchActivities]);
 
     const handleRSVP = async (eventId, isRegistered) => {
+        setActionError('');
         try {
             const method = isRegistered ? 'DELETE' : 'POST';
             const res = await fetch(`${API}/api/rsvp/events/${eventId}/rsvp`, { method });
             if (res.ok) fetchEvents();
             else {
                 const data = await res.json();
-                alert(data.detail || (isRegistered ? 'Failed to unregister' : 'Already registered'));
+                setActionError(data.detail || (isRegistered ? 'Failed to unregister.' : 'Already registered for this event.'));
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            setActionError('Unable to update registration right now.');
+        }
     };
 
-    const fetchClubs = async () => {
-        try {
-            const res = await fetch(`${API}/api/clubs/?user_id=${user.id}`);
-            if (res.ok) setClubs(await res.json());
-        } catch (err) { console.error('Error fetching clubs:', err); }
-    };
-
-    const fetchActivities = async () => {
-        try {
-            const res = await fetch(`${API}/api/rsvp/rsvps/me/activity`);
-            if (res.ok) {
-                setActivities(await res.json());
-            }
-        } catch (err) { console.error('Error fetching activities:', err); }
-        finally { setLoadingActivities(false); }
-    };
 
     if (loading) return (
-        <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
+        <div className="min-h-dvh flex items-center justify-center bg-background-light dark:bg-background-dark">
             <div className="animate-pulse text-white text-lg">Loading...</div>
         </div>
     );
 
     const name = user?.name || 'Student';
     const role = user?.role || 'STUDENT';
+    const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const picture = user?.picture;
     const hasValidPicture = picture && picture.trim() !== '' && !pictureError;
 
@@ -199,7 +204,7 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark font-display overflow-x-hidden text-slate-900 dark:text-white">
+        <div className="relative flex h-auto min-h-dvh w-full flex-col bg-background-light dark:bg-background-dark font-display overflow-x-hidden text-slate-900 dark:text-white">
             <div className="layout-container flex h-full grow flex-col">
                 {/* Header */}
                 <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#e5e7eb] dark:border-[#233648] px-4 md:px-10 py-3 bg-white dark:bg-[#111a22]">
@@ -238,7 +243,7 @@ const Dashboard = () => {
                                 <span className="truncate">Create Event</span>
                             </button>
                         )}
-                        <button onClick={() => navigate('/profile')} className="focus:outline-none transition-transform active:scale-95">
+                        <button aria-label="Go to profile" onClick={() => navigate('/profile')} className="focus:outline-none transition-transform active:scale-95">
                             {hasValidPicture ? (
                                 <img
                                     src={picture}
@@ -270,6 +275,7 @@ const Dashboard = () => {
                                 <span>{currentDate}</span>
                             </div>
                         </div>
+                        {actionError && <p className="mx-4 mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{actionError}</p>}
 
                         {/* Calendar Tile */}
                         <div className="grid grid-cols-1 gap-4 p-4">

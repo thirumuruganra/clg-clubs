@@ -10,12 +10,7 @@ const Login = () => {
     };
 
     return (
-        <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-slate-50 dark:bg-[#111a22]">
-            {/* Background Gradients */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[100px] animate-pulse"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/20 blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
-            </div>
+        <div className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-slate-50 dark:bg-[#111a22]">
 
             <div className="relative z-10 w-full max-w-md p-6 mx-4">
                 <div className="flex flex-col items-center text-center p-8 rounded-2xl bg-white/70 dark:bg-[#1e293b]/70 backdrop-blur-xl border border-white/20 shadow-2xl transition-all duration-300 hover:shadow-primary/10">
@@ -24,7 +19,7 @@ const Login = () => {
                         <img src={wavcIcon} alt="WAVC Logo" className="w-10 h-10 object-contain" />
                     </div>
                     
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 tracking-tight">Welcome Back</h1>
+                    <h1 className="text-balance text-3xl font-bold text-slate-900 dark:text-white mb-2">Welcome Back</h1>
                     <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-xs">
                         Sign in to access your clubs, events, and community dashboard.
                     </p>

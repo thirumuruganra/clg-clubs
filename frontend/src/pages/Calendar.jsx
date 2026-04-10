@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
 
 const API = '';
@@ -23,28 +23,29 @@ const Calendar = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [loadingEvents, setLoadingEvents] = useState(true);
   const [clubs, setClubs] = useState([]);
 
-  useEffect(() => {
-    if (!loading && !user) { navigate('/login'); return; }
-    if (user) { fetchEvents(); fetchClubs(); }
-  }, [user, loading]);
-
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/events/all`);
       if (res.ok) setEvents(await res.json());
     } catch (err) { console.error(err); }
-    finally { setLoadingEvents(false); }
-  };
+  }, []);
 
-  const fetchClubs = async () => {
+  const fetchClubs = useCallback(async () => {
+    if (!user?.id) return;
+
     try {
       const res = await fetch(`${API}/api/clubs/?user_id=${user.id}`);
       if (res.ok) setClubs(await res.json());
     } catch (err) { console.error(err); }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!loading && !user) { navigate('/login'); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (user) { void fetchEvents(); void fetchClubs(); }
+  }, [user, loading, navigate, fetchEvents, fetchClubs]);
 
   const handleFollow = async (clubId) => {
     try {
@@ -130,17 +131,17 @@ const Calendar = () => {
 
   const isToday = (day) => today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background-dark text-white"><div className="animate-pulse">Loading...</div></div>;
+  if (loading) return <div className="min-h-dvh flex items-center justify-center bg-background-dark text-white"><div className="animate-pulse">Loading...</div></div>;
 
   return (
-    <div className="flex h-screen w-full bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-hidden relative">
+    <div className="flex h-dvh w-full bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-hidden relative">
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setMobileMenuOpen(false)}></div>
       )}
 
       {/* Left Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 w-72 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col p-6 overflow-y-auto no-scrollbar transition-transform duration-300 ease-in-out`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 w-72 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col p-6 overflow-y-auto no-scrollbar transition-transform duration-300 ease-in-out`} style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top))', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
         {/* Logo */}
         <div className="flex items-center gap-3 mb-8">
           <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
@@ -162,8 +163,8 @@ const Calendar = () => {
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-bold">{monthName}</span>
             <div className="flex gap-1">
-              <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">chevron_left</span></button>
-              <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">chevron_right</span></button>
+              <button aria-label="Previous month" onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">chevron_left</span></button>
+              <button aria-label="Next month" onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">chevron_right</span></button>
             </div>
           </div>
           <div className="grid grid-cols-7 gap-0 text-center text-xs">
@@ -208,7 +209,7 @@ const Calendar = () => {
                   {club.logo_url ? <img src={club.logo_url} alt="" className="w-full h-full object-cover" /> : <span className="text-primary text-xs font-bold">{club.name.charAt(0)}</span>}
                 </div>
                 <span className="text-sm flex-1 truncate">{club.name}</span>
-                <button onClick={() => handleUnfollow(club.id)} className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-500 transition-all" title="Unfollow">
+                <button aria-label={`Unfollow ${club.name}`} onClick={() => handleUnfollow(club.id)} className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-500 transition-all" title="Unfollow">
                   <span className="material-symbols-outlined text-[16px]">close</span>
                 </button>
               </div>
@@ -251,14 +252,14 @@ const Calendar = () => {
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22]">
           <div className="flex items-center gap-2 md:gap-3">
-            <button className="md:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
+            <button aria-label="Open sidebar" className="md:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
-            <button onClick={prevMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
+            <button aria-label="Previous month" onClick={prevMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
               <span className="material-symbols-outlined text-[24px]">chevron_left</span>
             </button>
             <h1 className="text-xl md:text-2xl font-bold leading-none">{monthName}</h1>
-            <button onClick={nextMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
+            <button aria-label="Next month" onClick={nextMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
               <span className="material-symbols-outlined text-[24px]">chevron_right</span>
             </button>
           </div>
@@ -267,8 +268,8 @@ const Calendar = () => {
               <div className="flex items-center justify-center pl-3"><span className="material-symbols-outlined text-[20px] text-[#637588] dark:text-[#92adc9]">search</span></div>
               <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="bg-transparent border-none text-sm px-2 focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] w-full" placeholder="Search..." />
             </label>
-            <button className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-[#f0f2f4] dark:bg-[#233648] hover:bg-[#e5e7eb] dark:hover:bg-[#324b61] transition-colors"><span className="material-symbols-outlined text-[20px] leading-none">notifications</span></button>
-            <button onClick={() => navigate('/profile')} className="w-10 h-10 shrink-0 focus:outline-none flex items-center justify-center rounded-full bg-[#f0f2f4] dark:bg-[#233648] overflow-hidden">
+            <button aria-label="Notifications" className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-[#f0f2f4] dark:bg-[#233648] hover:bg-[#e5e7eb] dark:hover:bg-[#324b61] transition-colors"><span className="material-symbols-outlined text-[20px] leading-none">notifications</span></button>
+            <button aria-label="Go to profile" onClick={() => navigate('/profile')} className="w-10 h-10 shrink-0 focus:outline-none flex items-center justify-center rounded-full bg-[#f0f2f4] dark:bg-[#233648] overflow-hidden">
               {user?.picture && user.picture.trim() !== '' ? (
                 <img
                   src={user.picture}
@@ -315,7 +316,7 @@ const Calendar = () => {
 
       {/* Event Detail Modal */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setSelectedEvent(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }} onClick={() => setSelectedEvent(null)}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-[#e5e7eb] dark:border-[#233648]" onClick={e => e.stopPropagation()}>
             <div className="flex flex-col md:flex-row h-full">
               {/* Event Image */}
@@ -328,7 +329,7 @@ const Calendar = () => {
                   <span className="text-sm text-[#637588] dark:text-[#92adc9]">
                     {selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''} • {selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleDateString('en-US', { weekday: 'long' }) : ''}
                   </span>
-                  <button onClick={() => setSelectedEvent(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+                  <button aria-label="Close event details" onClick={() => setSelectedEvent(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
                 </div>
                 <h2 className="text-2xl font-bold mb-4">{selectedEvent.title}</h2>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../auth-context';
 
 const API = '';
 
@@ -64,11 +64,11 @@ const AdminCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal }
     <div className="flex flex-col h-full bg-white dark:bg-[#111a22]">
       <div className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22]">
         <div className="flex items-center gap-2 md:gap-3">
-          <button onClick={prevMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
+          <button aria-label="Previous month" onClick={prevMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
             <span className="material-symbols-outlined text-[24px]">chevron_left</span>
           </button>
           <h1 className="text-xl md:text-2xl font-bold leading-none">{monthName}</h1>
-          <button onClick={nextMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
+          <button aria-label="Next month" onClick={nextMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
             <span className="material-symbols-outlined text-[24px]">chevron_right</span>
           </button>
         </div>
