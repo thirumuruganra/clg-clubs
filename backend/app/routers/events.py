@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 import json
 import re
+import os
+import uuid
+from urllib.parse import urlencode
 from app.database import get_db
 from app.models.event import Event
 from app.models.club import Club
@@ -15,6 +18,8 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 
 router = APIRouter()
+
+FRONTEND_CHECKIN_BASE_URL = os.getenv("FRONTEND_CHECKIN_BASE_URL", "http://localhost:5173")
 
 
 def _word_count(text: Optional[str]) -> int:
@@ -55,6 +60,26 @@ def _tokenize_text(raw_text: Optional[str]) -> set[str]:
     if not raw_text:
         return set()
     return {token for token in re.findall(r"[a-z0-9]+", raw_text.lower()) if token}
+
+
+def _build_attendance_checkin_url(event_id: int, qr_code: str) -> str:
+    query = urlencode({"event_id": event_id, "qr": qr_code})
+    return f"{FRONTEND_CHECKIN_BASE_URL}/student/attendance-checkin?{query}"
+
+
+def _require_admin_owned_event(event_id: int, db: Session, current_user: User) -> Event:
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if current_user.role != "CLUB_ADMIN":
+        raise HTTPException(status_code=403, detail="Only club admins can manage attendance QR")
+
+    club = db.query(Club).filter(Club.id == event.club_id).first()
+    if not club or club.admin_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only manage attendance QR for your own club events")
+
+    return event
 
 
 def _normalize_user_interests(interests: List[str]) -> set[str]:
@@ -111,6 +136,7 @@ def get_all_events(search: Optional[str] = Query(None), db: Session = Depends(ge
             "is_paid": event.is_paid,
             "registration_fees": event.registration_fees,
             "rsvp_count": rsvp_count,
+            "attendance_qr_open": bool(event.attendance_qr_open),
         })
     return result
 
@@ -207,6 +233,7 @@ def get_event_feed(
             "is_rsvped": is_rsvped,
             "is_from_followed_club": is_from_followed_club,
             "recommendation_score": recommendation_score,
+            "attendance_qr_open": bool(event.attendance_qr_open),
         })
     return result
 
@@ -252,6 +279,7 @@ def get_event(event_id: int, user_id: Optional[int] = Query(None), db: Session =
         "rsvp_count": rsvp_count,
         "is_rsvped": is_rsvped,
         "recent_activity": recent_rsvps,
+            "attendance_qr_open": bool(event.attendance_qr_open),
     }
 
 
@@ -303,6 +331,7 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
             "is_paid": db_event.is_paid,
             "registration_fees": db_event.registration_fees,
         "rsvp_count": 0,
+        "attendance_qr_open": bool(db_event.attendance_qr_open),
     }
 
 
@@ -363,6 +392,59 @@ def update_event(event_id: int, event_update: EventUpdate, db: Session = Depends
             "is_paid": event.is_paid,
             "registration_fees": event.registration_fees,
         "rsvp_count": rsvp_count,
+        "attendance_qr_open": bool(event.attendance_qr_open),
+    }
+
+
+@router.get("/{event_id}/attendance-qr")
+def get_event_attendance_qr(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get attendance QR payload for an event (club admin owner only)."""
+    event = _require_admin_owned_event(event_id, db, current_user)
+
+    if not event.attendance_qr_code:
+        event.attendance_qr_code = uuid.uuid4().hex
+        db.commit()
+        db.refresh(event)
+
+    return {
+        "event_id": event.id,
+        "attendance_qr_open": bool(event.attendance_qr_open),
+        "checkin_url": _build_attendance_checkin_url(event.id, event.attendance_qr_code),
+    }
+
+
+@router.post("/{event_id}/attendance-qr/open")
+def open_event_attendance_qr(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Open attendance QR for student scans (club admin owner only)."""
+    event = _require_admin_owned_event(event_id, db, current_user)
+
+    if not event.attendance_qr_code:
+        event.attendance_qr_code = uuid.uuid4().hex
+
+    event.attendance_qr_open = True
+    db.commit()
+    db.refresh(event)
+
+    return {
+        "status": "success",
+        "event_id": event.id,
+        "attendance_qr_open": True,
+        "checkin_url": _build_attendance_checkin_url(event.id, event.attendance_qr_code),
+    }
+
+
+@router.post("/{event_id}/attendance-qr/close")
+def close_event_attendance_qr(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Close attendance QR scans for an event (club admin owner only)."""
+    event = _require_admin_owned_event(event_id, db, current_user)
+
+    event.attendance_qr_open = False
+    db.commit()
+
+    return {
+        "status": "success",
+        "event_id": event.id,
+        "attendance_qr_open": False,
     }
 
 

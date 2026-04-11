@@ -19,6 +19,8 @@ class Event(Base):
     payment_link = Column(String(500), nullable=True)
     is_paid = Column(Boolean, default=False)
     registration_fees = Column(String(100), nullable=True)
+    attendance_qr_code = Column(String(64), nullable=True, index=True)
+    attendance_qr_open = Column(Boolean, default=False)
 
     # Relationships
     club = relationship("Club", back_populates="events")

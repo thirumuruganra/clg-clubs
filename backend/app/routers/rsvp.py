@@ -1,12 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from app.database import get_db
 from app.models.rsvp import RSVP
 from app.models.event import Event
+from app.models.club import Club
 from app.models.user import User
 from app.core.security import get_current_user
 
 router = APIRouter()
+
+
+def _verify_admin_owns_event(event_id: int, db: Session, current_user: User) -> None:
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    club = db.query(Club).filter(Club.id == event.club_id).first()
+    if not club or club.admin_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only update RSVP data for your own club events")
 
 
 @router.post("/events/{event_id}/rsvp")
@@ -111,6 +123,10 @@ class RSVPAttendUpdate(BaseModel):
     attended: Optional[bool] = None
     is_paid: Optional[bool] = None
 
+
+class AttendanceCheckinRequest(BaseModel):
+    qr_code: str
+
 @router.patch("/rsvps/{rsvp_id}")
 def update_rsvp_attendance(rsvp_id: int, update_data: RSVPAttendUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Update RSVP attendance status. Typically requires Club Admin."""
@@ -121,7 +137,7 @@ def update_rsvp_attendance(rsvp_id: int, update_data: RSVPAttendUpdate, db: Sess
     if not rsvp:
         raise HTTPException(status_code=404, detail="RSVP not found")
 
-    # Optionally verify that current user admin matches the event's club admin
+    _verify_admin_owns_event(rsvp.event_id, db, current_user)
     
     if update_data.attended is not None:
         rsvp.attended = update_data.attended
@@ -141,6 +157,8 @@ class BulkRSVPUpdate(BaseModel):
 def bulk_update_payments(event_id: int, update_data: BulkRSVPUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role != "CLUB_ADMIN":
         raise HTTPException(status_code=403, detail="Not authorized")
+
+    _verify_admin_owns_event(event_id, db, current_user)
     
     db.query(RSVP).filter(
         RSVP.event_id == event_id,
@@ -149,3 +167,81 @@ def bulk_update_payments(event_id: int, update_data: BulkRSVPUpdate, db: Session
     
     db.commit()
     return {"status": "success", "updated_count": len(update_data.rsvp_ids)}
+
+
+@router.post("/events/{event_id}/attendance/checkin")
+def checkin_attendance_via_qr(
+    event_id: int,
+    payload: AttendanceCheckinRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Mark attendance by scanning an event QR. Auto-registers if RSVP doesn't exist."""
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if not event.attendance_qr_code or payload.qr_code != event.attendance_qr_code:
+        raise HTTPException(status_code=400, detail="Invalid attendance QR")
+
+    if not event.attendance_qr_open:
+        raise HTTPException(status_code=403, detail="Attendance QR is closed for this event")
+
+    existing_rsvp = db.query(RSVP).filter(
+        RSVP.user_id == current_user.id,
+        RSVP.event_id == event_id,
+    ).first()
+
+    if existing_rsvp:
+        if existing_rsvp.attended:
+            return {
+                "status": "success",
+                "event_id": event_id,
+                "rsvp_id": existing_rsvp.id,
+                "action": "already_attended",
+                "message": "Attendance already marked",
+            }
+
+        existing_rsvp.attended = True
+        db.commit()
+        return {
+            "status": "success",
+            "event_id": event_id,
+            "rsvp_id": existing_rsvp.id,
+            "action": "marked_attended",
+            "message": "Attendance marked successfully",
+        }
+
+    new_rsvp = RSVP(user_id=current_user.id, event_id=event_id, attended=True)
+    db.add(new_rsvp)
+    try:
+        db.commit()
+        db.refresh(new_rsvp)
+        return {
+            "status": "success",
+            "event_id": event_id,
+            "rsvp_id": new_rsvp.id,
+            "action": "registered_and_marked_attended",
+            "message": "Registered and attendance marked successfully",
+        }
+    except IntegrityError:
+        # Handle race condition where RSVP was created concurrently.
+        db.rollback()
+        concurrent_rsvp = db.query(RSVP).filter(
+            RSVP.user_id == current_user.id,
+            RSVP.event_id == event_id,
+        ).first()
+        if not concurrent_rsvp:
+            raise HTTPException(status_code=409, detail="Could not complete check-in")
+
+        if not concurrent_rsvp.attended:
+            concurrent_rsvp.attended = True
+            db.commit()
+
+        return {
+            "status": "success",
+            "event_id": event_id,
+            "rsvp_id": concurrent_rsvp.id,
+            "action": "registered_and_marked_attended",
+            "message": "Registered and attendance marked successfully",
+        }

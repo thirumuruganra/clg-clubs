@@ -9,6 +9,7 @@ import ClubDashboard from './pages/ClubDashboard';
 import ClubSetup from './pages/ClubSetup';
 import Clubs from './pages/Clubs';
 import ClubProfile from './pages/ClubProfile';
+import AttendanceCheckin from './pages/AttendanceCheckin';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/student/profile" element={<Profile />} />
           <Route path="/student/calendar" element={<Calendar />} />
           <Route path="/student/clubs" element={<Clubs />} />
+          <Route path="/student/attendance-checkin" element={<AttendanceCheckin />} />
           <Route path="/club/dashboard" element={<ClubDashboard />} />
           <Route path="/club/setup" element={<ClubSetup />} />
           <Route path="/club/profile" element={<ClubProfile />} />

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { QRCodeSVG } from 'qrcode.react';
 import wavcIcon from '../assets/WAVC-edit.png';
 import ClubCalendar from './ClubCalendar';
 import { cn, getClubIconUrl } from '../lib/utils';
@@ -428,6 +429,14 @@ const ClubDashboard = () => {
   };
 
   const [rsvpModal, setRsvpModal] = useState({ open: false, event: null, rsvps: [], loading: false, tab: "attendance" });
+  const [qrModal, setQrModal] = useState({
+    open: false,
+    event: null,
+    loading: false,
+    checkinUrl: '',
+    error: '',
+    notice: '',
+  });
 
   const calculateYear = (batchStr) => {
     if (!batchStr) return '-';
@@ -460,6 +469,84 @@ const ClubDashboard = () => {
       }
     } catch {
       setRsvpModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const closeQrModal = () => {
+    setQrModal({ open: false, event: null, loading: false, checkinUrl: '', error: '', notice: '' });
+  };
+
+  const syncEventQrStatus = (eventId, isOpen) => {
+    setEvents(prev => prev.map(event => (
+      event.id === eventId ? { ...event, attendance_qr_open: isOpen } : event
+    )));
+  };
+
+  const openQrModal = async (eventObj) => {
+    setQrModal({ open: true, event: eventObj, loading: true, checkinUrl: '', error: '', notice: '' });
+    try {
+      const res = await fetch(`${API}/api/events/${eventObj.id}/attendance-qr`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'Failed to load attendance QR.');
+      }
+      const data = await res.json();
+      setQrModal(prev => ({
+        ...prev,
+        loading: false,
+        checkinUrl: data.checkin_url || '',
+        event: prev.event ? { ...prev.event, attendance_qr_open: Boolean(data.attendance_qr_open) } : prev.event,
+      }));
+      syncEventQrStatus(eventObj.id, Boolean(data.attendance_qr_open));
+    } catch (err) {
+      setQrModal(prev => ({
+        ...prev,
+        loading: false,
+        error: err.message || 'Failed to load attendance QR.',
+      }));
+    }
+  };
+
+  const toggleQrAttendance = async (open) => {
+    if (!qrModal.event) return;
+    setQrModal(prev => ({ ...prev, loading: true, error: '', notice: '' }));
+    try {
+      const endpoint = open ? 'open' : 'close';
+      const res = await fetch(`${API}/api/events/${qrModal.event.id}/attendance-qr/${endpoint}`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || `Failed to ${open ? 'open' : 'close'} attendance QR.`);
+      }
+
+      const data = await res.json();
+      const isOpen = Boolean(data.attendance_qr_open);
+
+      setQrModal(prev => ({
+        ...prev,
+        loading: false,
+        checkinUrl: data.checkin_url || prev.checkinUrl,
+        event: prev.event ? { ...prev.event, attendance_qr_open: isOpen } : prev.event,
+        notice: `Attendance QR is now ${isOpen ? 'open' : 'closed'}.`,
+      }));
+      syncEventQrStatus(qrModal.event.id, isOpen);
+    } catch (err) {
+      setQrModal(prev => ({
+        ...prev,
+        loading: false,
+        error: err.message || 'Failed to update attendance QR status.',
+      }));
+    }
+  };
+
+  const copyQrLink = async () => {
+    if (!qrModal.checkinUrl) return;
+    try {
+      await navigator.clipboard.writeText(qrModal.checkinUrl);
+      setQrModal(prev => ({ ...prev, notice: 'Attendance link copied.' }));
+    } catch {
+      setQrModal(prev => ({ ...prev, error: 'Could not copy link. Please copy it manually.' }));
     }
   };
 
@@ -934,6 +1021,13 @@ const ClubDashboard = () => {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
+                            <button
+                              aria-label={`Attendance QR for ${event.title}`}
+                              onClick={() => openQrModal(event)}
+                              className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${event.attendance_qr_open ? 'bg-green-500/15 hover:bg-green-500/25' : 'hover:bg-[#233648]'}`}
+                            >
+                              <span className={`material-symbols-outlined text-[18px] ${event.attendance_qr_open ? 'text-green-500' : 'text-[#637588]'}`}>qr_code_2</span>
+                            </button>
                             <button aria-label={`Edit ${event.title}`} onClick={() => openEditModal(event)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[18px] text-[#637588]">edit</span></button>
                             <button aria-label={`Delete ${event.title}`} onClick={() => setDeleteTarget(event)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-red-400">delete</span></button>
                           </div>
@@ -1331,6 +1425,76 @@ const ClubDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {qrModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={closeQrModal}>
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-[#e5e7eb] dark:border-[#233648]">
+              <div>
+                <h2 className="text-lg font-bold">Attendance QR</h2>
+                <p className="text-xs text-[#637588] dark:text-[#92adc9] mt-1">{qrModal.event?.title || 'Event'}</p>
+              </div>
+              <button aria-label="Close attendance QR dialog" onClick={closeQrModal} className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+            </div>
+
+            <div className="p-5 flex flex-col gap-4">
+              <div className="rounded-xl border border-[#e5e7eb] dark:border-[#233648] p-3 bg-[#f9fafb] dark:bg-[#111a22] text-sm flex items-center justify-between">
+                <span className="text-[#637588] dark:text-[#92adc9]">Status</span>
+                <span className={`px-2 py-1 rounded-full text-xs font-bold ${qrModal.event?.attendance_qr_open ? 'bg-green-500/15 text-green-600 dark:text-green-400' : 'bg-slate-500/15 text-[#637588] dark:text-[#92adc9]'}`}>
+                  {qrModal.event?.attendance_qr_open ? 'OPEN' : 'CLOSED'}
+                </span>
+              </div>
+
+              {qrModal.error && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{qrModal.error}</p>}
+              {qrModal.notice && <p className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-600 dark:text-green-400">{qrModal.notice}</p>}
+
+              <div className="rounded-xl border border-[#e5e7eb] dark:border-[#233648] p-4 flex items-center justify-center min-h-72 bg-white dark:bg-[#1a2632]">
+                {qrModal.loading ? (
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                ) : qrModal.checkinUrl ? (
+                  <QRCodeSVG value={qrModal.checkinUrl} size={240} bgColor="#ffffff" fgColor="#111418" includeMargin />
+                ) : (
+                  <p className="text-sm text-[#637588] dark:text-[#92adc9]">QR will appear here.</p>
+                )}
+              </div>
+
+              {qrModal.checkinUrl && (
+                <div className="rounded-xl border border-[#e5e7eb] dark:border-[#233648] p-3 bg-[#f9fafb] dark:bg-[#111a22]">
+                  <p className="text-xs text-[#637588] dark:text-[#92adc9] mb-2">Attendance link</p>
+                  <p className="text-xs font-mono break-all text-slate-700 dark:text-slate-200">{qrModal.checkinUrl}</p>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-3 justify-end">
+                <button
+                  onClick={() => toggleQrAttendance(true)}
+                  disabled={qrModal.loading}
+                  className="touch-target inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/15 text-green-700 dark:text-green-400 text-sm font-bold hover:bg-green-600/25 transition-colors disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                  Open QR
+                </button>
+                <button
+                  onClick={() => toggleQrAttendance(false)}
+                  disabled={qrModal.loading}
+                  className="touch-target inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600/15 text-red-600 dark:text-red-400 text-sm font-bold hover:bg-red-600/25 transition-colors disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px]">stop</span>
+                  Close QR
+                </button>
+                <button
+                  onClick={copyQrLink}
+                  disabled={qrModal.loading || !qrModal.checkinUrl}
+                  className="touch-target inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition-colors disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px]">content_copy</span>
+                  Copy Link
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

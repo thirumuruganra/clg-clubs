@@ -143,5 +143,6 @@ def get_club_events(club_id: int, db: Session = Depends(get_db)):
             "keywords": event.keywords,
             "rsvp_count": rsvp_count,
             "attended_count": attended_count,
+            "attendance_qr_open": bool(event.attendance_qr_open),
         })
     return result

@@ -124,6 +124,42 @@ def ensure_rsvp_attended_column() -> None:
         print(f"⚠️  Could not auto-add 'attended' column: {exc}")
 
 
+def ensure_event_attendance_qr_code_column() -> None:
+    """Add the attendance_qr_code column for older databases."""
+    try:
+        inspector = inspect(engine)
+        if "events" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("events")}
+        if "attendance_qr_code" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE events ADD COLUMN attendance_qr_code VARCHAR(64)"))
+        print("ℹ️  Added missing 'attendance_qr_code' column to events table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'attendance_qr_code' column: {exc}")
+
+
+def ensure_event_attendance_qr_open_column() -> None:
+    """Add the attendance_qr_open column for older databases."""
+    try:
+        inspector = inspect(engine)
+        if "events" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("events")}
+        if "attendance_qr_open" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE events ADD COLUMN attendance_qr_open BOOLEAN DEFAULT FALSE"))
+        print("ℹ️  Added missing 'attendance_qr_open' column to events table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'attendance_qr_open' column: {exc}")
+
+
 def normalize_legacy_cse_entries() -> None:
     """Normalize older user entries: CSE -> Computer Science and Engineering, degree -> B.E."""
     try:
@@ -158,6 +194,8 @@ ensure_user_register_number_column()
 ensure_user_degree_column()
 ensure_user_google_scopes_column()
 ensure_rsvp_attended_column()
+ensure_event_attendance_qr_code_column()
+ensure_event_attendance_qr_open_column()
 normalize_legacy_cse_entries()
 
 app = FastAPI(
