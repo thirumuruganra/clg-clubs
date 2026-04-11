@@ -50,7 +50,13 @@ const LandingPage = () => {
 
       {/* Mobile Navigation Dropdown */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-16.25 z-40 bg-white/95 dark:bg-[#111a22]/95 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div
+          className="md:hidden fixed inset-x-0 bottom-0 z-40 bg-white/95 dark:bg-[#111a22]/95 backdrop-blur-xl"
+          style={{
+            top: 'calc(4rem + env(safe-area-inset-top))',
+            paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+          }}
+        >
            <nav className="flex flex-col items-center justify-center p-8 gap-8 h-full">
             {['About', 'Clubs', 'Contact'].map((item) => (
               <a key={item} 
@@ -72,33 +78,33 @@ const LandingPage = () => {
       )}
 
       <main className="grow flex flex-col justify-center">
-        <section className="flex flex-col items-center justify-center px-4 py-12 lg:px-40 lg:py-20">
+        <section className="flex flex-col items-center justify-center px-4 py-10 md:px-8 lg:px-40 lg:py-20">
           <div className="layout-content-container flex flex-col max-w-240 w-full">
             <div className="@container">
               <div className="">
                 <div 
-                  className="relative flex min-h-[50vh] md:min-h-[60vh] flex-col gap-6 overflow-hidden rounded-3xl bg-cover bg-position-[center_30%] bg-no-repeat items-center justify-center p-6 md:p-12 text-center shadow-2xl transition-transform hover:scale-[1.01] duration-500" 
+                  className="relative flex min-h-[42vh] sm:min-h-[50vh] md:min-h-[60vh] flex-col gap-5 overflow-hidden rounded-3xl bg-cover bg-position-[center_30%] bg-no-repeat items-center justify-center p-5 md:p-12 text-center shadow-2xl transition-transform hover:scale-[1.01] duration-500" 
                   data-alt="Group of diverse college students laughing together outdoors" 
                   style={{ backgroundImage: 'linear-gradient(rgba(19, 127, 236, 0.4) 0%, rgba(17, 26, 34, 0.9) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuDFz8Sp13s0cFzmpOBbUsIuW1qaQx3sSlvaM3FW-fQJiV76a1OWm0mD0yJq2vPUFIV1b6_c6S7eWTWpwcmqdkDAKpNds1aGanbjWDSRASLUs94a6YLzd7IATej5VQD5_WsT3g5kiHvXY1uzJfBdVeFvhdsLoqh9KsvKHQP4x7buVQXRecw_nabFOI_btwgWck6ndH4rLnEd80EZ8Xk_xhU0I81W8MUU-BYZeQncPOr7sgG6gd_WQj-JPyOe0spjfQMQKEM4Jx3AW4c")' }}
                 >
                   <div className="absolute inset-0 bg-linear-to-t from-background-dark/90 to-transparent pointer-events-none"></div>
                   <div className="relative z-10 flex flex-col gap-4 max-w-175">
-                    <h1 className="text-balance text-white text-4xl sm:text-5xl md:text-7xl font-black leading-tight">
+                    <h1 className="text-balance text-white text-3xl sm:text-5xl md:text-7xl font-black leading-tight">
                       Stay in the loop.<br/>Stay in the club.
                     </h1>
-                    <h2 className="text-pretty text-white/90 text-lg sm:text-xl font-medium leading-relaxed max-w-150 mx-auto">
+                    <h2 className="text-pretty text-white/90 text-base sm:text-xl font-medium leading-relaxed max-w-150 mx-auto">
                       Discover events, join communities, and manage club activities all in one unified campus platform.
                     </h2>
                   </div>
-                  <div className="relative z-10 flex flex-col sm:flex-row gap-4 w-full justify-center mt-4">
+                  <div className="relative z-10 flex flex-col sm:flex-row gap-3 sm:gap-4 w-full justify-center mt-4">
                     <button 
                       onClick={() => window.location.href = '/login'}
-                      className="flex items-center justify-center gap-3 overflow-hidden rounded-xl h-14 px-8 bg-white text-slate-900 text-base font-bold leading-normal hover:bg-slate-100 transition-colors shadow-lg transform hover:scale-105 duration-200">
+                      className="flex w-full sm:w-auto items-center justify-center gap-3 overflow-hidden rounded-xl h-13 sm:h-14 px-6 sm:px-8 bg-white text-slate-900 text-base font-bold leading-normal hover:bg-slate-100 transition-colors shadow-lg transform hover:scale-105 duration-200">
                       <img alt="Google G Logo" className="w-6 h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDACkJQDAMqEGYjm0sUAsqKoZ_WzLqom8nDv6Hfc7audxHKfEwl2P48zGR00_7lUGSAyaP1OaeXtu5WfCTMhtt6-fUtZgWs0F_IDgXefze74L-Td8Q1L_cxt_WdzUjHS5a3V75iqB0RFNdk2LQK-6av30F5Ni4Tvj1ryqWxAX9xQlRpDakFCEoaGZUydHJZ3FIbDdYAuV2XK9qLL_prHpdUOU8jXYKKP5IiRNMq9CJDWqu1pNpf5iUA9hXWdz242i6UvcsjqQvwocc"/>
                       <span className="truncate">Sign in with Google</span>
                     </button>
                     <button 
-                        className="flex items-center justify-center gap-3 overflow-hidden rounded-xl h-14 px-8 bg-white/10 backdrop-blur-md border border-white/30 text-white text-base font-bold leading-normal hover:bg-white/20 transition-colors shadow-lg transform hover:scale-105 duration-200"
+                      className="flex w-full sm:w-auto items-center justify-center gap-3 overflow-hidden rounded-xl h-13 sm:h-14 px-6 sm:px-8 bg-white/10 backdrop-blur-md border border-white/30 text-white text-base font-bold leading-normal hover:bg-white/20 transition-colors shadow-lg transform hover:scale-105 duration-200"
                     >
                         Explore Clubs
                     </button>

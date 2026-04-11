@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
+import wavcIcon from '../assets/WAVC-edit.png';
 
 const API = '';
 
@@ -175,83 +176,82 @@ const Profile = () => {
     })
     .slice(0, 8);
 
-  // Initial letter avatar component
-  const InitialAvatar = ({ size = 'lg' }) => {
-    const sizeClasses = size === 'lg'
-      ? 'w-32 h-32 text-5xl'
-      : 'w-10 h-10 text-lg';
-    return (
-      <div className={`${sizeClasses} rounded-full border-4 border-white dark:border-[#1a2632] flex items-center justify-center font-bold shadow-lg`}
-        style={{
-          background: 'linear-gradient(135deg, #137fec 0%, #0d5bab 100%)',
-          color: 'white',
-        }}
-      >
-        {getInitial()}
-      </div>
-    );
-  };
-
   return (
-    <div className="min-h-dvh bg-background-light dark:bg-background-dark text-slate-900 dark:text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white dark:bg-[#1a2632] rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800">
-        <div className="bg-primary h-32 relative">
-          <div className="absolute top-4 left-4">
-            <button onClick={() => navigate('/student/dashboard')} className="flex items-center gap-1 text-white/80 hover:text-white transition-colors bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm text-sm font-medium">
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span> Back to Student Dashboard
-            </button>
-          </div>
-          <div className="absolute top-4 right-4">
-            <button onClick={logout} className="flex items-center gap-1 text-white/80 hover:text-white transition-colors bg-red-500/30 px-3 py-1 rounded-full backdrop-blur-sm text-sm font-medium">
-              <span className="material-symbols-outlined text-[18px]">logout</span> Logout
-            </button>
-          </div>
-          <div className="absolute -bottom-16 left-8">
-            {hasValidPicture ? (
-              <img
-                src={user.picture}
-                alt={user.name}
-                className="w-32 h-32 rounded-full border-4 border-white dark:border-[#1a2632] object-cover shadow-lg"
-                onError={() => setPictureError(true)}
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <InitialAvatar size="lg" />
-            )}
-          </div>
+    <div className="min-h-dvh bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white">
+      <header className="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22]">
+        <div className="flex items-center gap-3">
+          <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
+          <span className="text-lg font-bold">WAVC</span>
         </div>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/student/dashboard')}
+            className="touch-target px-3 sm:px-4 py-2 rounded-xl border border-[#e5e7eb] dark:border-[#233648] text-xs sm:text-sm font-medium hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+          >
+            Back to Dashboard
+          </button>
+          <button
+            type="button"
+            onClick={logout}
+            className="touch-target px-3 sm:px-4 py-2 rounded-xl border border-[#e5e7eb] dark:border-[#233648] text-xs sm:text-sm font-medium hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+      </header>
 
-        <div className="pt-20 px-8 pb-8">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-[#111418] dark:text-white mb-1">{isIncomplete ? 'Complete Your Profile' : 'Edit Profile'}</h1>
-              <p className="text-[#637588] dark:text-[#92adc9]">{user.email}</p>
-            </div>
-            {!isIncomplete && <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">{user.role}</span>}
-          </div>
+      <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-2">{isIncomplete ? 'Set up your student profile' : 'Edit your student profile'}</h1>
+        <p className="text-[#637588] dark:text-[#92adc9] mb-10 text-lg">
+          Keep your details up to date for better recommendations, easier registrations, and relevant club activity.
+        </p>
 
-          <form onSubmit={handleSave} className="space-y-6">
+        <form onSubmit={handleSave} className="space-y-8">
             {saveError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{saveError}</p>}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <div className="border border-dashed border-[#e5e7eb] dark:border-[#233648] rounded-xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
+              <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#637588]/30 flex items-center justify-center shrink-0 bg-[#f0f2f4] dark:bg-[#233648] overflow-hidden">
+                {hasValidPicture ? (
+                  <img
+                    src={user.picture}
+                    alt={user.name}
+                    className="w-full h-full rounded-full object-cover"
+                    onError={() => setPictureError(true)}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className="text-4xl font-bold text-[#637588]">{getInitial()}</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold mb-1">Student Profile Picture</h3>
+                <p className="text-sm text-[#637588] dark:text-[#92adc9]">
+                  Your Google profile picture is used automatically. It updates when your Google account photo changes.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-[#111418] dark:text-white">Full Name</label>
+                <label className="block text-sm font-bold text-[#111418] dark:text-white">Full Name</label>
                 <input type="text" value={user.name || ''} disabled className="w-full px-4 py-2 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-[#637588] dark:text-[#92adc9] opacity-70 cursor-not-allowed" />
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-[#111418] dark:text-white">Email</label>
+                <label className="block text-sm font-bold text-[#111418] dark:text-white">Email</label>
                 <input type="text" value={user.email || ''} disabled className="w-full px-4 py-2 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-[#637588] dark:text-[#92adc9] opacity-70 cursor-not-allowed" />
               </div>
               <div className="space-y-1 md:col-span-2">
-                <label className="block text-sm font-medium text-[#111418] dark:text-white">Register Number <span className="text-red-500">*</span></label>
-                <input type="text" name="register_number" value={formData.register_number} onChange={handleChange} required placeholder="e.g. 3122XXXXXXXX" className="w-full px-4 py-2 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none" />
+                <label className="block text-sm font-bold text-[#111418] dark:text-white">Register Number <span className="text-red-500">*</span></label>
+                <input type="text" name="register_number" value={formData.register_number} onChange={handleChange} required placeholder="e.g. 3122XXXXXXXX" className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-[#111418] dark:text-white">Passout Year <span className="text-red-500">*</span></label>
-                <input type="text" name="batch" value={formData.batch} onChange={handleChange} required placeholder="e.g. 2024" className="w-full px-4 py-2 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none" />
+                <label className="block text-sm font-bold text-[#111418] dark:text-white">Passout Year <span className="text-red-500">*</span></label>
+                <input type="text" name="batch" value={formData.batch} onChange={handleChange} required placeholder="e.g. 2024" className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-[#111418] dark:text-white">Course <span className="text-red-500">*</span></label>
-                <select name="department" value={formData.department} onChange={handleChange} required className="w-full px-4 py-2 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none">
+                <label className="block text-sm font-bold text-[#111418] dark:text-white">Course <span className="text-red-500">*</span></label>
+                <select name="department" value={formData.department} onChange={handleChange} required className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white">
                   <option value="" disabled>Select your course</option>
                   {COURSE_OPTIONS.map((course) => (
                     <option key={course} value={course}>{course}</option>
@@ -259,8 +259,8 @@ const Profile = () => {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-[#111418] dark:text-white">Degree <span className="text-red-500">*</span></label>
-                <select name="degree" value={formData.degree} onChange={handleChange} required className="w-full px-4 py-2 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none">
+                <label className="block text-sm font-bold text-[#111418] dark:text-white">Degree <span className="text-red-500">*</span></label>
+                <select name="degree" value={formData.degree} onChange={handleChange} required className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white">
                   <option value="" disabled>Select your degree</option>
                   {DEGREE_OPTIONS.map((degree) => (
                     <option key={degree} value={degree}>{degree}</option>
@@ -271,7 +271,7 @@ const Profile = () => {
 
             {/* Joined Clubs Section */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-[#111418] dark:text-white">Joined Clubs</label>
+              <label className="block text-sm font-bold text-[#111418] dark:text-white">Joined Clubs</label>
 
               {/* Club chips */}
               <div className="flex flex-wrap gap-2 min-h-9">
@@ -321,7 +321,7 @@ const Profile = () => {
                     }
                   }}
                   placeholder="Type club name to join..."
-                  className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:outline-none"
                 />
 
                 {clubSearchOpen && (
@@ -367,7 +367,7 @@ const Profile = () => {
             {/* Interests Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="block text-sm font-medium text-[#111418] dark:text-white">Interests <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-bold text-[#111418] dark:text-white">Interests <span className="text-red-500">*</span></label>
                 <span className="text-xs text-[#637588] dark:text-[#92adc9]">Select at least 3</span>
               </div>
 
@@ -405,7 +405,7 @@ const Profile = () => {
                     }
                   }}
                   placeholder="Add custom interest (e.g. blockchain)"
-                  className="w-full px-4 py-2 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:outline-none"
                 />
                 <button
                   type="button"
@@ -444,14 +444,17 @@ const Profile = () => {
               </div>
             </div>
 
-            <div className="flex justify-end pt-6 border-t border-[#e5e7eb] dark:border-[#233648] mt-6">
-              <button type="submit" disabled={saving} className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/30 active:scale-95 transform duration-100 disabled:opacity-50">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-6 pt-6 border-t border-[#e5e7eb] dark:border-[#233648] mt-6">
+              <button type="button" onClick={() => navigate('/student/dashboard')} className="touch-target text-sm font-bold text-[#637588] dark:text-[#92adc9] hover:text-white transition-colors">
+                Cancel
+              </button>
+              <button type="submit" disabled={saving} className="touch-target px-8 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/30 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50">
                 {saving ? 'Saving...' : isIncomplete ? 'Complete Setup & Continue' : 'Save Changes'}
+                {!saving && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
               </button>
             </div>
           </form>
         </div>
-      </div>
     </div>
   );
 };

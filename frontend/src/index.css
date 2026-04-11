@@ -209,6 +209,44 @@
   color: #92adc9;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.safe-area-y {
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.modal-panel {
+  max-height: min(90dvh, 56rem);
+}
+
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+  .modal-panel {
+    max-height: 86dvh;
+  }
+}
+
+@media (max-height: 500px) {
+  .modal-panel {
+    max-height: 82dvh;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -729,8 +729,8 @@ const ClubDashboard = () => {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 w-64 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col transition-transform duration-300 ease-in-out`} style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
+      <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 w-64 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col overflow-hidden transition-transform duration-300 ease-in-out`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="p-4 sm:p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
           <div className="flex items-center gap-3 mb-1">
             {clubIconUrl ? (
               <div className="size-10 rounded-full overflow-hidden shrink-0 border border-primary/20 bg-primary/5 flex items-center justify-center">
@@ -748,13 +748,13 @@ const ClubDashboard = () => {
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 sm:p-4 space-y-1">
           {sideNavItems.map(item => (
             <button
               key={item.tab}
               onClick={() => setActiveTab(item.tab)}
               className={cn(
-                'flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all',
+                'touch-target flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all',
                 activeTab === item.tab
                   ? 'bg-primary text-white shadow-lg shadow-primary/20'
                   : 'text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648]',
@@ -767,7 +767,7 @@ const ClubDashboard = () => {
         </nav>
 
         {/* User info at bottom */}
-        <div className="p-4 border-t border-[#233648]">
+        <div className="mt-auto shrink-0 border-t border-[#233648] bg-white dark:bg-[#111a22] p-3 sm:p-4" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
           <div
             role="button"
             tabIndex={0}
@@ -778,7 +778,7 @@ const ClubDashboard = () => {
                 navigate('/club/profile');
               }
             }}
-            className="w-full text-left flex items-center gap-3 rounded-xl p-2 -m-2 hover:bg-[#233648] transition-colors cursor-pointer"
+            className="w-full text-left flex items-center gap-3 rounded-xl p-2 hover:bg-[#233648] transition-colors cursor-pointer"
           >
             {user?.picture && user.picture.trim() !== '' ? (
               <img
@@ -796,7 +796,7 @@ const ClubDashboard = () => {
               <p className="text-sm font-medium truncate">{user?.name}</p>
               <p className="text-xs text-[#637588] dark:text-[#92adc9]">Head Administrator</p>
             </div>
-            <button onClick={(event) => { event.stopPropagation(); logout(); }} aria-label="Sign out" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors">
+            <button onClick={(event) => { event.stopPropagation(); logout(); }} aria-label="Sign out" className="touch-target w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors">
               <span className="material-symbols-outlined text-[20px] text-[#637588]">logout</span>
             </button>
           </div>
@@ -853,15 +853,15 @@ const ClubDashboard = () => {
             />
           </div>
         ) : (
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold">Event Management</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">Event Management</h1>
               <p className="text-[#637588] dark:text-[#92adc9] mt-1">Create, edit, and track participation for club activities.</p>
             </div>
-            <div className="flex gap-3">
-              <button onClick={() => document.getElementById('quickCreateTitle')?.focus()} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+            <div className="flex gap-3 w-full sm:w-auto">
+              <button onClick={() => document.getElementById('quickCreateTitle')?.focus()} className="touch-target flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
                 <span className="material-symbols-outlined text-[18px]">add</span> Create New Event
               </button>
             </div>
@@ -874,7 +874,7 @@ const ClubDashboard = () => {
               { label: 'Total Active Registrations', value: totalRSVPs, icon: 'group', badge: '+15%', color: 'primary' },
               { label: 'Avg. Attendance Rate', value: `${attendanceRate}%`, icon: 'trending_up', badge: '+5%', color: 'primary' },
             ].map((stat, i) => (
-              <div key={i} className="bg-white dark:bg-[#1a2632] rounded-xl p-6 border border-[#e5e7eb] dark:border-[#233648]">
+              <div key={i} className="bg-white dark:bg-[#1a2632] rounded-xl p-4 sm:p-6 border border-[#e5e7eb] dark:border-[#233648]">
                 <div className="flex items-start justify-between mb-4">
                   <div className="p-2 rounded-lg bg-primary/10"><span className="material-symbols-outlined text-primary text-[24px]">{stat.icon}</span></div>
                   <span className="text-xs font-medium text-green-400 bg-green-400/10 px-2 py-1 rounded-full flex items-center gap-1">
@@ -882,20 +882,20 @@ const ClubDashboard = () => {
                   </span>
                 </div>
                 <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-1">{stat.label}</p>
-                <p className="text-3xl font-bold">{stat.value}</p>
+                <p className="text-2xl sm:text-3xl font-bold">{stat.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
             {/* Events Table */}
             <div className="col-span-1 lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Upcoming Event Registration Tracker</h2>
               </div>
               {tableError && <p className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{tableError}</p>}
-              <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] overflow-hidden">
-                <table className="w-full">
+              <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] overflow-hidden table-scroll">
+                <table className="w-full min-w-180">
                   <thead>
                     <tr className="border-b border-[#e5e7eb] dark:border-[#233648]">
                       {['Event Name', 'Category', 'Date', 'Registered', 'Actions'].map(h => (
@@ -972,7 +972,7 @@ const ClubDashboard = () => {
                     placeholder="e.g. workshop, python, machine learning"
                     className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Date & Start</label>
                     <DatePicker
@@ -1079,11 +1079,11 @@ const ClubDashboard = () => {
       </main>
       {/* Create Event Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }} onClick={() => setCreateModalOpen(false)}>
-          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setCreateModalOpen(false)}>
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] overflow-y-auto modal-panel" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
               <h2 className="text-xl font-bold">Create Event</h2>
-              <button aria-label="Close create event dialog" onClick={() => setCreateModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+              <button aria-label="Close create event dialog" onClick={() => setCreateModalOpen(false)} className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
             </div>
             <form onSubmit={handleCreateEvent} className="p-6 space-y-4">
               {createError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{createError}</p>}
@@ -1109,7 +1109,7 @@ const ClubDashboard = () => {
                   placeholder="e.g. workshop, python, machine learning"
                   className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Start Time</label>
                   <DatePicker
@@ -1142,7 +1142,7 @@ const ClubDashboard = () => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Category</label>
                   <div className="flex bg-[#f0f2f4] dark:bg-[#233648] rounded-lg p-1">
@@ -1211,11 +1211,11 @@ const ClubDashboard = () => {
       )}
       {/* Edit Event Modal */}
       {editEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }} onClick={() => setEditEvent(null)}>
-          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setEditEvent(null)}>
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] overflow-y-auto modal-panel" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
               <h2 className="text-xl font-bold">Edit Event</h2>
-              <button aria-label="Close edit event dialog" onClick={() => setEditEvent(null)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+              <button aria-label="Close edit event dialog" onClick={() => setEditEvent(null)} className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
             </div>
             <form onSubmit={handleUpdateEvent} className="p-6 space-y-4">
               {editError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{editError}</p>}
@@ -1239,7 +1239,7 @@ const ClubDashboard = () => {
                   placeholder="e.g. workshop, python, machine learning"
                   className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Start Time</label>
                   <DatePicker
@@ -1337,8 +1337,8 @@ const ClubDashboard = () => {
 
       {/* RSVP / Attendance Modal */}
       {rsvpModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }} onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })}>
-          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-4xl border border-[#e5e7eb] dark:border-[#233648] flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })}>
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-4xl border border-[#e5e7eb] dark:border-[#233648] flex flex-col modal-panel" onClick={e => e.stopPropagation()}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648] gap-4">
               <div>
                 <h2 className="text-xl font-bold">{rsvpModal.event?.title || "Event"} - Attendees</h2>
@@ -1361,10 +1361,10 @@ const ClubDashboard = () => {
               )}
               
               <div className="flex items-center gap-3">
-                <button onClick={exportAttendanceCSV} disabled={rsvpModal.loading || rsvpModal.rsvps.length === 0} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/10 text-green-600 dark:text-green-400 text-sm font-bold hover:bg-green-600/20 transition-colors disabled:opacity-50">
+                <button onClick={exportAttendanceCSV} disabled={rsvpModal.loading || rsvpModal.rsvps.length === 0} className="touch-target flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/10 text-green-600 dark:text-green-400 text-sm font-bold hover:bg-green-600/20 transition-colors disabled:opacity-50">
                   <span className="material-symbols-outlined text-[18px]">download</span> Export CSV
                 </button>
-                <button aria-label="Close attendees dialog" onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+                <button aria-label="Close attendees dialog" onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })} className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
               </div>
             </div>
             
@@ -1376,7 +1376,7 @@ const ClubDashboard = () => {
               ) : (
                 <div className="flex flex-col gap-4">
                   {rsvpModal.tab === "payment" && rsvpModal.event?.is_paid && (
-                    <div className="flex items-center justify-between pb-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-2">
                       <div className="text-sm text-[#637588]">Upload payment CSV to auto-match captured/success rows using name, email, register no, year and department.</div>
                         <label className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition-colors">
                             <span className="material-symbols-outlined text-[18px]">upload_file</span> Upload CSV
@@ -1396,8 +1396,8 @@ const ClubDashboard = () => {
                   )}
                   {rsvpError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{rsvpError}</p>}
 
-                  <div className="border border-[#e5e7eb] dark:border-[#233648] rounded-xl overflow-hidden">
-                    <table className="w-full text-sm text-left">
+                  <div className="border border-[#e5e7eb] dark:border-[#233648] rounded-xl overflow-hidden table-scroll">
+                    <table className="w-full min-w-205 text-sm text-left">
                       <thead className="bg-[#f9fafb] dark:bg-[#111a22] text-xs uppercase text-[#637588] dark:text-[#92adc9] font-bold border-b border-[#e5e7eb] dark:border-[#233648]">
                         <tr>
                           <th className="px-4 py-3">S.NO</th>

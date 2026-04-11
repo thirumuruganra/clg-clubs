@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
-import wavcIcon from '../assets/WAVC-edit.png';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
+import StudentSidebar from '../components/StudentSidebar';
 
 const API = '';
 
@@ -13,8 +13,8 @@ const Clubs = () => {
   const [loadingClubs, setLoadingClubs] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [pictureError, setPictureError] = useState(false);
   const [followError, setFollowError] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const fetchClubs = useCallback(async () => {
     if (!user?.id) return;
@@ -69,11 +69,6 @@ const Clubs = () => {
     </div>
   );
 
-  const name = user?.name || 'Student';
-  const role = user?.role || 'STUDENT';
-  const picture = user?.picture;
-  const hasValidPicture = picture && picture.trim() !== '' && !pictureError;
-
   const filteredClubs = clubs.filter(club => {
     if (categoryFilter === 'tech' && club.category !== 'TECH') return false;
     if (categoryFilter === 'nontech' && club.category !== 'NON_TECH') return false;
@@ -87,15 +82,19 @@ const Clubs = () => {
   const nonTechCount = clubs.filter(c => c.category === 'NON_TECH').length;
 
   return (
-    <div className="relative flex h-auto min-h-dvh w-full flex-col bg-background-light dark:bg-background-dark font-display overflow-x-hidden text-slate-900 dark:text-white">
-      <div className="layout-container flex h-full grow flex-col">
+    <div className="relative flex h-auto min-h-dvh w-full bg-background-light dark:bg-background-dark font-display overflow-x-hidden text-slate-900 dark:text-white">
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setMobileMenuOpen(false)}></div>
+      )}
+      <StudentSidebar mobileMenuOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+      <div className="layout-container flex h-full grow flex-col flex-1 min-w-0">
         {/* Header */}
         <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#e5e7eb] dark:border-[#233648] px-4 md:px-10 py-3 bg-white dark:bg-[#111a22]">
-          <div className="flex items-center gap-4 md:gap-8">
+          <div className="flex items-center gap-4 md:gap-8 min-w-0">
+            <button aria-label="Open sidebar" className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
+              <span className="material-symbols-outlined text-[24px]">menu</span>
+            </button>
             <div className="flex items-center gap-4 text-[#111418] dark:text-white cursor-pointer" onClick={() => navigate('/student/dashboard')}>
-              <div className="size-8 text-primary flex items-center justify-center">
-                <img src={wavcIcon} alt="WAVC Logo" className="w-full h-full object-contain" />
-              </div>
               <h2 className="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">WAVC</h2>
             </div>
             <label className="hidden md:flex flex-col min-w-40 h-10! max-w-64">
@@ -112,58 +111,34 @@ const Clubs = () => {
               </div>
             </label>
           </div>
-          <div className="flex flex-1 justify-end gap-4 md:gap-8">
-            <div className="hidden md:flex items-center gap-9">
-              <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/student/dashboard">Student Dashboard</a>
-              <a className="text-primary text-sm font-medium" href="/student/clubs">Clubs</a>
-              <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/student/calendar">Events</a>
-              {role === 'CLUB_ADMIN' && (
-                <a className="text-[#111418] dark:text-white text-sm font-medium hover:text-primary transition-colors" href="/club/dashboard">Club Dashboard</a>
-              )}
-            </div>
-            <button aria-label="Go to profile" onClick={() => navigate('/student/profile')} className="focus:outline-none transition-transform active:scale-95">
-              {hasValidPicture ? (
-                <img
-                  src={picture}
-                  alt={name}
-                  className="size-10 rounded-full ring-2 ring-white/10 object-cover"
-                  onError={() => setPictureError(true)}
-                  referrerPolicy="no-referrer"
-                />
-              ) : (
-                <div className="size-10 rounded-full ring-2 ring-white/10 flex items-center justify-center font-bold text-lg text-white" style={{ background: 'linear-gradient(135deg, #137fec 0%, #0d5bab 100%)' }}>
-                  {name.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </button>
-          </div>
+          <div className="flex flex-1 justify-end"></div>
         </header>
 
         {/* Main Content */}
-        <main className="px-4 md:px-10 lg:px-40 flex flex-1 justify-center py-8">
+        <main className="px-4 md:px-10 lg:px-40 flex flex-1 justify-center py-6 md:py-8">
           <div className="layout-content-container flex flex-col max-w-240 flex-1">
             {/* Page Title */}
             <div className="pb-3 pt-6 px-4">
-              <h1 className="text-[#111418] dark:text-white text-[32px] font-bold leading-tight">Clubs</h1>
+              <h1 className="text-[#111418] dark:text-white text-3xl sm:text-[32px] font-bold leading-tight">Clubs</h1>
               <p className="text-[#637588] dark:text-[#92adc9] text-base mt-2">
                 Discover and follow clubs. Click on a club to visit their Instagram.
               </p>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 mt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 px-4 mt-4">
               {[
                 { label: 'Total Clubs', value: clubs.length, icon: 'groups' },
                 { label: 'Following', value: followingCount, icon: 'favorite' },
                 { label: 'Tech Clubs', value: techCount, icon: 'computer' },
                 { label: 'Non-Tech', value: nonTechCount, icon: 'palette' },
               ].map((stat, i) => (
-                <div key={i} className="bg-white dark:bg-[#1a2632] rounded-xl p-4 border border-[#e5e7eb] dark:border-[#233648]">
+                <div key={i} className="bg-white dark:bg-[#1a2632] rounded-xl p-3 sm:p-4 border border-[#e5e7eb] dark:border-[#233648]">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="material-symbols-outlined text-[18px] text-primary">{stat.icon}</span>
                     <span className="text-xs text-[#637588] dark:text-[#92adc9] font-medium">{stat.label}</span>
                   </div>
-                  <p className="text-2xl font-bold text-[#111418] dark:text-white">{stat.value}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-[#111418] dark:text-white">{stat.value}</p>
                 </div>
               ))}
             </div>
@@ -179,7 +154,7 @@ const Clubs = () => {
                 <button
                   key={cat.value}
                   onClick={() => setCategoryFilter(cat.value)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all ${
                     categoryFilter === cat.value
                       ? 'bg-primary text-white shadow-md shadow-primary/20'
                       : 'bg-white dark:bg-[#1a2632] text-[#637588] dark:text-[#92adc9] border border-[#e5e7eb] dark:border-[#233648] hover:border-primary/50'
@@ -189,7 +164,7 @@ const Clubs = () => {
                 </button>
               ))}
               {/* Mobile search */}
-              <div className="md:hidden flex-1 min-w-30">
+              <div className="md:hidden basis-full">
                 <input
                   type="text"
                   placeholder="Search..."
@@ -216,7 +191,7 @@ const Clubs = () => {
                 <div
                   key={club.id}
                   onClick={() => openInstagram(club)}
-                  className={`group relative flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] transition-all hover:shadow-lg hover:border-primary/30 ${club.instagram_handle ? 'cursor-pointer' : 'cursor-default'}`}
+                  className={`group relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] transition-all hover:shadow-lg hover:border-primary/30 ${club.instagram_handle ? 'cursor-pointer' : 'cursor-default'}`}
                 >
                   {/* Club logo */}
                   <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden ring-2 ring-transparent group-hover:ring-primary/30 transition-all">
@@ -228,7 +203,7 @@ const Clubs = () => {
                   </div>
 
                   {/* Club info */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 w-full">
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-bold text-[#111418] dark:text-white truncate group-hover:text-primary transition-colors">{club.name}</h3>
                       {club.instagram_handle && (
@@ -248,7 +223,7 @@ const Clubs = () => {
                   {/* Follow button */}
                   <button
                     onClick={(e) => club.is_following ? handleUnfollow(e, club.id) : handleFollow(e, club.id)}
-                    className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${club.is_following
+                    className={`touch-target w-full sm:w-auto shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${club.is_following
                       ? 'bg-primary/10 text-primary border border-primary/20 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20'
                       : 'bg-primary text-white hover:bg-primary/90 shadow-sm'
                     }`}

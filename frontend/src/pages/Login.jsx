@@ -12,21 +12,21 @@ const Login = () => {
     return (
         <div className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-slate-50 dark:bg-[#111a22]">
 
-            <div className="relative z-10 w-full max-w-md p-6 mx-4">
-                <div className="flex flex-col items-center text-center p-8 rounded-2xl bg-white/70 dark:bg-[#1e293b]/70 backdrop-blur-xl border border-white/20 shadow-2xl transition-all duration-300 hover:shadow-primary/10">
+            <div className="relative z-10 w-full max-w-md p-5 sm:p-6 mx-4">
+                <div className="flex flex-col items-center text-center p-6 sm:p-8 rounded-2xl bg-white/70 dark:bg-[#1e293b]/70 backdrop-blur-xl border border-white/20 shadow-2xl transition-all duration-300 hover:shadow-primary/10">
                     <div className="mb-6 h-16 w-16 flex items-center justify-center rounded-2xl bg-primary/10 text-primary">
                         {/* Use the logo if available, else a styled placeholder */}
                         <img src={wavcIcon} alt="WAVC Logo" className="w-10 h-10 object-contain" />
                     </div>
                     
-                    <h1 className="text-balance text-3xl font-bold text-slate-900 dark:text-white mb-2">Welcome Back</h1>
+                    <h1 className="text-balance text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2">Welcome Back</h1>
                     <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-xs">
                         Sign in to access your clubs, events, and community dashboard.
                     </p>
 
                     <button 
                         onClick={handleLogin}
-                        className="group w-full flex items-center justify-center gap-3 bg-white dark:bg-[#233648] hover:bg-slate-50 dark:hover:bg-[#2d465e] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white font-semibold py-3.5 px-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                        className="touch-target group w-full flex items-center justify-center gap-3 bg-white dark:bg-[#233648] hover:bg-slate-50 dark:hover:bg-[#2d465e] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white font-semibold py-3.5 px-4 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
                     >
                         <svg className="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

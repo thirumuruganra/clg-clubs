@@ -98,7 +98,7 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
           <span className="material-symbols-outlined animate-spin text-primary text-[40px]">progress_activity</span>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col overflow-y-auto px-4 md:px-6 pt-4 pb-6 bg-[#f0f2f4] dark:bg-[#0c1218]">
+        <div className="flex-1 flex flex-col overflow-y-auto px-3 sm:px-4 md:px-6 pt-4 pb-6 bg-[#f0f2f4] dark:bg-[#0c1218]">
           <div className="grid grid-cols-7 mb-2 border-b border-transparent">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
               <div key={i} className="text-center font-medium text-xs text-[#637588] dark:text-[#92adc9] py-2">{d}</div>
@@ -117,7 +117,7 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
                 <div 
                   key={dayNum} 
                   onClick={() => handleDayClick(dayNum)}
-                  className={`border-r border-b border-[#e5e7eb] dark:border-[#233648] min-h-25 p-1.5 flex flex-col cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/5 
+                  className={`border-r border-b border-[#e5e7eb] dark:border-[#233648] min-h-20 sm:min-h-24 md:min-h-25 p-1 flex flex-col cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/5 
                   bg-white dark:bg-[#111a22] group`}
                 >
                   <div className="flex justify-between items-start mb-1">
@@ -163,18 +163,14 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
       )}
 
       {selectedEvent && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
-          onClick={() => setSelectedEvent(null)}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setSelectedEvent(null)}>
           <div
-            className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-[#e5e7eb] dark:border-[#233648]"
+            className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-2xl modal-panel overflow-y-auto border border-[#e5e7eb] dark:border-[#233648]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col md:flex-row h-full">
               <div
-                className="w-full md:w-2/5 min-h-50 md:min-h-87.5 bg-cover bg-center bg-gray-700 relative"
+                className="w-full md:w-2/5 min-h-44 sm:min-h-52 md:min-h-87.5 bg-cover bg-center bg-gray-700 relative"
                 style={selectedEvent.image_url ? { backgroundImage: `url("${selectedEvent.image_url}")` } : {}}
               >
                 <div className="absolute top-3 left-3">
@@ -192,7 +188,7 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
                   <button
                     aria-label="Close event details"
                     onClick={() => setSelectedEvent(null)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+                    className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
                   >
                     <span className="material-symbols-outlined text-[20px]">close</span>
                   </button>

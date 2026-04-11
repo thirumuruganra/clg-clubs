@@ -58,22 +58,22 @@ const ClubSetup = () => {
   return (
     <div className="min-h-dvh bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white">
       {/* Top bar */}
-      <header className="flex items-center justify-between px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22]">
+      <header className="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22]">
         <div className="flex items-center gap-3">
           <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
           <span className="text-lg font-bold">WAVC</span>
         </div>
         <button
           onClick={logout}
-          className="px-4 py-2 rounded-xl border border-[#e5e7eb] dark:border-[#233648] text-sm font-medium hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+          className="touch-target px-3 sm:px-4 py-2 rounded-xl border border-[#e5e7eb] dark:border-[#233648] text-xs sm:text-sm font-medium hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
         >
           Sign Out
         </button>
       </header>
 
       {/* Form */}
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <h1 className="text-4xl font-bold mb-2">Set up your club profile</h1>
+      <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-2">Set up your club profile</h1>
         <p className="text-[#637588] dark:text-[#92adc9] mb-10 text-lg">
           Tell us a bit about your club to get started. This information will be visible to all students.
         </p>
@@ -81,7 +81,7 @@ const ClubSetup = () => {
         <form onSubmit={handleSubmit} className="space-y-8">
           {formError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{formError}</p>}
           {/* Logo Upload Area */}
-          <div className="border border-dashed border-[#e5e7eb] dark:border-[#233648] rounded-xl p-8 flex items-center gap-8">
+          <div className="border border-dashed border-[#e5e7eb] dark:border-[#233648] rounded-xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
             <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#637588]/30 flex items-center justify-center shrink-0 bg-[#f0f2f4] dark:bg-[#233648]">
               {formData.logo_url ? (
                 <img src={formData.logo_url} alt="Logo" className="w-full h-full rounded-full object-cover" />
@@ -92,7 +92,7 @@ const ClubSetup = () => {
             <div className="flex-1">
               <h3 className="text-lg font-bold mb-1">Upload Club Logo</h3>
               <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-3">Recommended size: 400×400px. JPG, PNG supported.</p>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <input
                   type="url"
                   value={formData.logo_url}
@@ -139,7 +139,7 @@ const ClubSetup = () => {
           {/* Category */}
           <div>
             <label className="block text-sm font-bold mb-3">Category</label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 { value: 'TECH', label: 'Tech Club', desc: 'Focuses on coding, engineering, data science, and hardware projects.', icon: 'computer' },
                 { value: 'NON_TECH', label: 'Non-Tech Club', desc: 'Focuses on arts, culture, sports, debate, social causes, or networking.', icon: 'palette' },
@@ -167,14 +167,14 @@ const ClubSetup = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-center gap-6 pt-6">
-            <button type="button" onClick={() => navigate('/student/dashboard')} className="text-sm font-bold text-[#637588] dark:text-[#92adc9] hover:text-white transition-colors">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-6 pt-6">
+            <button type="button" onClick={() => navigate('/student/dashboard')} className="touch-target text-sm font-bold text-[#637588] dark:text-[#92adc9] hover:text-white transition-colors">
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-8 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/30 active:scale-[0.98] flex items-center gap-2 disabled:opacity-50"
+              className="touch-target px-8 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/30 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {saving ? 'Setting up...' : 'Complete Setup'}
               {!saving && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
