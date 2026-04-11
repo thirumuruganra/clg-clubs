@@ -11,6 +11,24 @@ from typing import Optional
 router = APIRouter()
 
 
+def _club_payload(club: Club, follower_count: int, is_following: bool = False):
+    admin_picture = club.admin.picture if club.admin else None
+    icon_url = club.logo_url or admin_picture
+
+    return {
+        "id": club.id,
+        "name": club.name,
+        "logo_url": club.logo_url,
+        "icon_url": icon_url,
+        "admin_picture": admin_picture,
+        "category": club.category,
+        "instagram_handle": club.instagram_handle,
+        "admin_id": club.admin_id,
+        "follower_count": follower_count,
+        "is_following": is_following,
+    }
+
+
 @router.get("/")
 def get_all_clubs(user_id: Optional[int] = Query(None), db: Session = Depends(get_db)):
     """Get all clubs with follower count and follow status for current user."""
@@ -24,16 +42,7 @@ def get_all_clubs(user_id: Optional[int] = Query(None), db: Session = Depends(ge
                 Follow.user_id == user_id, Follow.club_id == club.id
             ).first() is not None
 
-        result.append({
-            "id": club.id,
-            "name": club.name,
-            "logo_url": club.logo_url,
-            "category": club.category,
-            "instagram_handle": club.instagram_handle,
-            "admin_id": club.admin_id,
-            "follower_count": follower_count,
-            "is_following": is_following,
-        })
+        result.append(_club_payload(club, follower_count, is_following))
     return result
 
 
@@ -51,16 +60,7 @@ def get_club(club_id: int, user_id: Optional[int] = Query(None), db: Session = D
             Follow.user_id == user_id, Follow.club_id == club.id
         ).first() is not None
 
-    return {
-        "id": club.id,
-        "name": club.name,
-        "logo_url": club.logo_url,
-        "category": club.category,
-        "instagram_handle": club.instagram_handle,
-        "admin_id": club.admin_id,
-        "follower_count": follower_count,
-        "is_following": is_following,
-    }
+    return _club_payload(club, follower_count, is_following)
 
 
 @router.post("/")
@@ -85,16 +85,7 @@ def create_club(club: ClubCreate, db: Session = Depends(get_db), current_user: U
     db.commit()
     db.refresh(db_club)
 
-    return {
-        "id": db_club.id,
-        "name": db_club.name,
-        "logo_url": db_club.logo_url,
-        "category": db_club.category,
-        "instagram_handle": db_club.instagram_handle,
-        "admin_id": db_club.admin_id,
-        "follower_count": 0,
-        "is_following": False,
-    }
+    return _club_payload(db_club, follower_count=0, is_following=False)
 
 
 @router.put("/{club_id}")
@@ -120,15 +111,7 @@ def update_club(club_id: int, club_update: ClubUpdate, db: Session = Depends(get
 
     follower_count = db.query(Follow).filter(Follow.club_id == club.id).count()
 
-    return {
-        "id": club.id,
-        "name": club.name,
-        "logo_url": club.logo_url,
-        "category": club.category,
-        "instagram_handle": club.instagram_handle,
-        "admin_id": club.admin_id,
-        "follower_count": follower_count,
-    }
+    return _club_payload(club, follower_count=follower_count, is_following=False)
 
 
 @router.get("/{club_id}/events")

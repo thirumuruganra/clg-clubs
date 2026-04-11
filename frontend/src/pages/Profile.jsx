@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
+import { getClubIconUrl, getClubInitial } from '../lib/utils';
 
 const API = '';
 
@@ -333,7 +334,10 @@ const Profile = () => {
                       <p className="px-4 py-3 text-sm text-[#637588] dark:text-[#92adc9] italic">No matching clubs found</p>
                     )}
 
-                    {matchedClubs.map((club) => (
+                    {matchedClubs.map((club) => {
+                      const clubIconUrl = getClubIconUrl(club);
+
+                      return (
                       <button
                         key={club.id}
                         type="button"
@@ -342,10 +346,10 @@ const Profile = () => {
                         className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-primary/10 transition-colors text-[#111418] dark:text-white text-sm"
                       >
                         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                          {club.logo_url ? (
-                            <img src={club.logo_url} alt={club.name} className="w-full h-full object-cover" />
+                          {clubIconUrl ? (
+                            <img src={clubIconUrl} alt={club.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
-                            <span className="text-primary font-bold text-xs">{club.name.charAt(0)}</span>
+                            <span className="text-primary font-bold text-xs">{getClubInitial(club)}</span>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -353,7 +357,8 @@ const Profile = () => {
                           <span className="text-xs text-[#637588] dark:text-[#92adc9]">{club.category}</span>
                         </div>
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

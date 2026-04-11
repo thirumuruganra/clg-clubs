@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
+import { getClubIconUrl, getClubInitial } from '../lib/utils';
 
 const API = '';
 
@@ -242,18 +243,22 @@ const Calendar = () => {
                 <p className="text-xs text-[#637588] dark:text-[#92adc9] italic px-3 py-2">No clubs found</p>
               )}
 
-              {clubs.map((club) => (
+              {clubs.map((club) => {
+                const clubIconUrl = getClubIconUrl(club);
+
+                return (
                 <button
                   key={club.id}
                   onClick={() => setSelectedClubId(club.id)}
                   className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-sm transition-colors ${selectedClubId === club.id ? 'bg-[#233648] text-white' : 'text-[#92adc9] hover:bg-[#233648]/50'}`}
                 >
                   <div className="size-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                    {club.logo_url ? <img src={club.logo_url} alt="" className="w-full h-full object-cover" /> : <span className="text-primary text-xs font-bold">{club.name.charAt(0)}</span>}
+                    {clubIconUrl ? <img src={clubIconUrl} alt={club.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : <span className="text-primary text-xs font-bold">{getClubInitial(club)}</span>}
                   </div>
                   <span className="flex-1 truncate">{club.name}</span>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

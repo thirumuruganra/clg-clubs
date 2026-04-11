@@ -8,6 +8,7 @@ import Calendar from './pages/Calendar';
 import ClubDashboard from './pages/ClubDashboard';
 import ClubSetup from './pages/ClubSetup';
 import Clubs from './pages/Clubs';
+import ClubProfile from './pages/ClubProfile';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/student/clubs" element={<Clubs />} />
           <Route path="/club/dashboard" element={<ClubDashboard />} />
           <Route path="/club/setup" element={<ClubSetup />} />
+          <Route path="/club/profile" element={<ClubProfile />} />
         </Routes>
       </Router>
     </AuthProvider>

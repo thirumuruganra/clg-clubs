@@ -55,6 +55,8 @@ class ClubUpdate(BaseModel):
 class ClubResponse(ClubBase):
     id: int
     admin_id: int
+    icon_url: Optional[str] = None
+    admin_picture: Optional[str] = None
     follower_count: Optional[int] = 0
     is_following: Optional[bool] = False
 

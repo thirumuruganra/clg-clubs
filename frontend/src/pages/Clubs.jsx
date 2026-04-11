@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
+import { getClubIconUrl, getClubInitial } from '../lib/utils';
 
 const API = '';
 
@@ -208,7 +209,10 @@ const Clubs = () => {
               {!loadingClubs && filteredClubs.length === 0 && (
                 <p className="text-[#637588] dark:text-[#92adc9] text-sm col-span-3 italic">No clubs found.</p>
               )}
-              {filteredClubs.map(club => (
+              {filteredClubs.map((club) => {
+                const clubIconUrl = getClubIconUrl(club);
+
+                return (
                 <div
                   key={club.id}
                   onClick={() => openInstagram(club)}
@@ -216,10 +220,10 @@ const Clubs = () => {
                 >
                   {/* Club logo */}
                   <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden ring-2 ring-transparent group-hover:ring-primary/30 transition-all">
-                    {club.logo_url ? (
-                      <img src={club.logo_url} alt={club.name} className="w-full h-full object-cover" />
+                    {clubIconUrl ? (
+                      <img src={clubIconUrl} alt={club.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                      <span className="text-primary font-bold text-lg">{club.name.charAt(0)}</span>
+                      <span className="text-primary font-bold text-lg">{getClubInitial(club)}</span>
                     )}
                   </div>
 
@@ -252,7 +256,8 @@ const Clubs = () => {
                     {club.is_following ? 'Following' : 'Follow'}
                   </button>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </main>

@@ -5,7 +5,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import wavcIcon from '../assets/WAVC-edit.png';
 import ClubCalendar from './ClubCalendar';
-import { cn } from '../lib/utils';
+import { cn, getClubIconUrl } from '../lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -719,6 +719,8 @@ const ClubDashboard = () => {
     { label: 'Event Management', icon: 'event', tab: 'events' },
   ];
 
+  const clubIconUrl = getClubIconUrl(club);
+
   return (
     <div className="flex h-dvh w-full bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-hidden relative">
       {/* Mobile Menu Overlay */}
@@ -730,9 +732,9 @@ const ClubDashboard = () => {
       <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 w-64 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col transition-transform duration-300 ease-in-out`} style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
           <div className="flex items-center gap-3 mb-1">
-            {club?.logo_url ? (
+            {clubIconUrl ? (
               <div className="size-10 rounded-full overflow-hidden shrink-0 border border-primary/20 bg-primary/5 flex items-center justify-center">
-                <img src={club.logo_url} alt={club?.name || 'Club'} className="w-full h-full object-cover" />
+                <img src={clubIconUrl} alt={club?.name || 'Club'} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
             ) : (
               <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
@@ -766,7 +768,18 @@ const ClubDashboard = () => {
 
         {/* User info at bottom */}
         <div className="p-4 border-t border-[#233648]">
-          <div className="flex items-center gap-3">
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/club/profile')}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                navigate('/club/profile');
+              }
+            }}
+            className="w-full text-left flex items-center gap-3 rounded-xl p-2 -m-2 hover:bg-[#233648] transition-colors cursor-pointer"
+          >
             {user?.picture && user.picture.trim() !== '' ? (
               <img
                 src={user.picture}
@@ -783,7 +796,7 @@ const ClubDashboard = () => {
               <p className="text-sm font-medium truncate">{user?.name}</p>
               <p className="text-xs text-[#637588] dark:text-[#92adc9]">Head Administrator</p>
             </div>
-            <button onClick={logout} aria-label="Sign out" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors">
+            <button onClick={(event) => { event.stopPropagation(); logout(); }} aria-label="Sign out" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors">
               <span className="material-symbols-outlined text-[20px] text-[#637588]">logout</span>
             </button>
           </div>
