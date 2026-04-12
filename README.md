@@ -73,6 +73,7 @@ This repository can be deployed to Heroku as a single app by serving the built f
 
 - Heroku CLI installed and authenticated.
 - Google OAuth credentials configured in Google Cloud Console.
+- Python version is defined in `backend/.python-version` (Heroku recommended format).
 
 ### 2. Build Frontend and Copy into Backend
 
