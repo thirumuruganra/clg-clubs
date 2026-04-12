@@ -124,6 +124,24 @@ def ensure_rsvp_attended_column() -> None:
         print(f"⚠️  Could not auto-add 'attended' column: {exc}")
 
 
+def ensure_rsvp_attended_marked_at_column() -> None:
+    """Add the attended_marked_at column for older databases."""
+    try:
+        inspector = inspect(engine)
+        if "rsvps" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("rsvps")}
+        if "attended_marked_at" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE rsvps ADD COLUMN attended_marked_at TIMESTAMP"))
+        print("ℹ️  Added missing 'attended_marked_at' column to rsvps table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'attended_marked_at' column: {exc}")
+
+
 def ensure_event_attendance_qr_code_column() -> None:
     """Add the attendance_qr_code column for older databases."""
     try:
@@ -194,6 +212,7 @@ ensure_user_register_number_column()
 ensure_user_degree_column()
 ensure_user_google_scopes_column()
 ensure_rsvp_attended_column()
+ensure_rsvp_attended_marked_at_column()
 ensure_event_attendance_qr_code_column()
 ensure_event_attendance_qr_open_column()
 normalize_legacy_cse_entries()

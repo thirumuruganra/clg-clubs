@@ -760,9 +760,29 @@ const ClubDashboard = () => {
       setRsvpError('No attendees selected for export.');
       return;
     }
+
+    const yearRank = { IV: 4, III: 3, II: 2, I: 1, Alumni: 0, '-': -1 };
+    const sortedAttended = [...attended].sort((a, b) => {
+      const userA = a.user || {};
+      const userB = b.user || {};
+
+      const deptA = String(userA.department || '').trim().toLowerCase();
+      const deptB = String(userB.department || '').trim().toLowerCase();
+      const deptCompare = deptA.localeCompare(deptB);
+      if (deptCompare !== 0) return deptCompare;
+
+      const yearA = yearRank[calculateYear(userA.batch)] ?? -1;
+      const yearB = yearRank[calculateYear(userB.batch)] ?? -1;
+      if (yearA !== yearB) return yearB - yearA;
+
+      const nameA = String(userA.name || '').trim();
+      const nameB = String(userB.name || '').trim();
+      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+    });
+
     setRsvpError('');
     const headers = ['S.NO', 'NAME', 'DEPARTMENT', 'YEAR', 'REGISTER NO'];
-    const rows = attended.map((r, index) => {
+    const rows = sortedAttended.map((r, index) => {
       const u = r.user || {};
       return [
         index + 1,

@@ -11,6 +11,7 @@ class RSVP(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
     attended = Column(Boolean, default=False)
+    attended_marked_at = Column(DateTime, nullable=True)
     is_paid = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 

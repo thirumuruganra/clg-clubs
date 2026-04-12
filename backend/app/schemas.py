@@ -120,6 +120,7 @@ class RSVPResponse(BaseModel):
     user_id: int
     event_id: int
     attended: Optional[bool] = False
+    attended_marked_at: Optional[datetime] = None
     is_paid: Optional[bool] = False
     created_at: datetime
 
@@ -140,6 +141,7 @@ class EventRSVPResponse(BaseModel):
     user_id: int
     event_id: int
     attended: Optional[bool] = False
+    attended_marked_at: Optional[datetime] = None
     is_paid: Optional[bool] = False
     created_at: datetime
     user: EventRSVPUserResponse
