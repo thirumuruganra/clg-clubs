@@ -19,10 +19,12 @@ const StudentSidebar = ({ mobileMenuOpen, onClose, children }) => {
   };
 
   return (
-    <aside
-      className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 w-64 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col overflow-hidden transition-transform duration-300 ease-in-out`}
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
-    >
+    <>
+      <div className="hidden lg:block w-64 shrink-0" aria-hidden="true"></div>
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 w-64 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col overflow-hidden transition-transform duration-300 ease-in-out`}
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
       <div className="p-4 sm:p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
         <button
           type="button"
@@ -114,7 +116,8 @@ const StudentSidebar = ({ mobileMenuOpen, onClose, children }) => {
           </button>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 
