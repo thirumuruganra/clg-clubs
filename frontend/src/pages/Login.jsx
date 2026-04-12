@@ -2,11 +2,8 @@ import React from 'react';
 import wavcIcon from '../assets/WAVC-edit.png'; // Assuming this exists from LandingPage
 
 const Login = () => {
-    // In a real app, use environment variables
-    const BACKEND_URL = "http://localhost:8000";
-
     const handleLogin = () => {
-        window.location.href = `${BACKEND_URL}/api/auth/login`;
+        window.location.href = '/api/auth/login';
     };
 
     return (

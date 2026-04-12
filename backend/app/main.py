@@ -1,10 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 from starlette.middleware.sessions import SessionMiddleware
 from app.database import engine, Base
 from app.routers import auth, users, events, clubs, rsvp, follow
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 # Import all models so Base.metadata.create_all picks them up
@@ -223,13 +226,24 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS — allow frontend at localhost:5173 (Vite dev server)
+
+def _parse_origins_env(var_name: str, default_origins: list[str]) -> list[str]:
+    raw_value = os.getenv(var_name, "").strip()
+    if not raw_value:
+        return default_origins
+    return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+
+
+default_cors_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+cors_allow_origins = _parse_origins_env("CORS_ALLOW_ORIGINS", default_cors_origins)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=cors_allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -250,6 +264,30 @@ app.include_router(rsvp.router, prefix="/api/rsvp", tags=["rsvp"])
 app.include_router(follow.router, prefix="/api/follow", tags=["follow"])
 
 
+frontend_dist_dir = Path(__file__).resolve().parent / "static"
+frontend_index_file = frontend_dist_dir / "index.html"
+frontend_assets_dir = frontend_dist_dir / "assets"
+
+if frontend_assets_dir.exists():
+    app.mount("/assets", StaticFiles(directory=str(frontend_assets_dir)), name="frontend-assets")
+
+
 @app.get("/")
 def read_root():
+    if frontend_index_file.exists():
+        return FileResponse(frontend_index_file)
     return {"message": "Welcome to the WAVC API"}
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def frontend_spa_fallback(full_path: str):
+    if full_path.startswith("api"):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    if frontend_index_file.exists():
+        requested_path = frontend_dist_dir / full_path
+        if full_path and requested_path.is_file():
+            return FileResponse(requested_path)
+        return FileResponse(frontend_index_file)
+
+    raise HTTPException(status_code=404, detail="Not Found")

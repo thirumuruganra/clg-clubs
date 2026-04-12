@@ -12,6 +12,8 @@ from app.core.security import (
 )
 import re
 import json
+import os
+from urllib.parse import urlparse
 
 router = APIRouter()
 
@@ -57,11 +59,35 @@ ALLOWED_CLUB_EMAILS = {
 # Regex for student emails
 STUDENT_EMAIL_REGEX = re.compile(r'.*[0-9]{4,}@ssn\.edu\.in$')
 
-FRONTEND_DEFAULT_ORIGIN = "http://localhost:5173"
-FRONTEND_ALLOWED_REDIRECT_ORIGINS = {
-    "http://localhost:5173",
+def _parse_origin(origin: str) -> str | None:
+    parsed = urlparse(origin)
+    if not parsed.scheme or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def _parse_origin_list(var_name: str, default_values: list[str]) -> set[str]:
+    raw_value = os.getenv(var_name, "").strip()
+    values = [value.strip() for value in raw_value.split(",") if value.strip()] if raw_value else default_values
+
+    parsed_values = set()
+    for value in values:
+        parsed_value = _parse_origin(value)
+        if parsed_value:
+            parsed_values.add(parsed_value)
+    return parsed_values
+
+
+FRONTEND_DEFAULT_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173").rstrip("/")
+default_allowed_origins = [
+    FRONTEND_DEFAULT_ORIGIN,
     "http://127.0.0.1:5173",
-}
+]
+FRONTEND_ALLOWED_REDIRECT_ORIGINS = _parse_origin_list("FRONTEND_ALLOWED_ORIGINS", default_allowed_origins)
+
+parsed_default_origin = _parse_origin(FRONTEND_DEFAULT_ORIGIN)
+if parsed_default_origin:
+    FRONTEND_ALLOWED_REDIRECT_ORIGINS.add(parsed_default_origin)
 
 
 def _resolve_safe_frontend_redirect(raw_redirect: str | None) -> str | None:
@@ -75,7 +101,13 @@ def _resolve_safe_frontend_redirect(raw_redirect: str | None) -> str | None:
     if redirect_value.startswith('/'):
         return f"{FRONTEND_DEFAULT_ORIGIN}{redirect_value}"
 
-    if any(redirect_value.startswith(origin) for origin in FRONTEND_ALLOWED_REDIRECT_ORIGINS):
+    parsed_redirect = urlparse(redirect_value)
+    parsed_redirect_origin = _parse_origin(redirect_value)
+    if (
+        parsed_redirect_origin
+        and parsed_redirect_origin in FRONTEND_ALLOWED_REDIRECT_ORIGINS
+        and parsed_redirect.scheme in {"http", "https"}
+    ):
         return redirect_value
 
     return None
@@ -193,12 +225,12 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     redirect_url = request.session.pop("post_auth_redirect", None)
     if not redirect_url:
         if user.role == "CLUB_ADMIN":
-            redirect_url = "http://localhost:5173/club/dashboard"
+            redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/club/dashboard"
         else:
             user_interests = _safe_json_list(user.interests)
-            redirect_url = "http://localhost:5173/student/dashboard"
+            redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/student/dashboard"
             if not user.batch or not user.department or not user.degree or not user.register_number or len(user_interests) < 3:
-                redirect_url = "http://localhost:5173/student/profile"
+                redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/student/profile"
 
     # Set JWT as cookie and redirect
     response = RedirectResponse(url=redirect_url, status_code=302)
@@ -239,6 +271,6 @@ async def get_me(current_user: User = Depends(get_current_user)):
 @router.get('/logout')
 async def logout(request: Request):
     """Clear the JWT cookie and redirect to landing."""
-    response = RedirectResponse(url="http://localhost:5173/", status_code=302)
+    response = RedirectResponse(url=f"{FRONTEND_DEFAULT_ORIGIN}/", status_code=302)
     response.delete_cookie("access_token", path="/")
     return response
