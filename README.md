@@ -126,7 +126,7 @@ In Google Cloud Console OAuth client settings:
 From repository root:
 
 ```bash
-git subtree push --prefix backend heroku main
+git subtree push --prefix backend heroku HEAD:main
 ```
 
 ### 7. Verify
