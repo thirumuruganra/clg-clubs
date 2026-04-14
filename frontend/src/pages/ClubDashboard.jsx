@@ -7,7 +7,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { QRCodeSVG } from 'qrcode.react';
 import wavcIcon from '../assets/WAVC-edit.png';
 import ClubCalendar from './ClubCalendar';
-import { cn, getClubIconUrl } from '../lib/utils';
+import { cn, getClubIconUrl, getClubInitial } from '../lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -985,6 +985,7 @@ const ClubDashboard = () => {
   ];
 
   const clubIconUrl = getClubIconUrl(club);
+  const clubInitial = getClubInitial(club);
 
   return (
     <div className="flex h-dvh w-full bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-hidden relative">
@@ -1045,17 +1046,17 @@ const ClubDashboard = () => {
             }}
             className="w-full text-left flex items-center gap-3 rounded-xl p-2 hover:bg-[#233648] transition-colors cursor-pointer"
           >
-            {user?.picture && user.picture.trim() !== '' ? (
+            {clubIconUrl ? (
               <img
-                src={user.picture}
-                alt={user?.name || 'Admin'}
+                src={clubIconUrl}
+                alt={club?.name || 'Club'}
                 className="size-10 rounded-full object-cover"
                 onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                 referrerPolicy="no-referrer"
               />
             ) : null}
-            <div className="size-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: 'linear-gradient(135deg, #137fec 0%, #0d5bab 100%)', display: user?.picture && user.picture.trim() !== '' ? 'none' : 'flex' }}>
-              {(user?.name || 'A')[0].toUpperCase()}
+            <div className="size-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: 'linear-gradient(135deg, #137fec 0%, #0d5bab 100%)', display: clubIconUrl ? 'none' : 'flex' }}>
+              {clubInitial}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user?.name}</p>

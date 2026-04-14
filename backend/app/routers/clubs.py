@@ -127,7 +127,7 @@ async def upload_club_logo(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Upload or replace a club logo in Supabase Storage under club_logos/<club-name>/."""
+    """Upload or replace a club logo in Supabase Storage under club_logos/club-<id>/."""
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")

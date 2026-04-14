@@ -1,5 +1,4 @@
 import os
-import re
 from typing import Optional
 
 from app.core.storage import (
@@ -24,21 +23,9 @@ def _normalize_content_type(content_type: Optional[str]) -> str:
     return content_type.split(";", 1)[0].strip().lower()
 
 
-def _slugify_segment(raw_value: Optional[str], fallback: str) -> str:
-    if not raw_value:
-        return fallback
-
-    normalized = re.sub(r"[^a-z0-9]+", "-", raw_value.strip().lower())
-    normalized = normalized.strip("-")
-    if not normalized:
-        return fallback
-
-    return normalized[:80]
-
-
 def _build_object_path(club: Club) -> str:
-    club_folder = _slugify_segment(club.name, f"club-{club.id}")
-    return f"club_logos/{club_folder}/logo"
+    # Keep a stable object key per club so logo updates replace in-place.
+    return f"club_logos/club-{club.id}/logo"
 
 
 def replace_club_logo(club: Club, file_bytes: bytes, content_type: str) -> dict[str, str]:
