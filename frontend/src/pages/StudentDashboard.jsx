@@ -121,9 +121,9 @@ const StudentDashboard = () => {
         const { month, day } = formatDate(event.start_time);
         return (
             <div className="flex flex-col overflow-hidden rounded-xl bg-white dark:bg-[#1a2632] shadow-sm border border-[#e5e7eb] dark:border-[#233648] hover:shadow-lg transition-shadow">
-                <div className="relative h-36 sm:h-40 bg-gray-700 flex items-center justify-center overflow-hidden">
+                <div className="relative h-36 sm:h-40 bg-[#0f1720] overflow-hidden">
                     {event.image_url ? (
-                        <img src={event.image_url} alt={event.title} className="h-full w-full object-contain" />
+                        <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" />
                     ) : null}
                     <div className="absolute top-3 right-3 rounded-lg bg-white/90 dark:bg-[#111a22]/90 px-2 py-1 text-center backdrop-blur-sm shadow-sm">
                         <p className="text-xs font-bold text-primary uppercase">{month}</p>
@@ -180,9 +180,9 @@ const StudentDashboard = () => {
         const { month, day } = formatDate(event.start_time);
         return (
             <div className="flex flex-col sm:flex-row overflow-hidden rounded-xl bg-white dark:bg-[#1a2632] shadow-sm border border-[#e5e7eb] dark:border-[#233648] min-h-40 hover:shadow-lg transition-shadow">
-                <div className="w-full sm:w-1/3 h-32 sm:h-auto bg-gray-700 flex items-center justify-center overflow-hidden">
+                <div className="w-full sm:w-1/3 h-32 sm:h-auto bg-[#0f1720] overflow-hidden">
                     {event.image_url ? (
-                        <img src={event.image_url} alt={event.title} className="h-full w-full object-contain" />
+                        <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" />
                     ) : null}
                 </div>
                 <div className="flex w-full sm:w-2/3 flex-col p-4 justify-between gap-3">

@@ -310,9 +310,9 @@ const Calendar = () => {
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-2xl modal-panel overflow-y-auto border border-[#e5e7eb] dark:border-[#233648]" onClick={e => e.stopPropagation()}>
             <div className="flex flex-col md:flex-row h-full">
               {/* Event Image */}
-              <div className="w-full md:w-2/5 min-h-44 sm:min-h-52 md:min-h-87.5 bg-gray-700 relative flex items-center justify-center overflow-hidden">
+              <div className="w-full md:w-2/5 min-h-44 sm:min-h-52 md:min-h-87.5 bg-[#0f1720] relative overflow-hidden">
                 {selectedEvent.image_url ? (
-                  <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-contain" />
+                  <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-cover" />
                 ) : null}
                 <div className="absolute top-3 left-3"><span className="bg-primary/90 text-white text-xs font-medium px-2 py-1 rounded-md">{selectedEvent.club_name}</span></div>
               </div>
