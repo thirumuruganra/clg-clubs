@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
-import { getClubIconUrl, getClubInitial } from '../lib/utils';
+import { getClubIconUrl, getClubInitial, warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
 import StudentSidebar from '../components/StudentSidebar';
 
 const API = '';
@@ -30,7 +30,11 @@ const Calendar = () => {
   const fetchEvents = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/events/all`);
-      if (res.ok) setEvents(await res.json());
+      if (res.ok) {
+        const allEvents = await res.json();
+        warmPosterCacheForEvents(allEvents);
+        setEvents(allEvents);
+      }
     } catch (err) { console.error(err); }
   }, []);
 
@@ -66,7 +70,11 @@ const Calendar = () => {
   const openEventDetail = async (eventId) => {
     try {
       const res = await fetch(`${API}/api/events/${eventId}?user_id=${user?.id || ''}`);
-      if (res.ok) setSelectedEvent(await res.json());
+      if (res.ok) {
+        const eventDetail = await res.json();
+        warmPosterImageCache(eventDetail?.image_url);
+        setSelectedEvent(eventDetail);
+      }
     } catch (err) { console.error(err); }
   };
 

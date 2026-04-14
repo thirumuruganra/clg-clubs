@@ -1,11 +1,14 @@
+import asyncio
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 from starlette.middleware.sessions import SessionMiddleware
-from app.database import engine, Base
+from app.database import engine, Base, SessionLocal
 from app.routers import auth, users, events, clubs, rsvp, follow
+from app.core.storage import is_supabase_storage_configured
+from app.services.event_posters import cleanup_expired_event_posters
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -181,6 +184,39 @@ def ensure_event_attendance_qr_open_column() -> None:
         print(f"⚠️  Could not auto-add 'attendance_qr_open' column: {exc}")
 
 
+def ensure_event_poster_columns() -> None:
+    """Add poster metadata columns for Supabase Storage lifecycle if missing."""
+    try:
+        inspector = inspect(engine)
+        if "events" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("events")}
+        statements = []
+
+        if "poster_storage_path" not in existing_columns:
+            statements.append("ALTER TABLE events ADD COLUMN poster_storage_path VARCHAR(700)")
+        if "poster_mime_type" not in existing_columns:
+            statements.append("ALTER TABLE events ADD COLUMN poster_mime_type VARCHAR(100)")
+        if "poster_size_bytes" not in existing_columns:
+            statements.append("ALTER TABLE events ADD COLUMN poster_size_bytes INTEGER")
+        if "poster_uploaded_at" not in existing_columns:
+            statements.append("ALTER TABLE events ADD COLUMN poster_uploaded_at TIMESTAMP")
+        if "poster_deleted_at" not in existing_columns:
+            statements.append("ALTER TABLE events ADD COLUMN poster_deleted_at TIMESTAMP")
+
+        if not statements:
+            return
+
+        with engine.begin() as conn:
+            for statement in statements:
+                conn.execute(text(statement))
+
+        print("ℹ️  Added missing poster metadata columns to events table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add poster metadata columns: {exc}")
+
+
 def normalize_legacy_cse_entries() -> None:
     """Normalize older user entries: CSE -> Computer Science and Engineering, degree -> B.E."""
     try:
@@ -218,6 +254,7 @@ ensure_rsvp_attended_column()
 ensure_rsvp_attended_marked_at_column()
 ensure_event_attendance_qr_code_column()
 ensure_event_attendance_qr_open_column()
+ensure_event_poster_columns()
 normalize_legacy_cse_entries()
 
 app = FastAPI(
@@ -225,6 +262,33 @@ app = FastAPI(
     description="What's Active in Various Clubs — Campus event management platform",
     version="1.0.0",
 )
+
+
+POSTER_CLEANUP_INTERVAL_MINUTES = max(1, int(os.getenv("POSTER_CLEANUP_INTERVAL_MINUTES", "15")))
+_poster_cleanup_task: asyncio.Task | None = None
+
+
+def _run_event_poster_cleanup_cycle() -> None:
+    db = SessionLocal()
+    try:
+        summary = cleanup_expired_event_posters(db)
+        if summary["checked"] > 0:
+            print(
+                "ℹ️  Event poster cleanup cycle: "
+                f"checked={summary['checked']} deleted={summary['deleted']} failed={summary['failed']}"
+            )
+    finally:
+        db.close()
+
+
+async def _event_poster_cleanup_loop() -> None:
+    while True:
+        try:
+            await asyncio.to_thread(_run_event_poster_cleanup_cycle)
+        except Exception as exc:
+            print(f"⚠️  Event poster cleanup cycle failed: {exc}")
+
+        await asyncio.sleep(POSTER_CLEANUP_INTERVAL_MINUTES * 60)
 
 
 def _parse_origins_env(var_name: str, default_origins: list[str]) -> list[str]:
@@ -262,6 +326,41 @@ app.include_router(events.router, prefix="/api/events", tags=["events"])
 app.include_router(clubs.router, prefix="/api/clubs", tags=["clubs"])
 app.include_router(rsvp.router, prefix="/api/rsvp", tags=["rsvp"])
 app.include_router(follow.router, prefix="/api/follow", tags=["follow"])
+
+
+@app.on_event("startup")
+async def start_event_poster_cleanup_scheduler() -> None:
+    global _poster_cleanup_task
+
+    if not is_supabase_storage_configured():
+        print(
+            "ℹ️  Event poster cleanup scheduler is disabled because Supabase Storage "
+            "environment variables are not fully configured."
+        )
+        return
+
+    if _poster_cleanup_task is None or _poster_cleanup_task.done():
+        _poster_cleanup_task = asyncio.create_task(_event_poster_cleanup_loop())
+        print(
+            "ℹ️  Event poster cleanup scheduler started "
+            f"(interval={POSTER_CLEANUP_INTERVAL_MINUTES} minutes)"
+        )
+
+
+@app.on_event("shutdown")
+async def stop_event_poster_cleanup_scheduler() -> None:
+    global _poster_cleanup_task
+
+    if _poster_cleanup_task is None:
+        return
+
+    _poster_cleanup_task.cancel()
+    try:
+        await _poster_cleanup_task
+    except asyncio.CancelledError:
+        pass
+
+    _poster_cleanup_task = None
 
 
 frontend_dist_dir = Path(__file__).resolve().parent / "static"

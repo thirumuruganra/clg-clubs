@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import StudentSidebar from '../components/StudentSidebar';
+import { warmPosterCacheForEvents } from '../lib/utils';
 
 const API = '';
 
@@ -34,6 +35,7 @@ const StudentDashboard = () => {
             const recommendedRes = await fetch(`${API}/api/events/feed?type=recommended&user_id=${user.id}`);
             if (recommendedRes.ok) {
                 const recommendedEvents = await recommendedRes.json();
+                warmPosterCacheForEvents(recommendedEvents);
                 setForYouEvents(recommendedEvents);
                 setDiscoverEvents(recommendedEvents.filter((event) => !event.is_from_followed_club));
             }

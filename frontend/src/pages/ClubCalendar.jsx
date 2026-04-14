@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth-context';
+import { warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
 
 const API = '';
 
@@ -28,7 +29,11 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
   const fetchAllEvents = async () => {
     try {
       const res = await fetch(`${API}/api/events/all`);
-      if (res.ok) setAllEvents(await res.json());
+      if (res.ok) {
+        const eventRows = await res.json();
+        warmPosterCacheForEvents(eventRows);
+        setAllEvents(eventRows);
+      }
     } catch (err) { console.error(err); }
     finally { setLoadingEvents(false); }
   };
@@ -41,6 +46,7 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
       const res = await fetch(`${API}/api/events/${eventId}?user_id=${user.id}`);
       if (res.ok) {
         const eventDetail = await res.json();
+        warmPosterImageCache(eventDetail?.image_url);
         setSelectedEvent({ ...eventDetail, __isOwnClub: isOwnClub });
       }
     } catch (err) {

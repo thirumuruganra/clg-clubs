@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 import json
 import re
 import os
 import uuid
+import logging
 from urllib.parse import urlencode, urlparse
 from app.database import get_db
 from app.models.event import Event
@@ -14,10 +15,16 @@ from app.models.follow import Follow
 from app.models.user import User
 from app.schemas import EventCreate, EventUpdate, EventResponse
 from app.core.security import get_current_user
+from app.services.event_posters import (
+    MAX_POSTER_BYTES,
+    replace_event_poster,
+    clear_event_poster,
+)
 from datetime import datetime, timedelta
 from typing import Optional, List
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _require_frontend_checkin_base_url() -> str:
@@ -353,6 +360,42 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
     }
 
 
+@router.post("/{event_id}/poster")
+async def upload_event_poster(
+    event_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload or replace an event poster in Supabase Storage bucket."""
+    event = _require_admin_owned_event(event_id, db, current_user)
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Poster file is empty")
+
+    try:
+        poster_payload = replace_event_poster(event, file_bytes, file.content_type or "")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Poster upload failed. Verify Supabase bucket settings. {exc}",
+        ) from exc
+
+    db.commit()
+    db.refresh(event)
+
+    return {
+        "status": "success",
+        "event_id": event.id,
+        "image_url": poster_payload["image_url"],
+        "poster_storage_path": poster_payload["poster_storage_path"],
+        "max_size_bytes": MAX_POSTER_BYTES,
+    }
+
+
 @router.put("/{event_id}")
 def update_event(event_id: int, event_update: EventUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Update an existing event. Only the club admin who owns the event can update it."""
@@ -378,7 +421,24 @@ def update_event(event_id: int, event_update: EventUpdate, db: Session = Depends
     if event_update.tag is not None:
         event.tag = event_update.tag
     if event_update.image_url is not None:
-        event.image_url = event_update.image_url
+        normalized_image_url = (event_update.image_url or "").strip()
+        current_image_url = (event.image_url or "").strip()
+
+        if normalized_image_url == current_image_url:
+            pass
+        elif not normalized_image_url:
+            try:
+                clear_event_poster(event)
+            except RuntimeError as exc:
+                raise HTTPException(status_code=502, detail=f"Failed to delete existing poster: {exc}") from exc
+        else:
+            if event.poster_storage_path:
+                try:
+                    clear_event_poster(event)
+                except RuntimeError as exc:
+                    raise HTTPException(status_code=502, detail=f"Failed to delete existing poster: {exc}") from exc
+                event.poster_deleted_at = None
+            event.image_url = normalized_image_url
     if event_update.keywords is not None:
         event.keywords = event_update.keywords
     if event_update.payment_link is not None:
@@ -475,6 +535,12 @@ def delete_event(event_id: int, db: Session = Depends(get_db), current_user: Use
     club = db.query(Club).filter(Club.id == event.club_id).first()
     if not club or club.admin_id != current_user.id:
         raise HTTPException(status_code=403, detail="You can only delete events for your own club")
+
+    if event.poster_storage_path:
+        try:
+            clear_event_poster(event)
+        except RuntimeError as exc:
+            logger.warning("Poster cleanup failed during event delete (event_id=%s): %s", event.id, exc)
 
     # Delete associated RSVPs first
     db.query(RSVP).filter(RSVP.event_id == event_id).delete()
