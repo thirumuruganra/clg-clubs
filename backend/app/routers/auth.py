@@ -10,6 +10,7 @@ from app.core.security import (
     GOOGLE_CALENDAR_SCOPE,
     build_google_scope,
 )
+from typing import Any, cast
 import re
 import json
 import os
@@ -160,9 +161,10 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     email = user_info.get('email')
     if not email:
         raise HTTPException(status_code=400, detail="Google account must provide an email address.")
+    email = email.strip().lower()
 
-    # Block access for non-SSN accounts (for example gmail.com accounts).
-    if not email.lower().endswith("@ssn.edu.in"):
+    # Block non-SSN accounts unless they are explicitly listed test club emails.
+    if not email.endswith("@ssn.edu.in") and email not in TESTING_CLUB_EMAILS:
         request.session.pop("post_auth_redirect", None)
         return RedirectResponse(
             url=f"{FRONTEND_DEFAULT_ORIGIN}/login?error=ssn_email_required",
@@ -184,8 +186,9 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         role = "CLUB_ADMIN"
 
     # Upsert user
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
+    db_user = db.query(User).filter(User.email == email).first()
+    user = cast(Any, db_user)
+    if user is None:
         user = User(
             email=email,
             name=name,
@@ -216,12 +219,23 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     # Club admins should go to the club dashboard flow regardless of student profile completeness fields.
     redirect_url = request.session.pop("post_auth_redirect", None)
     if not redirect_url:
-        if user.role == "CLUB_ADMIN":
+        user_role = str(getattr(user, "role", "") or "")
+        if user_role == "CLUB_ADMIN":
             redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/club/dashboard"
         else:
             user_interests = _safe_json_list(user.interests)
+            user_batch = cast(str | None, getattr(user, "batch", None))
+            user_department = cast(str | None, getattr(user, "department", None))
+            user_degree = cast(str | None, getattr(user, "degree", None))
+            user_register_number = cast(str | None, getattr(user, "register_number", None))
             redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/student/dashboard"
-            if not user.batch or not user.department or not user.degree or not user.register_number or len(user_interests) < 3:
+            if (
+                user_batch in (None, "")
+                or user_department in (None, "")
+                or user_degree in (None, "")
+                or user_register_number in (None, "")
+                or len(user_interests) < 3
+            ):
                 redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/student/profile"
 
     # Set JWT as cookie and redirect
