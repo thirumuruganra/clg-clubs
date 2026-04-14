@@ -15,7 +15,6 @@ import json
 
 router = APIRouter()
 
-
 def _safe_json_list(raw_value):
     if not raw_value:
         return []
@@ -25,37 +24,18 @@ def _safe_json_list(raw_value):
         return []
     return data if isinstance(data, list) else []
 
-# Allowed club admin emails (in production, move to DB table)
-ALLOWED_CLUB_EMAILS = {
-    # Test account
+# Regex for student emails
+STUDENT_EMAIL_REGEX = re.compile(r'.*[0-9]{4,}@ssn\.edu\.in$')
+
+# Regex for club emails: must end with @ssn.edu.in and local-part must not contain digits
+CLUB_EMAIL_REGEX = re.compile(r'^[A-Za-z._%+-]*[A-Za-z][A-Za-z._%+-]*@ssn\.edu\.in$')
+
+# Hardcoded testing club emails
+TESTING_CLUB_EMAILS = {
     "thirumuruganra@gmail.com",
     "vishmuralee1006@gmail.com",
     "tanisha.sriram2006@gmail.com",
-    # Club accounts
-    "codingclub@ssn.edu.in",
-    "lakshya@ssn.edu.in",
-    "ieeecs-ssn@ssn.edu.in",
-    "ssnieeewie@ssn.edu.in",
-    "ssnmusiclub@ssn.edu.in",
-    "acm-w@ssn.edu.in",
-    "ssnelc@ssn.edu.in",
-    "ssnacm@ssn.edu.in",
-    "buildclub@ssn.edu.in",
-    "sportium@ssn.edu.in",
-    "saeclub@ssn.edu.in",
-    "ssnieeevts@ssn.edu.in",
-    "sgc@ssn.edu.in",
-    "qfactorial@ssn.edu.in",
-    "filmclub@ssn.edu.in",
-    "ieeepels@ssn.edu.in",
-    "ieeepes@ssn.edu.in",
-    "gfgcampusbody@ssn.edu.in",
-    "ieeespssb@ssn.edu.in",
-    "saaraltamilmandram@ssn.edu.in",
 }
-
-# Regex for student emails
-STUDENT_EMAIL_REGEX = re.compile(r'.*[0-9]{4,}@ssn\.edu\.in$')
 
 FRONTEND_DEFAULT_ORIGIN = "http://localhost:5173"
 FRONTEND_ALLOWED_REDIRECT_ORIGINS = {
@@ -144,6 +124,14 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     email = user_info.get('email')
     if not email:
         raise HTTPException(status_code=400, detail="Google account must provide an email address.")
+
+    # Block access for non-SSN accounts (for example gmail.com accounts).
+    if not email.lower().endswith("@ssn.edu.in"):
+        request.session.pop("post_auth_redirect", None)
+        return RedirectResponse(
+            url=f"{FRONTEND_DEFAULT_ORIGIN}/login?error=ssn_email_required",
+            status_code=302,
+        )
         
     name = user_info.get('name')
     picture = user_info.get('picture')
@@ -156,7 +144,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     role = "STUDENT"
     if STUDENT_EMAIL_REGEX.match(email):
         role = "STUDENT"
-    elif email in ALLOWED_CLUB_EMAILS:
+    elif CLUB_EMAIL_REGEX.match(email) or email in TESTING_CLUB_EMAILS:
         role = "CLUB_ADMIN"
 
     # Upsert user
