@@ -1,7 +1,15 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import wavcIcon from '../assets/WAVC-edit.png'; // Assuming this exists from LandingPage
 
 const Login = () => {
+    const location = useLocation();
+
+    const authErrorCode = new URLSearchParams(location.search).get('error');
+    const authErrorMessage = authErrorCode === 'ssn_email_required'
+        ? 'Please login with SSN Student Email ID.'
+        : '';
+
     const handleLogin = () => {
         window.location.href = '/api/auth/login';
     };
@@ -20,6 +28,12 @@ const Login = () => {
                     <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-xs">
                         Sign in to access your clubs, events, and community dashboard.
                     </p>
+
+                    {authErrorMessage && (
+                        <p className="mb-5 w-full rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-300">
+                            {authErrorMessage}
+                        </p>
+                    )}
 
                     <button 
                         onClick={handleLogin}

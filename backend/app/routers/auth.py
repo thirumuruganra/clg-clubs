@@ -27,6 +27,7 @@ def _safe_json_list(raw_value):
         return []
     return data if isinstance(data, list) else []
 
+
 # Allowed club admin emails (in production, move to DB table)
 ALLOWED_CLUB_EMAILS = {
     # Test account
@@ -58,6 +59,7 @@ ALLOWED_CLUB_EMAILS = {
 
 # Regex for student emails
 STUDENT_EMAIL_REGEX = re.compile(r'.*[0-9]{4,}@ssn\.edu\.in$')
+
 
 def _parse_origin(origin: str) -> str | None:
     parsed = urlparse(origin)
@@ -176,7 +178,15 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     email = user_info.get('email')
     if not email:
         raise HTTPException(status_code=400, detail="Google account must provide an email address.")
-        
+
+    # Block access for non-SSN accounts (for example gmail.com accounts).
+    if not email.lower().endswith("@ssn.edu.in"):
+        request.session.pop("post_auth_redirect", None)
+        return RedirectResponse(
+            url=f"{FRONTEND_DEFAULT_ORIGIN}/login?error=ssn_email_required",
+            status_code=302,
+        )
+
     name = user_info.get('name')
     picture = user_info.get('picture')
     google_token = token.get('access_token')
