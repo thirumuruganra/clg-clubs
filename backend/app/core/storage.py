@@ -1,5 +1,5 @@
 import os
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 import requests
 
@@ -41,6 +41,7 @@ def upload_storage_object(
     content_type: str,
     *,
     cache_control_seconds: int = 31536000,
+    upsert: bool = False,
 ) -> str:
     supabase_url, service_key, bucket = _get_storage_config()
     normalized_path = object_path.lstrip("/")
@@ -51,12 +52,12 @@ def upload_storage_object(
         "Authorization": f"Bearer {service_key}",
         "apikey": service_key,
         "Content-Type": content_type,
-        "x-upsert": "false",
+        "x-upsert": "true" if upsert else "false",
     }
 
     response = requests.post(
         endpoint,
-        params={"cacheControl": str(cache_control_seconds), "upsert": "false"},
+        params={"cacheControl": str(cache_control_seconds), "upsert": "true" if upsert else "false"},
         headers=headers,
         data=payload,
         timeout=25,
@@ -69,6 +70,26 @@ def upload_storage_object(
         )
 
     return build_public_storage_url(normalized_path)
+
+
+def extract_storage_object_path_from_public_url(public_url: str) -> str | None:
+    raw_url = (public_url or "").strip()
+    if not raw_url:
+        return None
+
+    try:
+        supabase_url, _, bucket = _get_storage_config()
+    except RuntimeError:
+        return None
+
+    normalized_url = raw_url.split("?", 1)[0]
+    prefix = f"{supabase_url}/storage/v1/object/public/{bucket}/"
+    if not normalized_url.startswith(prefix):
+        return None
+
+    encoded_path = normalized_url[len(prefix):]
+    decoded_path = unquote(encoded_path).lstrip("/")
+    return decoded_path or None
 
 
 def delete_storage_object(object_path: str) -> bool:

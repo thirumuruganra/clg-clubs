@@ -5,7 +5,6 @@ import json
 import re
 import os
 import uuid
-import logging
 from urllib.parse import urlencode, urlparse
 from app.database import get_db
 from app.models.event import Event
@@ -24,7 +23,6 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 
 def _require_frontend_checkin_base_url() -> str:
@@ -536,11 +534,11 @@ def delete_event(event_id: int, db: Session = Depends(get_db), current_user: Use
     if not club or club.admin_id != current_user.id:
         raise HTTPException(status_code=403, detail="You can only delete events for your own club")
 
-    if event.poster_storage_path:
+    if event.poster_storage_path or event.image_url:
         try:
             clear_event_poster(event)
         except RuntimeError as exc:
-            logger.warning("Poster cleanup failed during event delete (event_id=%s): %s", event.id, exc)
+            raise HTTPException(status_code=502, detail=f"Failed to delete event poster from storage: {exc}") from exc
 
     # Delete associated RSVPs first
     db.query(RSVP).filter(RSVP.event_id == event_id).delete()

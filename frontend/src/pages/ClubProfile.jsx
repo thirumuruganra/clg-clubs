@@ -4,6 +4,8 @@ import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
 
 const API = '';
+const CLUB_LOGO_MAX_SIZE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const ClubProfile = () => {
   const { user, loading, logout } = useAuth();
@@ -20,6 +22,62 @@ const ClubProfile = () => {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
+
+  useEffect(() => {
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+    };
+  }, [logoPreview]);
+
+  const uploadClubLogo = async (clubId, selectedFile) => {
+    const data = new FormData();
+    data.append('file', selectedFile, selectedFile.name || 'club-logo');
+
+    const res = await fetch(`${API}/api/clubs/${clubId}/logo`, {
+      method: 'POST',
+      body: data,
+    });
+
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      throw new Error(payload.detail || 'Logo upload failed.');
+    }
+
+    return res.json();
+  };
+
+  const onSelectLogoFile = (event) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      setLogoFile(null);
+      setLogoPreview((previous) => {
+        if (previous) URL.revokeObjectURL(previous);
+        return '';
+      });
+      return;
+    }
+
+    if (!ALLOWED_LOGO_TYPES.includes(selectedFile.type)) {
+      setFormError('Logo must be JPEG, PNG, or WebP.');
+      event.target.value = '';
+      return;
+    }
+
+    if (selectedFile.size > CLUB_LOGO_MAX_SIZE_BYTES) {
+      setFormError('Logo must be 2 MB or smaller.');
+      event.target.value = '';
+      return;
+    }
+
+    setFormError('');
+    setLogoFile(selectedFile);
+    setLogoPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return URL.createObjectURL(selectedFile);
+    });
+  };
 
   const fetchClub = useCallback(async () => {
     if (!user?.id) return;
@@ -104,7 +162,15 @@ const ClubProfile = () => {
         return;
       }
 
-      const updatedClub = await res.json();
+      let updatedClub = await res.json();
+
+      if (logoFile) {
+        const uploadPayload = await uploadClubLogo(updatedClub.id, logoFile);
+        if (uploadPayload?.club) {
+          updatedClub = uploadPayload.club;
+        }
+      }
+
       setClub(updatedClub);
       setFormData((previous) => ({
         ...previous,
@@ -113,6 +179,11 @@ const ClubProfile = () => {
         category: updatedClub.category || previous.category,
         logo_url: updatedClub.logo_url || '',
       }));
+      setLogoFile(null);
+      setLogoPreview((previous) => {
+        if (previous) URL.revokeObjectURL(previous);
+        return '';
+      });
       setSuccessMessage('Club profile updated successfully.');
     } catch (error) {
       console.error(error);
@@ -122,7 +193,7 @@ const ClubProfile = () => {
     }
   };
 
-  const resolvedPreviewImage = formData.logo_url.trim() || user?.picture || '';
+  const resolvedPreviewImage = logoPreview || formData.logo_url.trim() || user?.picture || '';
 
   if (loading || loadingClub) {
     return (
@@ -180,13 +251,33 @@ const ClubProfile = () => {
               <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-3">
                 If no custom image is set, your Google profile picture will be used automatically.
               </p>
-              <input
-                type="url"
-                value={formData.logo_url}
-                onChange={(event) => setFormData((previous) => ({ ...previous, logo_url: event.target.value }))}
-                placeholder="Paste club image URL..."
-                className="w-full px-4 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]"
-              />
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="touch-target inline-flex items-center gap-2 rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium cursor-pointer hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
+                  <span className="material-symbols-outlined text-[18px]">upload</span>
+                  Select File
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={onSelectLogoFile}
+                    className="hidden"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLogoFile(null);
+                    setLogoPreview((previous) => {
+                      if (previous) URL.revokeObjectURL(previous);
+                      return '';
+                    });
+                    setFormData((previous) => ({ ...previous, logo_url: '' }));
+                  }}
+                  className="touch-target rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+                >
+                  Use Google Picture
+                </button>
+                <span className="text-xs text-[#637588] dark:text-[#92adc9] truncate max-w-64">{logoFile ? logoFile.name : 'No new file selected'}</span>
+              </div>
             </div>
           </div>
 

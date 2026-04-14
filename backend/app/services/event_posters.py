@@ -1,12 +1,15 @@
 import os
 import re
-import uuid
 from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.storage import delete_storage_object, upload_storage_object
+from app.core.storage import (
+    delete_storage_object,
+    extract_storage_object_path_from_public_url,
+    upload_storage_object,
+)
 from app.models.event import Event
 
 
@@ -36,13 +39,10 @@ def _slugify_segment(raw_value: Optional[str], fallback: str) -> str:
     return normalized[:80]
 
 
-def _build_object_path(event: Event, extension: str) -> str:
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    suffix = uuid.uuid4().hex[:10]
+def _build_object_path(event: Event) -> str:
     club_name = event.club.name if getattr(event, "club", None) else None
     club_folder = _slugify_segment(club_name, f"club-{event.club_id}")
-    event_folder = _slugify_segment(event.title, f"event-{event.id}")
-    return f"clubs/{club_folder}/{event_folder}/poster-{timestamp}-{suffix}.{extension}"
+    return f"clubs/{club_folder}/event-{event.id}/poster"
 
 
 def replace_event_poster(event: Event, file_bytes: bytes, content_type: str) -> dict[str, str]:
@@ -57,16 +57,17 @@ def replace_event_poster(event: Event, file_bytes: bytes, content_type: str) -> 
     if file_size > MAX_POSTER_BYTES:
         raise ValueError(f"Poster file must be {MAX_POSTER_BYTES // (1024 * 1024)} MB or smaller")
 
-    extension = ALLOWED_POSTER_MIME_TYPES[normalized_type]
-    new_object_path = _build_object_path(event, extension)
+    previous_object_path = (event.poster_storage_path or "").strip()
+    new_object_path = previous_object_path or _build_object_path(event)
     new_public_url = upload_storage_object(
         new_object_path,
         file_bytes,
         normalized_type,
         cache_control_seconds=31536000,
+        upsert=True,
     )
 
-    old_object_path = event.poster_storage_path
+    old_object_path = previous_object_path
     if old_object_path and old_object_path != new_object_path:
         try:
             delete_storage_object(old_object_path)
@@ -89,6 +90,9 @@ def replace_event_poster(event: Event, file_bytes: bytes, content_type: str) -> 
 
 def clear_event_poster(event: Event) -> bool:
     object_path = (event.poster_storage_path or "").strip()
+    if not object_path:
+        object_path = extract_storage_object_path_from_public_url(event.image_url or "") or ""
+
     if object_path:
         delete_storage_object(object_path)
 
