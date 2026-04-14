@@ -69,3 +69,47 @@ def get_user_following(user_id: int, db: Session = Depends(get_db)):
                 "follower_count": follower_count,
             })
     return result
+
+
+@router.get("/clubs/{club_id}/followers")
+def get_club_followers(
+    club_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get all followers for a club. Only the owning CLUB_ADMIN can access this."""
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+
+    if current_user.role != "CLUB_ADMIN" or club.admin_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only view followers for your own club")
+
+    follows = db.query(Follow).filter(Follow.club_id == club_id).all()
+
+    followers = []
+    for follow in follows:
+        student = db.query(User).filter(User.id == follow.user_id).first()
+        if not student:
+            continue
+
+        followers.append(
+            {
+                "id": student.id,
+                "name": student.name,
+                "email": student.email,
+                "picture": student.picture,
+                "department": student.department,
+                "degree": student.degree,
+                "batch": student.batch,
+                "register_number": student.register_number,
+            }
+        )
+
+    followers.sort(key=lambda follower: (follower.get("name") or "").lower())
+
+    return {
+        "club_id": club_id,
+        "follower_count": len(followers),
+        "followers": followers,
+    }

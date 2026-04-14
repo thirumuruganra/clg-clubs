@@ -276,6 +276,9 @@ const ClubDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [club, setClub] = useState(null);
   const [events, setEvents] = useState([]);
+  const [followers, setFollowers] = useState([]);
+  const [followersLoading, setFollowersLoading] = useState(false);
+  const [followersError, setFollowersError] = useState('');
   const [loadingData, setLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -403,11 +406,35 @@ const ClubDashboard = () => {
         }
         
         setClub(myClub);
-        const eventsRes = await fetch(`${API}/api/clubs/${myClub.id}/events`);
-        if (eventsRes.ok) setEvents(await eventsRes.json());
+        setFollowersLoading(true);
+        setFollowersError('');
+
+        const [eventsRes, followersRes] = await Promise.all([
+          fetch(`${API}/api/clubs/${myClub.id}/events`),
+          fetch(`${API}/api/follow/clubs/${myClub.id}/followers`),
+        ]);
+
+        if (eventsRes.ok) {
+          setEvents(await eventsRes.json());
+        } else {
+          setEvents([]);
+        }
+
+        if (followersRes.ok) {
+          const followersPayload = await followersRes.json();
+          setFollowers(Array.isArray(followersPayload.followers) ? followersPayload.followers : []);
+        } else {
+          setFollowers([]);
+          setFollowersError('Could not load followers right now.');
+        }
+
+        setFollowersLoading(false);
       }
     } catch (err) { console.error(err); }
-    finally { setLoadingData(false); }
+    finally {
+      setFollowersLoading(false);
+      setLoadingData(false);
+    }
   }, [navigate, user]);
 
   useEffect(() => {
@@ -981,6 +1008,7 @@ const ClubDashboard = () => {
 
   const sideNavItems = [
     { label: 'Dashboard', icon: 'dashboard', tab: 'dashboard' },
+    { label: 'Followers', icon: 'groups', tab: 'followers' },
     { label: 'Event Management', icon: 'event', tab: 'events' },
   ];
 
@@ -1077,7 +1105,7 @@ const ClubDashboard = () => {
             <button aria-label="Open sidebar" className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
-            {activeTab !== 'events' && (
+            {activeTab === 'dashboard' && (
               <label className="flex items-stretch rounded-xl h-10 bg-[#f0f2f4] dark:bg-[#233648] md:min-w-75 w-full max-w-md">
                 <div className="flex items-center justify-center pl-4"><span className="material-symbols-outlined text-[20px] text-[#637588]">search</span></div>
                 <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-transparent border-none text-sm px-3 focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1 w-full" placeholder="Search events..." />
@@ -1122,6 +1150,65 @@ const ClubDashboard = () => {
                 setCreateModalOpen(true); 
               }} 
             />
+          </div>
+        ) : activeTab === 'followers' ? (
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold">Followers</h1>
+                <p className="text-[#637588] dark:text-[#92adc9] mt-1">Students who follow your club.</p>
+              </div>
+              <div className="rounded-xl border border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#1a2632] px-4 py-3">
+                <p className="text-xs uppercase tracking-wide text-[#637588] dark:text-[#92adc9]">Total Followers</p>
+                <p className="text-2xl font-bold mt-1">{followers.length}</p>
+              </div>
+            </div>
+
+            {followersError && (
+              <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{followersError}</p>
+            )}
+
+            <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] overflow-hidden table-scroll">
+              {followersLoading ? (
+                <div className="px-4 py-10 text-sm text-[#637588] dark:text-[#92adc9]">Loading followers...</div>
+              ) : followers.length === 0 ? (
+                <div className="px-4 py-10 text-sm text-[#637588] dark:text-[#92adc9]">No followers yet. Share your events and club page to grow your audience.</div>
+              ) : (
+                <table className="w-full min-w-180">
+                  <thead>
+                    <tr className="border-b border-[#e5e7eb] dark:border-[#233648]">
+                      {['Student', 'Email', 'Department', 'Year', 'Register No'].map((header) => (
+                        <th key={header} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9]">{header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {followers.map((follower) => {
+                      const followerInitial = (follower.name || follower.email || '?').charAt(0).toUpperCase();
+
+                      return (
+                        <tr key={follower.id} className="border-b border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f9fafb] dark:hover:bg-[#233648]/50 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              {follower.picture ? (
+                                <img src={follower.picture} alt={follower.name || 'Follower'} className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{followerInitial}</div>
+                              )}
+                              <span className="text-sm font-semibold">{follower.name || 'Unnamed student'}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-[#637588] dark:text-[#92adc9]">{follower.email || '-'}</td>
+                          <td className="px-4 py-3 text-sm">{follower.department || '-'}</td>
+                          <td className="px-4 py-3 text-sm">{calculateYear(follower.batch)}</td>
+                          <td className="px-4 py-3 text-sm">{follower.register_number || '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         ) : (
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
