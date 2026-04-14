@@ -103,12 +103,6 @@ const LandingPage = () => {
                       <img alt="Google G Logo" className="w-6 h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDACkJQDAMqEGYjm0sUAsqKoZ_WzLqom8nDv6Hfc7audxHKfEwl2P48zGR00_7lUGSAyaP1OaeXtu5WfCTMhtt6-fUtZgWs0F_IDgXefze74L-Td8Q1L_cxt_WdzUjHS5a3V75iqB0RFNdk2LQK-6av30F5Ni4Tvj1ryqWxAX9xQlRpDakFCEoaGZUydHJZ3FIbDdYAuV2XK9qLL_prHpdUOU8jXYKKP5IiRNMq9CJDWqu1pNpf5iUA9hXWdz242i6UvcsjqQvwocc"/>
                       <span className="truncate">Sign in with Google</span>
                     </button>
-                    <a
-                      href="mailto:wavc.contact@gmail.com"
-                      className="flex w-full sm:w-auto items-center justify-center gap-3 overflow-hidden rounded-xl h-13 sm:h-14 px-6 sm:px-8 bg-white/10 backdrop-blur-md border border-white/30 text-white text-base font-bold leading-normal hover:bg-white/20 transition-colors shadow-lg transform hover:scale-105 duration-200"
-                    >
-                      wavc.contact@gmail.com
-                    </a>
                   </div>
                 </div>
               </div>
@@ -136,7 +130,12 @@ const LandingPage = () => {
             <a className="flex items-center justify-center w-12 h-12 text-slate-400 dark:text-[#92adc9] hover:text-primary dark:hover:text-white transition-colors bg-slate-200 dark:bg-slate-800 rounded-full" href="#">
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>public</span>
             </a>
-            <a className="flex items-center justify-center w-12 h-12 text-slate-400 dark:text-[#92adc9] hover:text-primary dark:hover:text-white transition-colors bg-slate-200 dark:bg-slate-800 rounded-full" href="#">
+            <a
+              className="flex items-center justify-center w-12 h-12 text-slate-400 dark:text-[#92adc9] hover:text-primary dark:hover:text-white transition-colors bg-slate-200 dark:bg-slate-800 rounded-full"
+              href="mailto:wavc.contact@gmail.com"
+              aria-label="Email wavc.contact@gmail.com"
+              title="wavc.contact@gmail.com"
+            >
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>mail</span>
             </a>
           </div>
