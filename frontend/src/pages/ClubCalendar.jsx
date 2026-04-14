@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth-context';
+import { warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
 
 const API = '';
 
@@ -28,7 +29,11 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
   const fetchAllEvents = async () => {
     try {
       const res = await fetch(`${API}/api/events/all`);
-      if (res.ok) setAllEvents(await res.json());
+      if (res.ok) {
+        const eventRows = await res.json();
+        warmPosterCacheForEvents(eventRows);
+        setAllEvents(eventRows);
+      }
     } catch (err) { console.error(err); }
     finally { setLoadingEvents(false); }
   };
@@ -41,6 +46,7 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
       const res = await fetch(`${API}/api/events/${eventId}?user_id=${user.id}`);
       if (res.ok) {
         const eventDetail = await res.json();
+        warmPosterImageCache(eventDetail?.image_url);
         setSelectedEvent({ ...eventDetail, __isOwnClub: isOwnClub });
       }
     } catch (err) {
@@ -92,7 +98,7 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
           </button>
         </div>
       </div>
-      
+
       {loadingEvents ? (
         <div className="flex-1 flex items-center justify-center">
           <span className="material-symbols-outlined animate-spin text-primary text-[40px]">progress_activity</span>
@@ -169,10 +175,10 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col md:flex-row h-full">
-              <div
-                className="w-full md:w-2/5 min-h-44 sm:min-h-52 md:min-h-87.5 bg-cover bg-center bg-gray-700 relative"
-                style={selectedEvent.image_url ? { backgroundImage: `url("${selectedEvent.image_url}")` } : {}}
-              >
+              <div className="w-full md:w-2/5 min-h-44 sm:min-h-52 md:min-h-87.5 bg-[#0f1720] relative overflow-hidden">
+                {selectedEvent.image_url ? (
+                  <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-cover" />
+                ) : null}
                 <div className="absolute top-3 left-3">
                   <span className="bg-primary/90 text-white text-xs font-medium px-2 py-1 rounded-md">{selectedEvent.club_name || 'Club Event'}</span>
                 </div>

@@ -4,8 +4,6 @@ import wavcIcon from '../assets/WAVC-edit.png'; // Assuming this exists from Lan
 
 const Login = () => {
     const location = useLocation();
-    // In a real app, use environment variables
-    const BACKEND_URL = "http://localhost:8000";
 
     const authErrorCode = new URLSearchParams(location.search).get('error');
     const authErrorMessage = authErrorCode === 'ssn_email_required'
@@ -13,7 +11,7 @@ const Login = () => {
         : '';
 
     const handleLogin = () => {
-        window.location.href = `${BACKEND_URL}/api/auth/login`;
+        window.location.href = '/api/auth/login';
     };
 
     return (

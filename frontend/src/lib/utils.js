@@ -24,3 +24,19 @@ export function getClubInitial(club) {
   const name = typeof club?.name === 'string' ? club.name.trim() : '';
   return name ? name.charAt(0).toUpperCase() : 'C';
 }
+
+const warmedPosterUrls = new Set();
+
+export function warmPosterImageCache(rawUrl) {
+  const posterUrl = typeof rawUrl === 'string' ? rawUrl.trim() : '';
+  if (!posterUrl || warmedPosterUrls.has(posterUrl)) return;
+
+  const image = new Image();
+  image.decoding = 'async';
+  image.src = posterUrl;
+  warmedPosterUrls.add(posterUrl);
+}
+
+export function warmPosterCacheForEvents(events = []) {
+  events.forEach((event) => warmPosterImageCache(event?.image_url));
+}

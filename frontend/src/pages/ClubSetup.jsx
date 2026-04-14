@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
 
 const API = '';
+const CLUB_LOGO_MAX_SIZE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const ClubSetup = () => {
   const { user, loading, logout } = useAuth();
@@ -13,10 +15,63 @@ const ClubSetup = () => {
     name: '',
     instagram_handle: '',
     category: 'TECH',
-    logo_url: '',
   });
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+    };
+  }, [logoPreview]);
+
+  const uploadClubLogo = async (clubId, selectedFile) => {
+    const data = new FormData();
+    data.append('file', selectedFile, selectedFile.name || 'club-logo');
+
+    const res = await fetch(`${API}/api/clubs/${clubId}/logo`, {
+      method: 'POST',
+      body: data,
+    });
+
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      throw new Error(payload.detail || 'Logo upload failed.');
+    }
+  };
+
+  const onSelectLogoFile = (event) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      setLogoFile(null);
+      setLogoPreview((previous) => {
+        if (previous) URL.revokeObjectURL(previous);
+        return '';
+      });
+      return;
+    }
+
+    if (!ALLOWED_LOGO_TYPES.includes(selectedFile.type)) {
+      setFormError('Logo must be JPEG, PNG, or WebP.');
+      event.target.value = '';
+      return;
+    }
+
+    if (selectedFile.size > CLUB_LOGO_MAX_SIZE_BYTES) {
+      setFormError('Logo must be 2 MB or smaller.');
+      event.target.value = '';
+      return;
+    }
+
+    setFormError('');
+    setLogoFile(selectedFile);
+    setLogoPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return URL.createObjectURL(selectedFile);
+    });
+  };
 
   if (loading) return (
     <div className="min-h-dvh flex items-center justify-center bg-background-dark text-white">
@@ -38,12 +93,30 @@ const ClubSetup = () => {
     }
     setSaving(true);
     try {
+      const payload = {
+        name: formData.name.trim(),
+        instagram_handle: formData.instagram_handle.trim(),
+        category: formData.category,
+      };
+
       const res = await fetch(`${API}/api/clubs/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
+        const createdClub = await res.json();
+
+        if (logoFile) {
+          try {
+            await uploadClubLogo(createdClub.id, logoFile);
+          } catch (error) {
+            console.error(error);
+            navigate('/club/profile');
+            return;
+          }
+        }
+
         navigate('/club/dashboard');
       } else {
         const data = await res.json();
@@ -83,27 +156,27 @@ const ClubSetup = () => {
           {/* Logo Upload Area */}
           <div className="border border-dashed border-[#e5e7eb] dark:border-[#233648] rounded-xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
             <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#637588]/30 flex items-center justify-center shrink-0 bg-[#f0f2f4] dark:bg-[#233648]">
-              {formData.logo_url ? (
-                <img src={formData.logo_url} alt="Logo" className="w-full h-full rounded-full object-cover" />
+              {logoPreview || user?.picture ? (
+                <img src={logoPreview || user?.picture} alt="Logo" className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
               ) : (
                 <span className="material-symbols-outlined text-[40px] text-[#637588]/50">photo_camera</span>
               )}
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold mb-1">Upload Club Logo</h3>
-              <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-3">Recommended size: 400×400px. JPG, PNG supported.</p>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <input
-                  type="url"
-                  value={formData.logo_url}
-                  onChange={e => setFormData(p => ({ ...p, logo_url: e.target.value }))}
-                  placeholder="Paste logo URL..."
-                  className="flex-1 px-4 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]"
-                />
-                <span className="text-primary text-sm font-medium flex items-center gap-1 cursor-pointer hover:underline">
+              <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-3">If you skip upload, your Google profile picture will be used. JPG, PNG, WebP up to 2 MB.</p>
+              <div className="flex items-center gap-3">
+                <label className="touch-target inline-flex items-center gap-2 rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium cursor-pointer hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
                   <span className="material-symbols-outlined text-[18px]">upload</span>
                   Select File
-                </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={onSelectLogoFile}
+                    className="hidden"
+                  />
+                </label>
+                <span className="text-xs text-[#637588] dark:text-[#92adc9] truncate max-w-64">{logoFile ? logoFile.name : 'No file selected'}</span>
               </div>
             </div>
           </div>

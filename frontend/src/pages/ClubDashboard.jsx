@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import DatePicker from 'react-datepicker';
+import imageCompression from 'browser-image-compression';
 import 'react-datepicker/dist/react-datepicker.css';
 import { QRCodeSVG } from 'qrcode.react';
 import wavcIcon from '../assets/WAVC-edit.png';
 import ClubCalendar from './ClubCalendar';
-import { cn, getClubIconUrl } from '../lib/utils';
+import { cn, getClubIconUrl, getClubInitial } from '../lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +21,22 @@ import {
 
 const API = '';
 const DESCRIPTION_WORD_LIMIT = 100;
+const POSTER_MAX_SIZE_MB = 2;
+const POSTER_MAX_SIZE_BYTES = POSTER_MAX_SIZE_MB * 1024 * 1024;
+const ALLOWED_POSTER_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const EMPTY_EVENT_FORM = {
+  title: '',
+  description: '',
+  keywords: '',
+  location: '',
+  start_time: null,
+  end_time: null,
+  tag: 'TECH',
+  image_url: '',
+  payment_link: '',
+  is_paid: false,
+  registration_fees: '',
+};
 
 const countWords = (value = '') => {
   const trimmed = value.trim();
@@ -60,6 +77,19 @@ const parseApiDateTime = (rawValue) => {
 
   const fallback = new Date(rawValue);
   return Number.isNaN(fallback.getTime()) ? null : fallback;
+};
+
+const formatAttendanceMarkedAt = (rawValue) => {
+  const parsed = parseApiDateTime(rawValue);
+  if (!parsed) return '-';
+
+  return parsed.toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 };
 
 const eventMatchesSearch = (event, rawQuery) => {
@@ -246,6 +276,9 @@ const ClubDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [club, setClub] = useState(null);
   const [events, setEvents] = useState([]);
+  const [followers, setFollowers] = useState([]);
+  const [followersLoading, setFollowersLoading] = useState(false);
+  const [followersError, setFollowersError] = useState('');
   const [loadingData, setLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -259,12 +292,96 @@ const ClubDashboard = () => {
   const calendarConsentUrl = '/api/auth/login/calendar?next=/club/dashboard';
 
   // Quick Create form
-  const [newEvent, setNewEvent] = useState({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '', is_paid: false, registration_fees: '' });
+  const [newEvent, setNewEvent] = useState(EMPTY_EVENT_FORM);
+  const [newPosterFile, setNewPosterFile] = useState(null);
+  const [newPosterPreview, setNewPosterPreview] = useState('');
   const [creating, setCreating] = useState(false);
+  const [creatingPoster, setCreatingPoster] = useState(false);
 
   // Edit Modal
   const [editEvent, setEditEvent] = useState(null);
+  const [editPosterFile, setEditPosterFile] = useState(null);
+  const [editPosterPreview, setEditPosterPreview] = useState('');
   const [editing, setEditing] = useState(false);
+  const [editingPoster, setEditingPoster] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (newPosterPreview) URL.revokeObjectURL(newPosterPreview);
+    };
+  }, [newPosterPreview]);
+
+  useEffect(() => {
+    return () => {
+      if (editPosterPreview) URL.revokeObjectURL(editPosterPreview);
+    };
+  }, [editPosterPreview]);
+
+  const setPosterSelection = (file, setFile, setPreview, setError) => {
+    setError('');
+
+    if (!file) {
+      setFile(null);
+      setPreview('');
+      return;
+    }
+
+    if (!ALLOWED_POSTER_TYPES.includes(file.type)) {
+      setError('Poster must be JPEG, PNG, or WebP.');
+      setFile(null);
+      setPreview('');
+      return;
+    }
+
+    setFile(file);
+    setPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const compressPosterFile = async (posterFile) => {
+    const compressed = await imageCompression(posterFile, {
+      maxSizeMB: POSTER_MAX_SIZE_MB,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+      initialQuality: 0.8,
+      fileType: posterFile.type,
+    });
+
+    if (compressed.size > POSTER_MAX_SIZE_BYTES) {
+      throw new Error(`Compressed poster must be ${POSTER_MAX_SIZE_MB} MB or smaller.`);
+    }
+
+    return compressed;
+  };
+
+  const uploadPosterForEvent = async (eventId, posterFile) => {
+    const compressedPoster = await compressPosterFile(posterFile);
+    const formData = new FormData();
+    formData.append('file', compressedPoster, compressedPoster.name || posterFile.name || 'event-poster');
+
+    const response = await fetch(`${API}/api/events/${eventId}/poster`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.detail || 'Poster upload failed.');
+    }
+
+    return response.json();
+  };
+
+  const resetCreateEventForm = () => {
+    setNewEvent(EMPTY_EVENT_FORM);
+    setNewPosterFile(null);
+    setNewPosterPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return '';
+    });
+  };
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -289,11 +406,35 @@ const ClubDashboard = () => {
         }
         
         setClub(myClub);
-        const eventsRes = await fetch(`${API}/api/clubs/${myClub.id}/events`);
-        if (eventsRes.ok) setEvents(await eventsRes.json());
+        setFollowersLoading(true);
+        setFollowersError('');
+
+        const [eventsRes, followersRes] = await Promise.all([
+          fetch(`${API}/api/clubs/${myClub.id}/events`),
+          fetch(`${API}/api/follow/clubs/${myClub.id}/followers`),
+        ]);
+
+        if (eventsRes.ok) {
+          setEvents(await eventsRes.json());
+        } else {
+          setEvents([]);
+        }
+
+        if (followersRes.ok) {
+          const followersPayload = await followersRes.json();
+          setFollowers(Array.isArray(followersPayload.followers) ? followersPayload.followers : []);
+        } else {
+          setFollowers([]);
+          setFollowersError('Could not load followers right now.');
+        }
+
+        setFollowersLoading(false);
       }
     } catch (err) { console.error(err); }
-    finally { setLoadingData(false); }
+    finally {
+      setFollowersLoading(false);
+      setLoadingData(false);
+    }
   }, [navigate, user]);
 
   useEffect(() => {
@@ -324,6 +465,7 @@ const ClubDashboard = () => {
       const body = {
         ...newEvent,
         club_id: club.id,
+        image_url: null,
         start_time: formatLocalDateTimeForApi(newEvent.start_time),
         end_time: formatLocalDateTimeForApi(newEvent.end_time),
       };
@@ -334,9 +476,26 @@ const ClubDashboard = () => {
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        setNewEvent({ title: '', description: '', keywords: '', location: '', start_time: null, end_time: null, tag: 'TECH', image_url: '', payment_link: '', is_paid: false, registration_fees: '' });
+        const createdEvent = await res.json();
+        let posterUploadError = '';
+
+        if (newPosterFile) {
+          setCreatingPoster(true);
+          try {
+            await uploadPosterForEvent(createdEvent.id, newPosterFile);
+          } catch (err) {
+            posterUploadError = err?.message || 'Poster upload failed.';
+          } finally {
+            setCreatingPoster(false);
+          }
+        }
+
+        resetCreateEventForm();
         setCreateError('');
-        fetchData();
+        if (posterUploadError) {
+          setTableError(`Event created, but poster upload failed: ${posterUploadError}`);
+        }
+        void fetchData();
         setCreateModalOpen(false);
       } else {
         const data = await res.json();
@@ -367,6 +526,11 @@ const ClubDashboard = () => {
   };
 
   const openEditModal = (event) => {
+    setEditPosterFile(null);
+    setEditPosterPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return '';
+    });
     setEditEvent({
       id: event.id,
       title: event.title || '',
@@ -415,9 +579,30 @@ const ClubDashboard = () => {
         body: JSON.stringify(body),
       });
       if (res.ok) {
+        let posterUploadError = '';
+
+        if (editPosterFile) {
+          setEditingPoster(true);
+          try {
+            await uploadPosterForEvent(editEvent.id, editPosterFile);
+          } catch (err) {
+            posterUploadError = err?.message || 'Poster upload failed.';
+          } finally {
+            setEditingPoster(false);
+          }
+        }
+
         setEditError('');
         setEditEvent(null);
-        fetchData();
+        setEditPosterFile(null);
+        setEditPosterPreview((previous) => {
+          if (previous) URL.revokeObjectURL(previous);
+          return '';
+        });
+        if (posterUploadError) {
+          setTableError(`Event updated, but poster upload failed: ${posterUploadError}`);
+        }
+        void fetchData();
       } else {
         const data = await res.json();
         setEditError(data.detail || 'Failed to update event.');
@@ -823,10 +1008,12 @@ const ClubDashboard = () => {
 
   const sideNavItems = [
     { label: 'Dashboard', icon: 'dashboard', tab: 'dashboard' },
+    { label: 'Followers', icon: 'groups', tab: 'followers' },
     { label: 'Event Management', icon: 'event', tab: 'events' },
   ];
 
   const clubIconUrl = getClubIconUrl(club);
+  const clubInitial = getClubInitial(club);
 
   return (
     <div className="flex h-dvh w-full bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-hidden relative">
@@ -887,17 +1074,17 @@ const ClubDashboard = () => {
             }}
             className="w-full text-left flex items-center gap-3 rounded-xl p-2 hover:bg-[#233648] transition-colors cursor-pointer"
           >
-            {user?.picture && user.picture.trim() !== '' ? (
+            {clubIconUrl ? (
               <img
-                src={user.picture}
-                alt={user?.name || 'Admin'}
+                src={clubIconUrl}
+                alt={club?.name || 'Club'}
                 className="size-10 rounded-full object-cover"
                 onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                 referrerPolicy="no-referrer"
               />
             ) : null}
-            <div className="size-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: 'linear-gradient(135deg, #137fec 0%, #0d5bab 100%)', display: user?.picture && user.picture.trim() !== '' ? 'none' : 'flex' }}>
-              {(user?.name || 'A')[0].toUpperCase()}
+            <div className="size-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: 'linear-gradient(135deg, #137fec 0%, #0d5bab 100%)', display: clubIconUrl ? 'none' : 'flex' }}>
+              {clubInitial}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user?.name}</p>
@@ -918,7 +1105,7 @@ const ClubDashboard = () => {
             <button aria-label="Open sidebar" className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
-            {activeTab !== 'events' && (
+            {activeTab === 'dashboard' && (
               <label className="flex items-stretch rounded-xl h-10 bg-[#f0f2f4] dark:bg-[#233648] md:min-w-75 w-full max-w-md">
                 <div className="flex items-center justify-center pl-4"><span className="material-symbols-outlined text-[20px] text-[#637588]">search</span></div>
                 <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-transparent border-none text-sm px-3 focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1 w-full" placeholder="Search events..." />
@@ -954,10 +1141,74 @@ const ClubDashboard = () => {
               searchQuery={searchQuery} 
               onOpenEditModal={openEditModal} 
               onOpenCreateModal={(date) => { 
-                setNewEvent({ title: '', description: '', keywords: '', location: '', start_time: date, end_time: new Date(date.getTime() + 60*60*1000), tag: 'TECH', image_url: '', payment_link: '', is_paid: false, registration_fees: '' }); 
+                setNewEvent({ ...EMPTY_EVENT_FORM, start_time: date, end_time: new Date(date.getTime() + 60*60*1000) }); 
+                setNewPosterFile(null);
+                setNewPosterPreview((previous) => {
+                  if (previous) URL.revokeObjectURL(previous);
+                  return '';
+                });
                 setCreateModalOpen(true); 
               }} 
             />
+          </div>
+        ) : activeTab === 'followers' ? (
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold">Followers</h1>
+                <p className="text-[#637588] dark:text-[#92adc9] mt-1">Students who follow your club.</p>
+              </div>
+              <div className="rounded-xl border border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#1a2632] px-4 py-3">
+                <p className="text-xs uppercase tracking-wide text-[#637588] dark:text-[#92adc9]">Total Followers</p>
+                <p className="text-2xl font-bold mt-1">{followers.length}</p>
+              </div>
+            </div>
+
+            {followersError && (
+              <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{followersError}</p>
+            )}
+
+            <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] overflow-hidden table-scroll">
+              {followersLoading ? (
+                <div className="px-4 py-10 text-sm text-[#637588] dark:text-[#92adc9]">Loading followers...</div>
+              ) : followers.length === 0 ? (
+                <div className="px-4 py-10 text-sm text-[#637588] dark:text-[#92adc9]">No followers yet. Share your events and club page to grow your audience.</div>
+              ) : (
+                <table className="w-full min-w-180">
+                  <thead>
+                    <tr className="border-b border-[#e5e7eb] dark:border-[#233648]">
+                      {['Student', 'Email', 'Department', 'Year', 'Register No'].map((header) => (
+                        <th key={header} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9]">{header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {followers.map((follower) => {
+                      const followerInitial = (follower.name || follower.email || '?').charAt(0).toUpperCase();
+
+                      return (
+                        <tr key={follower.id} className="border-b border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f9fafb] dark:hover:bg-[#233648]/50 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              {follower.picture ? (
+                                <img src={follower.picture} alt={follower.name || 'Follower'} className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{followerInitial}</div>
+                              )}
+                              <span className="text-sm font-semibold">{follower.name || 'Unnamed student'}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-[#637588] dark:text-[#92adc9]">{follower.email || '-'}</td>
+                          <td className="px-4 py-3 text-sm">{follower.department || '-'}</td>
+                          <td className="px-4 py-3 text-sm">{calculateYear(follower.batch)}</td>
+                          <td className="px-4 py-3 text-sm">{follower.register_number || '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         ) : (
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
@@ -1018,7 +1269,9 @@ const ClubDashboard = () => {
                       <tr key={event.id} className="border-b border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f9fafb] dark:hover:bg-[#233648]/50 transition-colors">
                         <td className="px-4 py-3 cursor-pointer group" onClick={() => openRsvpModal(event)}>
                           <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-lg bg-gray-700 bg-cover bg-center shrink-0" style={event.image_url ? { backgroundImage: `url("${event.image_url}")` } : {}}></div>
+                            <div className="w-10 h-12.5 rounded-lg bg-[#0f1720] shrink-0 overflow-hidden">
+                              {event.image_url ? <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" /> : null}
+                            </div>
                             <div>
                               <p className="text-sm font-bold group-hover:text-primary transition-colors">{event.title}</p>
                               <p className="text-xs text-[#637588] dark:text-[#92adc9]">{event.location || 'No location'}</p>
@@ -1145,13 +1398,18 @@ const ClubDashboard = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Image URL (Optional)</label>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
-                    <span className="material-symbols-outlined text-[18px] text-[#637588]">image</span>
-                    <input type="url" value={newEvent.image_url || ""} onChange={e => setNewEvent(p => ({ ...p, image_url: e.target.value }))}
-                      placeholder="e.g. https://example.com/poster.jpg"
-                      className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
-                  </div>
+                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Poster (JPEG/PNG/WebP, up to 2 MB after compression)</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(event) => setPosterSelection(event.target.files?.[0] || null, setNewPosterFile, setNewPosterPreview, setCreateError)}
+                    className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-primary file:font-semibold hover:file:bg-primary/20"
+                  />
+                  {newPosterPreview && (
+                    <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
+                      <img src={newPosterPreview} alt="Poster preview" className="h-full w-full object-cover" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 mb-2">
                   <input type="checkbox" id="is_paid" checked={newEvent.is_paid || false} onChange={e => setNewEvent(p => ({ ...p, is_paid: e.target.checked }))} className="w-4 h-4 text-blue-500 bg-gray-100 dark:bg-[#1a2632] border-gray-300 dark:border-[#34485c] rounded-full focus:ring-blue-500 focus:ring-2 cursor-pointer" />
@@ -1180,10 +1438,10 @@ const ClubDashboard = () => {
                     </div>
                   </div>
                 )}
-                <button type="submit" disabled={creating}
+                <button type="submit" disabled={creating || creatingPoster}
                   className="w-full py-3 rounded-xl bg-white dark:bg-[#233648] text-[#111418] dark:text-white font-bold text-sm border border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f0f2f4] dark:hover:bg-[#34485c] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-                  {creating ? 'Publishing...' : 'Publish Event'}
-                  {!creating && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
+                  {creating ? 'Publishing...' : creatingPoster ? 'Uploading poster...' : 'Publish Event'}
+                  {!(creating || creatingPoster) && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
                 </button>
               </form>
             </div>
@@ -1193,11 +1451,11 @@ const ClubDashboard = () => {
       </main>
       {/* Create Event Modal */}
       {createModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setCreateModalOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => { setCreateModalOpen(false); resetCreateEventForm(); }}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] overflow-y-auto modal-panel" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
               <h2 className="text-xl font-bold">Create Event</h2>
-              <button aria-label="Close create event dialog" onClick={() => setCreateModalOpen(false)} className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+              <button aria-label="Close create event dialog" onClick={() => { setCreateModalOpen(false); resetCreateEventForm(); }} className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
             </div>
             <form onSubmit={handleCreateEvent} className="p-6 space-y-4">
               {createError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{createError}</p>}
@@ -1285,6 +1543,20 @@ const ClubDashboard = () => {
                   </div>
                 </div>
               </div>
+              <div>
+                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Poster (JPEG/PNG/WebP, up to 2 MB after compression)</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => setPosterSelection(event.target.files?.[0] || null, setNewPosterFile, setNewPosterPreview, setCreateError)}
+                  className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-primary file:font-semibold hover:file:bg-primary/20"
+                />
+                {newPosterPreview && (
+                  <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
+                    <img src={newPosterPreview} alt="Poster preview" className="h-full w-full object-cover" />
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-2 mb-2">
                 <input type="checkbox" id="modal_is_paid" checked={newEvent.is_paid || false} onChange={e => setNewEvent(p => ({ ...p, is_paid: e.target.checked }))} className="w-4 h-4 text-blue-500 bg-gray-100 dark:bg-[#1a2632] border-gray-300 dark:border-[#34485c] rounded-full focus:ring-blue-500 focus:ring-2 cursor-pointer" />
                 <label htmlFor="modal_is_paid" className="text-sm font-medium text-[#111418] dark:text-white">Is this a paid event?</label>
@@ -1314,9 +1586,9 @@ const ClubDashboard = () => {
               )}
 
               <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setCreateModalOpen(false)} className="px-4 py-2 rounded-xl text-sm font-bold text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">Cancel</button>
-                <button type="submit" disabled={creating} className="px-6 py-2 rounded-xl bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors disabled:opacity-50">
-                  {creating ? 'Saving...' : 'Create Event'}
+                <button type="button" onClick={() => { setCreateModalOpen(false); resetCreateEventForm(); }} className="px-4 py-2 rounded-xl text-sm font-bold text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">Cancel</button>
+                <button type="submit" disabled={creating || creatingPoster} className="px-6 py-2 rounded-xl bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors disabled:opacity-50">
+                  {creating ? 'Saving...' : creatingPoster ? 'Uploading poster...' : 'Create Event'}
                 </button>
               </div>
             </form>
@@ -1429,19 +1701,40 @@ const ClubDashboard = () => {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Image URL</label>
-                <input type="url" value={editEvent.image_url} onChange={e => setEditEvent(p => ({ ...p, image_url: e.target.value }))}
-                  placeholder="https://..."
-                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
+                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Replace Event Poster (optional)</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => setPosterSelection(event.target.files?.[0] || null, setEditPosterFile, setEditPosterPreview, setEditError)}
+                  className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-primary file:font-semibold hover:file:bg-primary/20"
+                />
+                {editPosterPreview ? (
+                  <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
+                    <img src={editPosterPreview} alt="Updated poster preview" className="h-full w-full object-cover" />
+                  </div>
+                ) : editEvent.image_url ? (
+                  <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
+                    <img src={editEvent.image_url} alt="Current poster" className="h-full w-full object-cover" />
+                  </div>
+                ) : null}
+                {editEvent.image_url && !editPosterFile && (
+                  <button
+                    type="button"
+                    onClick={() => setEditEvent((previous) => ({ ...previous, image_url: '' }))}
+                    className="mt-2 text-xs font-semibold text-red-500 hover:text-red-400"
+                  >
+                    Remove existing poster
+                  </button>
+                )}
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setEditEvent(null)} className="flex-1 py-3 rounded-xl border border-[#e5e7eb] dark:border-[#233648] text-sm font-bold hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
                   Cancel
                 </button>
-                <button type="submit" disabled={editing}
+                <button type="submit" disabled={editing || editingPoster}
                   className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
-                  {editing ? 'Saving...' : 'Save Changes'}
-                  {!editing && <span className="material-symbols-outlined text-[18px]">check</span>}
+                  {editing ? 'Saving...' : editingPoster ? 'Uploading poster...' : 'Save Changes'}
+                  {!(editing || editingPoster) && <span className="material-symbols-outlined text-[18px]">check</span>}
                 </button>
               </div>
             </form>
@@ -1589,6 +1882,9 @@ const ClubDashboard = () => {
                           <th className="px-4 py-3">DEPARTMENT</th>
                           <th className="px-4 py-3">YEAR</th>
                           <th className="px-4 py-3">REGISTER NO</th>
+                          {rsvpModal.tab !== "payment" && (
+                            <th className="px-4 py-3">ATTENDANCE MARKED AT</th>
+                          )}
                           <th className="px-4 py-3 text-center border-l border-[#e5e7eb] dark:border-[#233648]">
                               {rsvpModal.tab === "payment" ? "PAID" : "ATTENDED"}
                           </th>
@@ -1604,6 +1900,11 @@ const ClubDashboard = () => {
                               <td className="px-4 py-3">{u.department || "-"}</td>
                               <td className="px-4 py-3">{calculateYear(u.batch)}</td>
                               <td className="px-4 py-3 font-mono text-xs">{u.register_number || "-"}</td>
+                              {rsvpModal.tab !== "payment" && (
+                                <td className="px-4 py-3 text-xs whitespace-nowrap">
+                                  {formatAttendanceMarkedAt(rsvp.attended_marked_at)}
+                                </td>
+                              )}
                               <td className="px-4 py-3 text-center border-l border-[#e5e7eb] dark:border-[#233648]">
                                 {rsvpModal.tab === "payment" ? (
                                     <input 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.club import Club
@@ -6,6 +6,7 @@ from app.models.follow import Follow
 from app.models.user import User
 from app.schemas import ClubCreate, ClubUpdate
 from app.core.security import get_current_user
+from app.services.club_logos import MAX_LOGO_BYTES, replace_club_logo
 from typing import Optional
 
 router = APIRouter()
@@ -74,9 +75,12 @@ def create_club(club: ClubCreate, db: Session = Depends(get_db), current_user: U
     if existing:
         raise HTTPException(status_code=400, detail="This admin already manages a club")
 
+    requested_logo_url = (club.logo_url or "").strip()
+    default_logo_url = (current_user.picture or "").strip()
+
     db_club = Club(
         name=club.name,
-        logo_url=club.logo_url,
+        logo_url=requested_logo_url or default_logo_url or None,
         category=club.category,
         instagram_handle=club.instagram_handle,
         admin_id=current_user.id,
@@ -102,7 +106,9 @@ def update_club(club_id: int, club_update: ClubUpdate, db: Session = Depends(get
     if club_update.category is not None:
         club.category = club_update.category
     if club_update.logo_url is not None:
-        club.logo_url = club_update.logo_url
+        normalized_logo_url = (club_update.logo_url or "").strip()
+        fallback_logo_url = (current_user.picture or "").strip()
+        club.logo_url = normalized_logo_url or fallback_logo_url or None
     if club_update.instagram_handle is not None:
         club.instagram_handle = club_update.instagram_handle
 
@@ -112,6 +118,49 @@ def update_club(club_id: int, club_update: ClubUpdate, db: Session = Depends(get
     follower_count = db.query(Follow).filter(Follow.club_id == club.id).count()
 
     return _club_payload(club, follower_count=follower_count, is_following=False)
+
+
+@router.post("/{club_id}/logo")
+async def upload_club_logo(
+    club_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload or replace a club logo in Supabase Storage under club_logos/club-<id>/."""
+    club = db.query(Club).filter(Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club not found")
+    if club.admin_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only update your own club logo")
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Logo file is empty")
+
+    try:
+        logo_payload = replace_club_logo(club, file_bytes, file.content_type or "")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Logo upload failed. Verify Supabase bucket settings. {exc}",
+        ) from exc
+
+    db.commit()
+    db.refresh(club)
+
+    follower_count = db.query(Follow).filter(Follow.club_id == club.id).count()
+
+    return {
+        "status": "success",
+        "club_id": club.id,
+        "logo_url": logo_payload["logo_url"],
+        "logo_storage_path": logo_payload["logo_storage_path"],
+        "max_size_bytes": MAX_LOGO_BYTES,
+        "club": _club_payload(club, follower_count=follower_count, is_following=False),
+    }
 
 
 @router.get("/{club_id}/events")

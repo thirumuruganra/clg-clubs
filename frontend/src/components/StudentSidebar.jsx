@@ -6,6 +6,7 @@ import wavcIcon from '../assets/WAVC-edit.png';
 const sideNavItems = [
   { label: 'Event', icon: 'event', path: '/student/calendar' },
   { label: 'Dashboard', icon: 'dashboard', path: '/student/dashboard' },
+  { label: 'Explore All Clubs', icon: 'groups', path: '/student/clubs' },
 ];
 
 const StudentSidebar = ({ mobileMenuOpen, onClose, children }) => {

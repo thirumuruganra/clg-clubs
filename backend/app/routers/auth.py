@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
@@ -10,8 +10,11 @@ from app.core.security import (
     GOOGLE_CALENDAR_SCOPE,
     build_google_scope,
 )
+from typing import Any, cast
 import re
 import json
+import os
+from urllib.parse import urlparse
 
 router = APIRouter()
 
@@ -35,13 +38,39 @@ TESTING_CLUB_EMAILS = {
     "thirumuruganra@gmail.com",
     "vishmuralee1006@gmail.com",
     "tanisha.sriram2006@gmail.com",
+    "hemnath.d.0912@gmail.com"
 }
 
-FRONTEND_DEFAULT_ORIGIN = "http://localhost:5173"
-FRONTEND_ALLOWED_REDIRECT_ORIGINS = {
-    "http://localhost:5173",
+
+def _parse_origin(origin: str) -> str | None:
+    parsed = urlparse(origin)
+    if not parsed.scheme or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def _parse_origin_list(var_name: str, default_values: list[str]) -> set[str]:
+    raw_value = os.getenv(var_name, "").strip()
+    values = [value.strip() for value in raw_value.split(",") if value.strip()] if raw_value else default_values
+
+    parsed_values = set()
+    for value in values:
+        parsed_value = _parse_origin(value)
+        if parsed_value:
+            parsed_values.add(parsed_value)
+    return parsed_values
+
+
+FRONTEND_DEFAULT_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173").rstrip("/")
+default_allowed_origins = [
+    FRONTEND_DEFAULT_ORIGIN,
     "http://127.0.0.1:5173",
-}
+]
+FRONTEND_ALLOWED_REDIRECT_ORIGINS = _parse_origin_list("FRONTEND_ALLOWED_ORIGINS", default_allowed_origins)
+
+parsed_default_origin = _parse_origin(FRONTEND_DEFAULT_ORIGIN)
+if parsed_default_origin:
+    FRONTEND_ALLOWED_REDIRECT_ORIGINS.add(parsed_default_origin)
 
 
 def _resolve_safe_frontend_redirect(raw_redirect: str | None) -> str | None:
@@ -55,7 +84,13 @@ def _resolve_safe_frontend_redirect(raw_redirect: str | None) -> str | None:
     if redirect_value.startswith('/'):
         return f"{FRONTEND_DEFAULT_ORIGIN}{redirect_value}"
 
-    if any(redirect_value.startswith(origin) for origin in FRONTEND_ALLOWED_REDIRECT_ORIGINS):
+    parsed_redirect = urlparse(redirect_value)
+    parsed_redirect_origin = _parse_origin(redirect_value)
+    if (
+        parsed_redirect_origin
+        and parsed_redirect_origin in FRONTEND_ALLOWED_REDIRECT_ORIGINS
+        and parsed_redirect.scheme in {"http", "https"}
+    ):
         return redirect_value
 
     return None
@@ -124,15 +159,16 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     email = user_info.get('email')
     if not email:
         raise HTTPException(status_code=400, detail="Google account must provide an email address.")
+    email = email.strip().lower()
 
-    # Block access for non-SSN accounts (for example gmail.com accounts).
-    if not email.lower().endswith("@ssn.edu.in"):
+    # Block non-SSN accounts unless they are explicitly listed test club emails.
+    if not email.endswith("@ssn.edu.in") and email not in TESTING_CLUB_EMAILS:
         request.session.pop("post_auth_redirect", None)
         return RedirectResponse(
             url=f"{FRONTEND_DEFAULT_ORIGIN}/login?error=ssn_email_required",
             status_code=302,
         )
-        
+
     name = user_info.get('name')
     picture = user_info.get('picture')
     google_token = token.get('access_token')
@@ -148,8 +184,9 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         role = "CLUB_ADMIN"
 
     # Upsert user
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
+    db_user = db.query(User).filter(User.email == email).first()
+    user = cast(Any, db_user)
+    if user is None:
         user = User(
             email=email,
             name=name,
@@ -180,13 +217,24 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     # Club admins should go to the club dashboard flow regardless of student profile completeness fields.
     redirect_url = request.session.pop("post_auth_redirect", None)
     if not redirect_url:
-        if user.role == "CLUB_ADMIN":
-            redirect_url = "http://localhost:5173/club/dashboard"
+        user_role = str(getattr(user, "role", "") or "")
+        if user_role == "CLUB_ADMIN":
+            redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/club/dashboard"
         else:
             user_interests = _safe_json_list(user.interests)
-            redirect_url = "http://localhost:5173/student/dashboard"
-            if not user.batch or not user.department or not user.degree or not user.register_number or len(user_interests) < 3:
-                redirect_url = "http://localhost:5173/student/profile"
+            user_batch = cast(str | None, getattr(user, "batch", None))
+            user_department = cast(str | None, getattr(user, "department", None))
+            user_degree = cast(str | None, getattr(user, "degree", None))
+            user_register_number = cast(str | None, getattr(user, "register_number", None))
+            redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/student/dashboard"
+            if (
+                user_batch in (None, "")
+                or user_department in (None, "")
+                or user_degree in (None, "")
+                or user_register_number in (None, "")
+                or len(user_interests) < 3
+            ):
+                redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/student/profile"
 
     # Set JWT as cookie and redirect
     response = RedirectResponse(url=redirect_url, status_code=302)
@@ -227,6 +275,6 @@ async def get_me(current_user: User = Depends(get_current_user)):
 @router.get('/logout')
 async def logout(request: Request):
     """Clear the JWT cookie and redirect to landing."""
-    response = RedirectResponse(url="http://localhost:5173/", status_code=302)
+    response = RedirectResponse(url=f"{FRONTEND_DEFAULT_ORIGIN}/", status_code=302)
     response.delete_cookie("access_token", path="/")
     return response

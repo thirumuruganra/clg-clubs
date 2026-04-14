@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
-import { getClubIconUrl, getClubInitial } from '../lib/utils';
+import { getClubIconUrl, getClubInitial, warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
 import StudentSidebar from '../components/StudentSidebar';
 
 const API = '';
@@ -30,7 +30,11 @@ const Calendar = () => {
   const fetchEvents = useCallback(async () => {
     try {
       const res = await fetch(`${API}/api/events/all`);
-      if (res.ok) setEvents(await res.json());
+      if (res.ok) {
+        const allEvents = await res.json();
+        warmPosterCacheForEvents(allEvents);
+        setEvents(allEvents);
+      }
     } catch (err) { console.error(err); }
   }, []);
 
@@ -66,7 +70,11 @@ const Calendar = () => {
   const openEventDetail = async (eventId) => {
     try {
       const res = await fetch(`${API}/api/events/${eventId}?user_id=${user?.id || ''}`);
-      if (res.ok) setSelectedEvent(await res.json());
+      if (res.ok) {
+        const eventDetail = await res.json();
+        warmPosterImageCache(eventDetail?.image_url);
+        setSelectedEvent(eventDetail);
+      }
     } catch (err) { console.error(err); }
   };
 
@@ -280,7 +288,7 @@ const Calendar = () => {
               const dayEvents = d.current ? getEventsForDay(d.day) : [];
               return (
                 <div key={i} className={`border-r border-b border-[#e5e7eb] dark:border-[#233648] min-h-20 sm:min-h-24 md:min-h-25 p-1 ${!d.current ? 'bg-[#f9fafb] dark:bg-[#0c1218]' : 'bg-white dark:bg-[#111a22]'}`}>
-                  <div className={`text-xs mb-1 ${isToday(d.day) && d.current ? 'bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center font-bold' : d.current ? 'text-[#111418] dark:text-white' : 'text-[#637588]/40'}`}>
+                  <div className={`text-xs mb-1 w-6 h-6 rounded-full flex items-center justify-center ${isToday(d.day) && d.current ? 'bg-primary text-white font-bold' : d.current ? 'text-[#111418] dark:text-white' : 'text-[#637588]/40'}`}>
                     {d.day}
                   </div>
                   {dayEvents.slice(0, 2).map(ev => (
@@ -302,7 +310,10 @@ const Calendar = () => {
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-2xl modal-panel overflow-y-auto border border-[#e5e7eb] dark:border-[#233648]" onClick={e => e.stopPropagation()}>
             <div className="flex flex-col md:flex-row h-full">
               {/* Event Image */}
-              <div className="w-full md:w-2/5 min-h-44 sm:min-h-52 md:min-h-87.5 bg-cover bg-center bg-gray-700 relative" style={selectedEvent.image_url ? { backgroundImage: `url("${selectedEvent.image_url}")` } : {}}>
+              <div className="w-full md:w-2/5 min-h-44 sm:min-h-52 md:min-h-87.5 bg-[#0f1720] relative overflow-hidden">
+                {selectedEvent.image_url ? (
+                  <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-cover" />
+                ) : null}
                 <div className="absolute top-3 left-3"><span className="bg-primary/90 text-white text-xs font-medium px-2 py-1 rounded-md">{selectedEvent.club_name}</span></div>
               </div>
               {/* Event Info */}

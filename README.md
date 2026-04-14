@@ -64,3 +64,19 @@ The frontend application will start, usually at `http://localhost:5173`.
 - Ensure both the backend and frontend servers are running simultaneously for the application to function correctly.
 - Review `./prd.md` for specific product requirements and architecture details.
 - Review `backend/app/` for the core API logic, routing, and database setup.
+
+## Local Environment Variables
+
+Create `backend/.env` with your local values. The app supports localhost by default.
+
+```bash
+DATABASE_URL=postgresql+psycopg2://postgres:password@localhost:5432/wavc_app
+SECRET_KEY=change-me
+
+FRONTEND_ORIGIN=http://localhost:5173
+FRONTEND_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+CORS_ALLOW_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+```

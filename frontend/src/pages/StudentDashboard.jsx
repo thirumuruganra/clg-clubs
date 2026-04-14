@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import StudentSidebar from '../components/StudentSidebar';
+import { warmPosterCacheForEvents } from '../lib/utils';
 
 const API = '';
 
@@ -20,7 +21,6 @@ const StudentDashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [forYouEvents, setForYouEvents] = useState([]);
     const [discoverEvents, setDiscoverEvents] = useState([]);
-    const [clubs, setClubs] = useState([]);
     const [loadingEvents, setLoadingEvents] = useState(true);
     const [activities, setActivities] = useState([]);
     const [loadingActivities, setLoadingActivities] = useState(true);
@@ -34,6 +34,7 @@ const StudentDashboard = () => {
             const recommendedRes = await fetch(`${API}/api/events/feed?type=recommended&user_id=${user.id}`);
             if (recommendedRes.ok) {
                 const recommendedEvents = await recommendedRes.json();
+                warmPosterCacheForEvents(recommendedEvents);
                 setForYouEvents(recommendedEvents);
                 setDiscoverEvents(recommendedEvents.filter((event) => !event.is_from_followed_club));
             }
@@ -42,15 +43,6 @@ const StudentDashboard = () => {
         } finally {
             setLoadingEvents(false);
         }
-    }, [user]);
-
-    const fetchClubs = useCallback(async () => {
-        if (!user?.id) return;
-
-        try {
-            const res = await fetch(`${API}/api/clubs/?user_id=${user.id}`);
-            if (res.ok) setClubs(await res.json());
-        } catch (err) { console.error('Error fetching clubs:', err); }
     }, [user]);
 
     const fetchActivities = useCallback(async () => {
@@ -78,10 +70,9 @@ const StudentDashboard = () => {
         }
         if (user) {
             void fetchEvents();
-            void fetchClubs();
             void fetchActivities();
         }
-    }, [user, loading, navigate, fetchEvents, fetchClubs, fetchActivities]);
+    }, [user, loading, navigate, fetchEvents, fetchActivities]);
 
     const handleRSVP = async (eventId, isRegistered) => {
         setActionError('');
@@ -119,7 +110,10 @@ const StudentDashboard = () => {
         const { month, day } = formatDate(event.start_time);
         return (
             <div className="flex flex-col overflow-hidden rounded-xl bg-white dark:bg-[#1a2632] shadow-sm border border-[#e5e7eb] dark:border-[#233648] hover:shadow-lg transition-shadow">
-                <div className="relative h-36 sm:h-40 bg-cover bg-center bg-gray-700" style={event.image_url ? { backgroundImage: `url("${event.image_url}")` } : {}}>
+                <div className="relative h-36 sm:h-40 bg-[#0f1720] overflow-hidden">
+                    {event.image_url ? (
+                        <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" />
+                    ) : null}
                     <div className="absolute top-3 right-3 rounded-lg bg-white/90 dark:bg-[#111a22]/90 px-2 py-1 text-center backdrop-blur-sm shadow-sm">
                         <p className="text-xs font-bold text-primary uppercase">{month}</p>
                         <p className="text-lg font-bold text-[#111418] dark:text-white">{day}</p>
@@ -175,7 +169,11 @@ const StudentDashboard = () => {
         const { month, day } = formatDate(event.start_time);
         return (
             <div className="flex flex-col sm:flex-row overflow-hidden rounded-xl bg-white dark:bg-[#1a2632] shadow-sm border border-[#e5e7eb] dark:border-[#233648] min-h-40 hover:shadow-lg transition-shadow">
-                <div className="w-full sm:w-1/3 h-32 sm:h-auto bg-cover bg-center bg-gray-700" style={event.image_url ? { backgroundImage: `url("${event.image_url}")` } : {}}></div>
+                <div className="w-full sm:w-1/3 h-32 sm:h-auto bg-[#0f1720] overflow-hidden">
+                    {event.image_url ? (
+                        <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" />
+                    ) : null}
+                </div>
                 <div className="flex w-full sm:w-2/3 flex-col p-4 justify-between gap-3">
                     <div>
                         <div className="flex justify-between items-start">
@@ -318,29 +316,6 @@ const StudentDashboard = () => {
                                 {discoverEvents
                                     .filter(e => eventMatchesSearch(e, searchQuery))
                                     .slice(0, 4).map(e => <DiscoverItem key={e.id} event={e} />)}
-                            </div>
-                        </div>
-
-                        {/* Clubs CTA */}
-                        <div className="mt-10">
-                            <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-4">
-                                <div>
-                                    <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">Clubs</h2>
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Follow clubs for stronger priority in your personalized feed</p>
-                                </div>
-                                <button onClick={() => navigate('/student/clubs')} className="text-primary text-sm font-bold hover:underline">View All</button>
-                            </div>
-                            <div className="px-4">
-                                <div onClick={() => navigate('/student/clubs')} className="group cursor-pointer overflow-hidden rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] p-5 sm:p-6 hover:shadow-lg hover:border-primary/30 transition-all flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-                                    <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                                        <span className="material-symbols-outlined text-primary text-[32px]">groups</span>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="text-lg font-bold text-[#111418] dark:text-white group-hover:text-primary transition-colors">Explore All Clubs</h3>
-                                        <p className="text-sm text-[#637588] dark:text-[#92adc9] mt-1">{clubs.length} clubs available &middot; {clubs.filter(c => c.is_following).length} following</p>
-                                    </div>
-                                    <span className="material-symbols-outlined text-[24px] text-[#637588] dark:text-[#92adc9] group-hover:text-primary group-hover:translate-x-1 transition-all self-end sm:self-center">arrow_forward</span>
-                                </div>
                             </div>
                         </div>
 

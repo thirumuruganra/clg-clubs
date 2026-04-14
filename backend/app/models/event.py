@@ -15,6 +15,11 @@ class Event(Base):
     end_time = Column(DateTime, nullable=False)
     tag = Column(String(50), nullable=True)             # "TECH" or "NON_TECH"
     image_url = Column(String(500), nullable=True)
+    poster_storage_path = Column(String(700), nullable=True)
+    poster_mime_type = Column(String(100), nullable=True)
+    poster_size_bytes = Column(Integer, nullable=True)
+    poster_uploaded_at = Column(DateTime, nullable=True)
+    poster_deleted_at = Column(DateTime, nullable=True)
     keywords = Column(String(500), nullable=True)
     payment_link = Column(String(500), nullable=True)
     is_paid = Column(Boolean, default=False)
