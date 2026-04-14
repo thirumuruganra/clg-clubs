@@ -219,7 +219,7 @@ def checkin_attendance_via_qr(
             }
 
         existing_rsvp.attended = True
-    existing_rsvp.attended_marked_at = _current_ist_datetime()
+        existing_rsvp.attended_marked_at = _current_ist_datetime()
         db.commit()
         return {
             "status": "success",
