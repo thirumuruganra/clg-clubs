@@ -5,7 +5,7 @@ import json
 import re
 import os
 import uuid
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from app.database import get_db
 from app.models.event import Event
 from app.models.club import Club
@@ -19,7 +19,25 @@ from typing import Optional, List
 
 router = APIRouter()
 
-FRONTEND_CHECKIN_BASE_URL = os.getenv("FRONTEND_CHECKIN_BASE_URL", "http://localhost:5173")
+
+def _require_frontend_checkin_base_url() -> str:
+    raw_origin = os.getenv("FRONTEND_ORIGIN", "").strip().rstrip("/")
+    if not raw_origin:
+        raise RuntimeError(
+            "FRONTEND_ORIGIN must be set for attendance QR links. "
+            "No localhost fallback is allowed."
+        )
+
+    parsed_origin = urlparse(raw_origin)
+    if parsed_origin.scheme not in {"http", "https"} or not parsed_origin.netloc:
+        raise RuntimeError(
+            "FRONTEND_ORIGIN must be a valid absolute URL (for example, https://your-app.herokuapp.com)."
+        )
+
+    return raw_origin
+
+
+FRONTEND_CHECKIN_BASE_URL = _require_frontend_checkin_base_url()
 
 
 def _word_count(text: Optional[str]) -> int:

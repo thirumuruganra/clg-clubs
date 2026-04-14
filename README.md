@@ -113,6 +113,10 @@ heroku config:set GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.
 heroku config:set GOOGLE_CLIENT_SECRET=your-google-client-secret -a your-app-name
 ```
 
+`FRONTEND_ORIGIN` is required for attendance QR links. The backend does not fall back to localhost, and startup will fail if this value is missing or invalid.
+
+For local backend runs, set `FRONTEND_ORIGIN=http://localhost:5173` (or your local frontend origin).
+
 `DATABASE_URL` is automatically provided by the Heroku Postgres add-on.
 
 ### 5. Set Google OAuth Redirects
