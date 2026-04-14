@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
@@ -24,6 +24,7 @@ const ClubProfile = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState('');
+  const logoInputRef = useRef(null);
 
   useEffect(() => {
     return () => {
@@ -77,6 +78,10 @@ const ClubProfile = () => {
       if (previous) URL.revokeObjectURL(previous);
       return URL.createObjectURL(selectedFile);
     });
+  };
+
+  const openLogoFilePicker = () => {
+    logoInputRef.current?.click();
   };
 
   const fetchClub = useCallback(async () => {
@@ -239,33 +244,44 @@ const ClubProfile = () => {
           {successMessage && <p className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-500">{successMessage}</p>}
 
           <div className="border border-dashed border-[#e5e7eb] dark:border-[#233648] rounded-xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
-            <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#637588]/30 flex items-center justify-center shrink-0 bg-[#f0f2f4] dark:bg-[#233648] overflow-hidden">
+            <button
+              type="button"
+              onClick={openLogoFilePicker}
+              className="w-28 h-28 rounded-full border-2 border-dashed border-[#637588]/30 flex items-center justify-center shrink-0 bg-[#f0f2f4] dark:bg-[#233648] overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform"
+              aria-label="Choose club logo"
+            >
               {resolvedPreviewImage ? (
                 <img src={resolvedPreviewImage} alt="Club profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
                 <span className="material-symbols-outlined text-[40px] text-[#637588]/50">photo_camera</span>
               )}
-            </div>
+            </button>
             <div className="flex-1">
               <h3 className="text-lg font-bold mb-1">Club Profile Picture</h3>
               <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-3">
                 If no custom image is set, your Google profile picture will be used automatically.
               </p>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={onSelectLogoFile}
+                className="hidden"
+              />
               <div className="flex flex-wrap items-center gap-3">
-                <label className="touch-target inline-flex items-center gap-2 rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium cursor-pointer hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
+                <button
+                  type="button"
+                  onClick={openLogoFilePicker}
+                  className="touch-target inline-flex items-center gap-2 rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium cursor-pointer hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+                >
                   <span className="material-symbols-outlined text-[18px]">upload</span>
-                  Select File
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={onSelectLogoFile}
-                    className="hidden"
-                  />
-                </label>
+                  Upload from device
+                </button>
                 <button
                   type="button"
                   onClick={() => {
                     setLogoFile(null);
+                    if (logoInputRef.current) logoInputRef.current.value = '';
                     setLogoPreview((previous) => {
                       if (previous) URL.revokeObjectURL(previous);
                       return '';
