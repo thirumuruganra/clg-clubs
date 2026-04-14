@@ -288,7 +288,7 @@ const Calendar = () => {
               const dayEvents = d.current ? getEventsForDay(d.day) : [];
               return (
                 <div key={i} className={`border-r border-b border-[#e5e7eb] dark:border-[#233648] min-h-20 sm:min-h-24 md:min-h-25 p-1 ${!d.current ? 'bg-[#f9fafb] dark:bg-[#0c1218]' : 'bg-white dark:bg-[#111a22]'}`}>
-                  <div className={`text-xs mb-1 ${isToday(d.day) && d.current ? 'bg-primary text-white w-6 h-6 rounded-full flex items-center justify-center font-bold' : d.current ? 'text-[#111418] dark:text-white' : 'text-[#637588]/40'}`}>
+                  <div className={`text-xs mb-1 w-6 h-6 rounded-full flex items-center justify-center ${isToday(d.day) && d.current ? 'bg-primary text-white font-bold' : d.current ? 'text-[#111418] dark:text-white' : 'text-[#637588]/40'}`}>
                     {d.day}
                   </div>
                   {dayEvents.slice(0, 2).map(ev => (
