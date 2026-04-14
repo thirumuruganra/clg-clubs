@@ -314,6 +314,9 @@ app.add_middleware(
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SECRET_KEY", "wavc-secret-key"),
+    session_cookie=os.getenv("SESSION_COOKIE_NAME", "wavc_oauth_session"),
+    same_site="lax",
+    https_only=False,
 )
 
 # Register all routers

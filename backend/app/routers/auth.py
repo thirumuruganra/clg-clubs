@@ -73,6 +73,34 @@ if parsed_default_origin:
     FRONTEND_ALLOWED_REDIRECT_ORIGINS.add(parsed_default_origin)
 
 
+def _resolve_configured_local_host() -> str | None:
+    parsed_origin = urlparse(FRONTEND_DEFAULT_ORIGIN)
+    configured_host = (parsed_origin.hostname or "").strip().lower()
+    if configured_host in {"localhost", "127.0.0.1"}:
+        return configured_host
+    return None
+
+
+CONFIGURED_LOCAL_HOST = _resolve_configured_local_host()
+
+
+def _resolve_oauth_redirect_uri(request: Request) -> str:
+    explicit_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "").strip()
+    if explicit_redirect_uri:
+        return explicit_redirect_uri
+
+    request_url = request.url
+    request_host = (request_url.hostname or "").strip().lower()
+    request_port = request_url.port
+    request_scheme = request_url.scheme
+
+    if request_host in {"localhost", "127.0.0.1"} and request_port == 5173:
+        callback_host = CONFIGURED_LOCAL_HOST or request_host
+        return f"{request_scheme}://{callback_host}:8000/api/auth/callback"
+
+    return str(request.url_for('auth_callback'))
+
+
 def _resolve_safe_frontend_redirect(raw_redirect: str | None) -> str | None:
     if not raw_redirect:
         return None
@@ -97,7 +125,7 @@ def _resolve_safe_frontend_redirect(raw_redirect: str | None) -> str | None:
 
 
 async def _start_google_oauth_redirect(request: Request, include_calendar_scope: bool, post_auth_redirect: str | None = None):
-    redirect_uri = request.url_for('auth_callback')
+    redirect_uri = _resolve_oauth_redirect_uri(request)
     scope = build_google_scope(include_calendar=include_calendar_scope)
     safe_redirect = _resolve_safe_frontend_redirect(post_auth_redirect)
 
