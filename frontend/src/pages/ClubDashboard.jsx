@@ -62,6 +62,19 @@ const parseApiDateTime = (rawValue) => {
   return Number.isNaN(fallback.getTime()) ? null : fallback;
 };
 
+const formatAttendanceMarkedAt = (rawValue) => {
+  const parsed = parseApiDateTime(rawValue);
+  if (!parsed) return '-';
+
+  return parsed.toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const eventMatchesSearch = (event, rawQuery) => {
   const query = rawQuery.trim().toLowerCase();
   if (!query) return true;
@@ -1589,6 +1602,9 @@ const ClubDashboard = () => {
                           <th className="px-4 py-3">DEPARTMENT</th>
                           <th className="px-4 py-3">YEAR</th>
                           <th className="px-4 py-3">REGISTER NO</th>
+                          {rsvpModal.tab !== "payment" && (
+                            <th className="px-4 py-3">ATTENDANCE MARKED AT</th>
+                          )}
                           <th className="px-4 py-3 text-center border-l border-[#e5e7eb] dark:border-[#233648]">
                               {rsvpModal.tab === "payment" ? "PAID" : "ATTENDED"}
                           </th>
@@ -1604,6 +1620,11 @@ const ClubDashboard = () => {
                               <td className="px-4 py-3">{u.department || "-"}</td>
                               <td className="px-4 py-3">{calculateYear(u.batch)}</td>
                               <td className="px-4 py-3 font-mono text-xs">{u.register_number || "-"}</td>
+                              {rsvpModal.tab !== "payment" && (
+                                <td className="px-4 py-3 text-xs whitespace-nowrap">
+                                  {formatAttendanceMarkedAt(rsvp.attended_marked_at)}
+                                </td>
+                              )}
                               <td className="px-4 py-3 text-center border-l border-[#e5e7eb] dark:border-[#233648]">
                                 {rsvpModal.tab === "payment" ? (
                                     <input 
