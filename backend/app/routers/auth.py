@@ -28,37 +28,19 @@ def _safe_json_list(raw_value):
     return data if isinstance(data, list) else []
 
 
-# Allowed club admin emails (in production, move to DB table)
-ALLOWED_CLUB_EMAILS = {
-    # Test account
+# Regex for student emails
+STUDENT_EMAIL_REGEX = re.compile(r'.*[0-9]{4,}@ssn\.edu\.in$')
+
+# Regex for club emails: must end with @ssn.edu.in and local-part must not contain digits
+CLUB_EMAIL_REGEX = re.compile(r'^[A-Za-z._%+-]*[A-Za-z][A-Za-z._%+-]*@ssn\.edu\.in$')
+
+# Hardcoded testing club emails
+TESTING_CLUB_EMAILS = {
     "thirumuruganra@gmail.com",
     "vishmuralee1006@gmail.com",
     "tanisha.sriram2006@gmail.com",
-    # Club accounts
-    "codingclub@ssn.edu.in",
-    "lakshya@ssn.edu.in",
-    "ieeecs-ssn@ssn.edu.in",
-    "ssnieeewie@ssn.edu.in",
-    "ssnmusiclub@ssn.edu.in",
-    "acm-w@ssn.edu.in",
-    "ssnelc@ssn.edu.in",
-    "ssnacm@ssn.edu.in",
-    "buildclub@ssn.edu.in",
-    "sportium@ssn.edu.in",
-    "saeclub@ssn.edu.in",
-    "ssnieeevts@ssn.edu.in",
-    "sgc@ssn.edu.in",
-    "qfactorial@ssn.edu.in",
-    "filmclub@ssn.edu.in",
-    "ieeepels@ssn.edu.in",
-    "ieeepes@ssn.edu.in",
-    "gfgcampusbody@ssn.edu.in",
-    "ieeespssb@ssn.edu.in",
-    "saaraltamilmandram@ssn.edu.in",
+    "hemnath.d.0912@gmail.com"
 }
-
-# Regex for student emails
-STUDENT_EMAIL_REGEX = re.compile(r'.*[0-9]{4,}@ssn\.edu\.in$')
 
 
 def _parse_origin(origin: str) -> str | None:
@@ -198,7 +180,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     role = "STUDENT"
     if STUDENT_EMAIL_REGEX.match(email):
         role = "STUDENT"
-    elif email in ALLOWED_CLUB_EMAILS:
+    elif CLUB_EMAIL_REGEX.match(email) or email in TESTING_CLUB_EMAILS:
         role = "CLUB_ADMIN"
 
     # Upsert user
