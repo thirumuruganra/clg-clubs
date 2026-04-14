@@ -7,9 +7,16 @@ from app.models.event import Event
 from app.models.club import Club
 from app.models.user import User
 from app.core.security import get_current_user
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 router = APIRouter()
+IST_TZ = ZoneInfo("Asia/Kolkata")
+
+
+def _current_ist_datetime() -> datetime:
+    """Return current time in IST as a naive datetime for DB storage."""
+    return datetime.now(timezone.utc).astimezone(IST_TZ).replace(tzinfo=None)
 
 
 def _verify_admin_owns_event(event_id: int, db: Session, current_user: User) -> None:
@@ -144,7 +151,7 @@ def update_rsvp_attendance(rsvp_id: int, update_data: RSVPAttendUpdate, db: Sess
     if update_data.attended is not None:
         rsvp.attended = update_data.attended
         if update_data.attended:
-            rsvp.attended_marked_at = datetime.utcnow()
+            rsvp.attended_marked_at = _current_ist_datetime()
         else:
             rsvp.attended_marked_at = None
     if update_data.is_paid is not None:
@@ -201,7 +208,7 @@ def checkin_attendance_via_qr(
     if existing_rsvp:
         if existing_rsvp.attended:
             if existing_rsvp.attended_marked_at is None:
-                existing_rsvp.attended_marked_at = datetime.utcnow()
+                existing_rsvp.attended_marked_at = _current_ist_datetime()
                 db.commit()
             return {
                 "status": "success",
@@ -212,7 +219,7 @@ def checkin_attendance_via_qr(
             }
 
         existing_rsvp.attended = True
-        existing_rsvp.attended_marked_at = datetime.utcnow()
+    existing_rsvp.attended_marked_at = _current_ist_datetime()
         db.commit()
         return {
             "status": "success",
@@ -226,7 +233,7 @@ def checkin_attendance_via_qr(
         user_id=current_user.id,
         event_id=event_id,
         attended=True,
-        attended_marked_at=datetime.utcnow(),
+        attended_marked_at=_current_ist_datetime(),
     )
     db.add(new_rsvp)
     try:
@@ -251,10 +258,10 @@ def checkin_attendance_via_qr(
 
         if not concurrent_rsvp.attended:
             concurrent_rsvp.attended = True
-            concurrent_rsvp.attended_marked_at = datetime.utcnow()
+            concurrent_rsvp.attended_marked_at = _current_ist_datetime()
             db.commit()
         elif concurrent_rsvp.attended_marked_at is None:
-            concurrent_rsvp.attended_marked_at = datetime.utcnow()
+            concurrent_rsvp.attended_marked_at = _current_ist_datetime()
             db.commit()
 
         return {
