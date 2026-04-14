@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -23,10 +24,25 @@ def _normalize_content_type(content_type: Optional[str]) -> str:
     return content_type.split(";", 1)[0].strip().lower()
 
 
-def _build_object_path(event_id: int, extension: str) -> str:
+def _slugify_segment(raw_value: Optional[str], fallback: str) -> str:
+    if not raw_value:
+        return fallback
+
+    normalized = re.sub(r"[^a-z0-9]+", "-", raw_value.strip().lower())
+    normalized = normalized.strip("-")
+    if not normalized:
+        return fallback
+
+    return normalized[:80]
+
+
+def _build_object_path(event: Event, extension: str) -> str:
     timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
     suffix = uuid.uuid4().hex[:10]
-    return f"events/{event_id}/poster-{timestamp}-{suffix}.{extension}"
+    club_name = event.club.name if getattr(event, "club", None) else None
+    club_folder = _slugify_segment(club_name, f"club-{event.club_id}")
+    event_folder = _slugify_segment(event.title, f"event-{event.id}")
+    return f"clubs/{club_folder}/{event_folder}/poster-{timestamp}-{suffix}.{extension}"
 
 
 def replace_event_poster(event: Event, file_bytes: bytes, content_type: str) -> dict[str, str]:
@@ -42,7 +58,7 @@ def replace_event_poster(event: Event, file_bytes: bytes, content_type: str) -> 
         raise ValueError(f"Poster file must be {MAX_POSTER_BYTES // (1024 * 1024)} MB or smaller")
 
     extension = ALLOWED_POSTER_MIME_TYPES[normalized_type]
-    new_object_path = _build_object_path(event.id, extension)
+    new_object_path = _build_object_path(event, extension)
     new_public_url = upload_storage_object(
         new_object_path,
         file_bytes,

@@ -1181,7 +1181,9 @@ const ClubDashboard = () => {
                       <tr key={event.id} className="border-b border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f9fafb] dark:hover:bg-[#233648]/50 transition-colors">
                         <td className="px-4 py-3 cursor-pointer group" onClick={() => openRsvpModal(event)}>
                           <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-lg bg-gray-700 bg-cover bg-center shrink-0" style={event.image_url ? { backgroundImage: `url("${event.image_url}")` } : {}}></div>
+                            <div className="size-10 rounded-lg bg-gray-700 shrink-0 overflow-hidden flex items-center justify-center">
+                              {event.image_url ? <img src={event.image_url} alt={event.title} className="h-full w-full object-contain" /> : null}
+                            </div>
                             <div>
                               <p className="text-sm font-bold group-hover:text-primary transition-colors">{event.title}</p>
                               <p className="text-xs text-[#637588] dark:text-[#92adc9]">{event.location || 'No location'}</p>
@@ -1316,8 +1318,8 @@ const ClubDashboard = () => {
                     className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-primary file:font-semibold hover:file:bg-primary/20"
                   />
                   {newPosterPreview && (
-                    <div className="mt-3 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden">
-                      <img src={newPosterPreview} alt="Poster preview" className="w-full h-40 object-cover" />
+                    <div className="mt-3 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
+                      <img src={newPosterPreview} alt="Poster preview" className="w-full h-40 object-contain" />
                     </div>
                   )}
                 </div>
@@ -1462,8 +1464,8 @@ const ClubDashboard = () => {
                   className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-primary file:font-semibold hover:file:bg-primary/20"
                 />
                 {newPosterPreview && (
-                  <div className="mt-3 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden">
-                    <img src={newPosterPreview} alt="Poster preview" className="w-full h-40 object-cover" />
+                  <div className="mt-3 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
+                    <img src={newPosterPreview} alt="Poster preview" className="w-full h-40 object-contain" />
                   </div>
                 )}
               </div>
@@ -1619,12 +1621,12 @@ const ClubDashboard = () => {
                   className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-primary file:font-semibold hover:file:bg-primary/20"
                 />
                 {editPosterPreview ? (
-                  <div className="mt-3 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden">
-                    <img src={editPosterPreview} alt="Updated poster preview" className="w-full h-40 object-cover" />
+                  <div className="mt-3 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
+                    <img src={editPosterPreview} alt="Updated poster preview" className="w-full h-40 object-contain" />
                   </div>
                 ) : editEvent.image_url ? (
-                  <div className="mt-3 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden">
-                    <img src={editEvent.image_url} alt="Current poster" className="w-full h-40 object-cover" />
+                  <div className="mt-3 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
+                    <img src={editEvent.image_url} alt="Current poster" className="w-full h-40 object-contain" />
                   </div>
                 ) : null}
                 {editEvent.image_url && !editPosterFile && (
