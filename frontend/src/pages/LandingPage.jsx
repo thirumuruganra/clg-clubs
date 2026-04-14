@@ -17,7 +17,7 @@ const LandingPage = () => {
         {/* Desktop Navigation */}
         <div className="hidden md:flex flex-1 justify-end gap-8 items-center">
           <nav className="flex items-center gap-9">
-            {['About', 'Clubs', 'Contact'].map((item) => (
+            {['About', 'Contact'].map((item) => (
               <a key={item} className="text-slate-600 dark:text-[#92adc9] text-sm font-medium leading-normal hover:text-primary transition-colors" href="#">{item}</a>
             ))}
           </nav>
@@ -58,7 +58,7 @@ const LandingPage = () => {
           }}
         >
            <nav className="flex flex-col items-center justify-center p-8 gap-8 h-full">
-            {['About', 'Clubs', 'Contact'].map((item) => (
+            {['About', 'Contact'].map((item) => (
               <a key={item} 
                  className="text-slate-800 dark:text-white text-2xl font-bold hover:text-primary transition-colors" 
                  href="#"
@@ -103,11 +103,12 @@ const LandingPage = () => {
                       <img alt="Google G Logo" className="w-6 h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDACkJQDAMqEGYjm0sUAsqKoZ_WzLqom8nDv6Hfc7audxHKfEwl2P48zGR00_7lUGSAyaP1OaeXtu5WfCTMhtt6-fUtZgWs0F_IDgXefze74L-Td8Q1L_cxt_WdzUjHS5a3V75iqB0RFNdk2LQK-6av30F5Ni4Tvj1ryqWxAX9xQlRpDakFCEoaGZUydHJZ3FIbDdYAuV2XK9qLL_prHpdUOU8jXYKKP5IiRNMq9CJDWqu1pNpf5iUA9hXWdz242i6UvcsjqQvwocc"/>
                       <span className="truncate">Sign in with Google</span>
                     </button>
-                    <button 
+                    <a
+                      href="mailto:wavc.contact@gmail.com"
                       className="flex w-full sm:w-auto items-center justify-center gap-3 overflow-hidden rounded-xl h-13 sm:h-14 px-6 sm:px-8 bg-white/10 backdrop-blur-md border border-white/30 text-white text-base font-bold leading-normal hover:bg-white/20 transition-colors shadow-lg transform hover:scale-105 duration-200"
                     >
-                        Explore Clubs
-                    </button>
+                      wavc.contact@gmail.com
+                    </a>
                   </div>
                 </div>
               </div>
