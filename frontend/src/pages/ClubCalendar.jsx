@@ -179,9 +179,6 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
                 {selectedEvent.image_url ? (
                   <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-cover" />
                 ) : null}
-                <div className="absolute top-3 left-3">
-                  <span className="bg-primary/90 text-white text-xs font-medium px-2 py-1 rounded-md">{selectedEvent.club_name || 'Club Event'}</span>
-                </div>
               </div>
 
               <div className="w-full md:w-3/5 p-6 flex flex-col">
@@ -199,6 +196,8 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
                     <span className="material-symbols-outlined text-[20px]">close</span>
                   </button>
                 </div>
+
+                <p className="text-sm font-semibold text-primary mb-1">{selectedEvent.club_name || 'Club Event'}</p>
 
                 <h2 className="text-2xl font-bold mb-4">{selectedEvent.title}</h2>
 
