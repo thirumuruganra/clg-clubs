@@ -26,17 +26,12 @@ router = APIRouter()
 
 
 def _require_frontend_checkin_base_url() -> str:
-    raw_origin = os.getenv("FRONTEND_ORIGIN", "").strip().rstrip("/")
-    if not raw_origin:
-        raise RuntimeError(
-            "FRONTEND_ORIGIN must be set for attendance QR links. "
-            "No localhost fallback is allowed."
-        )
+    raw_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173").strip().rstrip("/")
 
     parsed_origin = urlparse(raw_origin)
     if parsed_origin.scheme not in {"http", "https"} or not parsed_origin.netloc:
         raise RuntimeError(
-            "FRONTEND_ORIGIN must be a valid absolute URL (for example, https://your-app.herokuapp.com)."
+            "FRONTEND_ORIGIN must be a valid absolute URL (for example, http://localhost:5173)."
         )
 
     return raw_origin

@@ -314,7 +314,6 @@ const Calendar = () => {
                 {selectedEvent.image_url ? (
                   <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-cover" />
                 ) : null}
-                <div className="absolute top-3 left-3"><span className="bg-primary/90 text-white text-xs font-medium px-2 py-1 rounded-md">{selectedEvent.club_name}</span></div>
               </div>
               {/* Event Info */}
               <div className="w-full md:w-3/5 p-6 flex flex-col">
@@ -324,6 +323,7 @@ const Calendar = () => {
                   </span>
                   <button aria-label="Close event details" onClick={() => setSelectedEvent(null)} className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
                 </div>
+                <p className="text-sm font-semibold text-primary mb-1">{selectedEvent.club_name || 'Club Event'}</p>
                 <h2 className="text-2xl font-bold mb-4">{selectedEvent.title}</h2>
 
                 {selectedEvent.description && <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-4 whitespace-pre-wrap">{selectedEvent.description}</p>}

@@ -13,7 +13,7 @@ def _build_postgres_url() -> str:
     """Build PostgreSQL URL from env vars when DATABASE_URL is not provided."""
     database_url = os.getenv("DATABASE_URL", "").strip()
     if database_url:
-        # Heroku may provide postgres:// URLs; SQLAlchemy expects postgresql://.
+        # Some providers use postgres:// while SQLAlchemy expects postgresql://.
         if database_url.startswith("postgres://"):
             return database_url.replace("postgres://", "postgresql://", 1)
         return database_url

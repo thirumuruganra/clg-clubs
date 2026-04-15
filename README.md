@@ -65,91 +65,18 @@ The frontend application will start, usually at `http://localhost:5173`.
 - Review `./prd.md` for specific product requirements and architecture details.
 - Review `backend/app/` for the core API logic, routing, and database setup.
 
-## Heroku Deployment (Single App)
+## Local Environment Variables
 
-This repository can be deployed to Heroku as a single app by serving the built frontend from FastAPI.
-
-### 1. Prerequisites
-
-- Heroku CLI installed and authenticated.
-- Google OAuth credentials configured in Google Cloud Console.
-- Python version is defined in `backend/.python-version` (Heroku recommended format).
-
-### 2. Build Frontend and Copy into Backend
-
-From repository root:
+Create `backend/.env` with your local values. The app supports localhost by default.
 
 ```bash
-cd frontend
-npm install
-npm run build
-cd ..
+DATABASE_URL=postgresql+psycopg2://postgres:password@localhost:5432/wavc_app
+SECRET_KEY=change-me
 
-rm -rf backend/app/static
-mkdir -p backend/app/static
-cp -r frontend/dist/* backend/app/static/
-```
+FRONTEND_ORIGIN=http://localhost:5173
+FRONTEND_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+CORS_ALLOW_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
-### 3. Create Heroku App and Database
-
-```bash
-cd backend
-heroku create your-app-name
-heroku addons:create heroku-postgresql:essential-0 -a your-app-name
-```
-
-### 4. Configure Environment Variables
-
-Use the keys in `backend/.env.example`.
-
-Example:
-
-```bash
-heroku config:set SECRET_KEY=$(openssl rand -hex 32) -a your-app-name
-heroku config:set FRONTEND_ORIGIN=https://your-app-name.herokuapp.com -a your-app-name
-heroku config:set FRONTEND_ALLOWED_ORIGINS=https://your-app-name.herokuapp.com,http://localhost:5173,http://127.0.0.1:5173 -a your-app-name
-heroku config:set CORS_ALLOW_ORIGINS=https://your-app-name.herokuapp.com,http://localhost:5173,http://127.0.0.1:5173 -a your-app-name
-heroku config:set GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com -a your-app-name
-heroku config:set GOOGLE_CLIENT_SECRET=your-google-client-secret -a your-app-name
-
-# Supabase Storage bucket for event posters
-heroku config:set SUPABASE_URL=https://your-project-id.supabase.co -a your-app-name
-heroku config:set SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key -a your-app-name
-heroku config:set SUPABASE_STORAGE_BUCKET=event-posters -a your-app-name
-
-# Optional tuning (defaults shown)
-heroku config:set EVENT_POSTER_MAX_BYTES=2097152 -a your-app-name
-heroku config:set POSTER_CLEANUP_INTERVAL_MINUTES=15 -a your-app-name
-```
-
-`FRONTEND_ORIGIN` is required for attendance QR links. The backend does not fall back to localhost, and startup will fail if this value is missing or invalid.
-
-Event posters are uploaded to a Supabase Storage bucket. The frontend compresses poster files using `browser-image-compression` before upload (JPEG/PNG/WebP, up to 2 MB by default). The backend stores each poster with a unique object path and long cache-control so browser caching works automatically.
-
-After an event ends, a background cleanup job deletes poster objects from Supabase Storage and clears the event poster URL. Cleanup runs every 15 minutes by default and can be tuned via `POSTER_CLEANUP_INTERVAL_MINUTES`.
-
-For local backend runs, set `FRONTEND_ORIGIN=http://localhost:5173` (or your local frontend origin).
-
-`DATABASE_URL` is automatically provided by the Heroku Postgres add-on.
-
-### 5. Set Google OAuth Redirects
-
-In Google Cloud Console OAuth client settings:
-
-- Authorized JavaScript origin: `https://your-app-name.herokuapp.com`
-- Authorized redirect URI: `https://your-app-name.herokuapp.com/api/auth/callback`
-
-### 6. Deploy Backend Folder
-
-From repository root:
-
-```bash
-git subtree push --prefix backend heroku HEAD:main
-```
-
-### 7. Verify
-
-```bash
-heroku logs --tail -a your-app-name
-heroku open -a your-app-name
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
