@@ -24,7 +24,9 @@ const ClubProfile = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState('');
+  const [isLogoDragActive, setIsLogoDragActive] = useState(false);
   const logoInputRef = useRef(null);
+  const logoDragCounterRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -49,27 +51,24 @@ const ClubProfile = () => {
     return res.json();
   };
 
-  const onSelectLogoFile = (event) => {
-    const selectedFile = event.target.files?.[0];
+  const setSelectedLogoFile = (selectedFile) => {
     if (!selectedFile) {
       setLogoFile(null);
       setLogoPreview((previous) => {
         if (previous) URL.revokeObjectURL(previous);
         return '';
       });
-      return;
+      return true;
     }
 
     if (!ALLOWED_LOGO_TYPES.includes(selectedFile.type)) {
       setFormError('Logo must be JPEG, PNG, or WebP.');
-      event.target.value = '';
-      return;
+      return false;
     }
 
     if (selectedFile.size > CLUB_LOGO_MAX_SIZE_BYTES) {
       setFormError('Logo must be 2 MB or smaller.');
-      event.target.value = '';
-      return;
+      return false;
     }
 
     setFormError('');
@@ -78,10 +77,46 @@ const ClubProfile = () => {
       if (previous) URL.revokeObjectURL(previous);
       return URL.createObjectURL(selectedFile);
     });
+    return true;
+  };
+
+  const onSelectLogoFile = (event) => {
+    const selectedFile = event.target.files?.[0];
+    const isValid = setSelectedLogoFile(selectedFile || null);
+    if (!isValid) {
+      event.target.value = '';
+    }
   };
 
   const openLogoFilePicker = () => {
     logoInputRef.current?.click();
+  };
+
+  const handleLogoDragEnter = (event) => {
+    event.preventDefault();
+    logoDragCounterRef.current += 1;
+    setIsLogoDragActive(true);
+  };
+
+  const handleLogoDragOver = (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleLogoDragLeave = (event) => {
+    event.preventDefault();
+    logoDragCounterRef.current = Math.max(0, logoDragCounterRef.current - 1);
+    if (logoDragCounterRef.current === 0) {
+      setIsLogoDragActive(false);
+    }
+  };
+
+  const handleLogoDrop = (event) => {
+    event.preventDefault();
+    logoDragCounterRef.current = 0;
+    setIsLogoDragActive(false);
+    const droppedFile = event.dataTransfer.files?.[0];
+    void setSelectedLogoFile(droppedFile || null);
   };
 
   const fetchClub = useCallback(async () => {
@@ -243,7 +278,17 @@ const ClubProfile = () => {
           {formError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{formError}</p>}
           {successMessage && <p className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-500">{successMessage}</p>}
 
-          <div className="border border-dashed border-[#e5e7eb] dark:border-[#233648] rounded-xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
+          <div
+            className={`rounded-xl border border-dashed p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8 transition-colors ${
+              isLogoDragActive
+                ? 'border-primary bg-primary/5'
+                : 'border-[#e5e7eb] dark:border-[#233648]'
+            }`}
+            onDragEnter={handleLogoDragEnter}
+            onDragOver={handleLogoDragOver}
+            onDragLeave={handleLogoDragLeave}
+            onDrop={handleLogoDrop}
+          >
             <button
               type="button"
               onClick={openLogoFilePicker}
@@ -294,6 +339,7 @@ const ClubProfile = () => {
                 </button>
                 <span className="text-xs text-[#637588] dark:text-[#92adc9] truncate max-w-64">{logoFile ? logoFile.name : 'No new file selected'}</span>
               </div>
+              <p className="text-xs text-[#637588] dark:text-[#92adc9] mt-2">or drag and drop an image here</p>
             </div>
           </div>
 

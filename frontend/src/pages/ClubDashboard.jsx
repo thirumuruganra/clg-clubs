@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import DatePicker from 'react-datepicker';
@@ -296,6 +296,9 @@ const ClubDashboard = () => {
   const [newPosterPreview, setNewPosterPreview] = useState('');
   const [creating, setCreating] = useState(false);
   const [creatingPoster, setCreatingPoster] = useState(false);
+  const [isCreatePosterDragActive, setIsCreatePosterDragActive] = useState(false);
+  const newPosterInputRef = useRef(null);
+  const createPosterDragCounterRef = useRef(0);
 
   // Edit Modal
   const [editEvent, setEditEvent] = useState(null);
@@ -303,6 +306,9 @@ const ClubDashboard = () => {
   const [editPosterPreview, setEditPosterPreview] = useState('');
   const [editing, setEditing] = useState(false);
   const [editingPoster, setEditingPoster] = useState(false);
+  const [isEditPosterDragActive, setIsEditPosterDragActive] = useState(false);
+  const editPosterInputRef = useRef(null);
+  const editPosterDragCounterRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -337,6 +343,45 @@ const ClubDashboard = () => {
       if (previous) URL.revokeObjectURL(previous);
       return URL.createObjectURL(file);
     });
+  };
+
+  const openCreatePosterPicker = () => {
+    newPosterInputRef.current?.click();
+  };
+
+  const openEditPosterPicker = () => {
+    editPosterInputRef.current?.click();
+  };
+
+  const handlePosterDragEnter = (event, setDragActive, dragCounterRef) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current += 1;
+    setDragActive(true);
+  };
+
+  const handlePosterDragOver = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handlePosterDragLeave = (event, setDragActive, dragCounterRef) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) {
+      setDragActive(false);
+    }
+  };
+
+  const handlePosterDrop = (event, setDragActive, dragCounterRef, setFile, setPreview, setError) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current = 0;
+    setDragActive(false);
+    const droppedFile = event.dataTransfer.files?.[0] || null;
+    setPosterSelection(droppedFile, setFile, setPreview, setError);
   };
 
   const compressPosterFile = async (posterFile) => {
@@ -376,6 +421,11 @@ const ClubDashboard = () => {
   const resetCreateEventForm = () => {
     setNewEvent(EMPTY_EVENT_FORM);
     setNewPosterFile(null);
+    createPosterDragCounterRef.current = 0;
+    setIsCreatePosterDragActive(false);
+    if (newPosterInputRef.current) {
+      newPosterInputRef.current.value = '';
+    }
     setNewPosterPreview((previous) => {
       if (previous) URL.revokeObjectURL(previous);
       return '';
@@ -525,6 +575,11 @@ const ClubDashboard = () => {
   };
 
   const openEditModal = (event) => {
+    editPosterDragCounterRef.current = 0;
+    setIsEditPosterDragActive(false);
+    if (editPosterInputRef.current) {
+      editPosterInputRef.current.value = '';
+    }
     setEditPosterFile(null);
     setEditPosterPreview((previous) => {
       if (previous) URL.revokeObjectURL(previous);
@@ -594,6 +649,11 @@ const ClubDashboard = () => {
         setEditError('');
         setEditEvent(null);
         setEditPosterFile(null);
+        editPosterDragCounterRef.current = 0;
+        setIsEditPosterDragActive(false);
+        if (editPosterInputRef.current) {
+          editPosterInputRef.current.value = '';
+        }
         setEditPosterPreview((previous) => {
           if (previous) URL.revokeObjectURL(previous);
           return '';
@@ -1142,6 +1202,11 @@ const ClubDashboard = () => {
               onOpenEditModal={openEditModal} 
               onOpenCreateModal={(date) => { 
                 setNewEvent({ ...EMPTY_EVENT_FORM, start_time: date, end_time: new Date(date.getTime() + 60*60*1000) }); 
+                createPosterDragCounterRef.current = 0;
+                setIsCreatePosterDragActive(false);
+                if (newPosterInputRef.current) {
+                  newPosterInputRef.current.value = '';
+                }
                 setNewPosterFile(null);
                 setNewPosterPreview((previous) => {
                   if (previous) URL.revokeObjectURL(previous);
@@ -1313,12 +1378,41 @@ const ClubDashboard = () => {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Poster (JPEG/PNG/WebP, up to 2 MB after compression)</label>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={(event) => setPosterSelection(event.target.files?.[0] || null, setNewPosterFile, setNewPosterPreview, setCreateError)}
-                    className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-primary file:font-semibold hover:file:bg-primary/20"
-                  />
+                  <div
+                    className={`rounded-xl border-2 border-dashed p-4 transition-colors ${
+                      isCreatePosterDragActive
+                        ? 'border-primary bg-primary/5'
+                        : 'border-[#e5e7eb] dark:border-[#233648] bg-[#f8fafc] dark:bg-[#0f1720]/40'
+                    }`}
+                    onDragEnter={(event) => handlePosterDragEnter(event, setIsCreatePosterDragActive, createPosterDragCounterRef)}
+                    onDragOver={handlePosterDragOver}
+                    onDragLeave={(event) => handlePosterDragLeave(event, setIsCreatePosterDragActive, createPosterDragCounterRef)}
+                    onDrop={(event) => handlePosterDrop(event, setIsCreatePosterDragActive, createPosterDragCounterRef, setNewPosterFile, setNewPosterPreview, setCreateError)}
+                  >
+                    <input
+                      ref={newPosterInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(event) => {
+                        const selectedFile = event.target.files?.[0] || null;
+                        setPosterSelection(selectedFile, setNewPosterFile, setNewPosterPreview, setCreateError);
+                        event.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={openCreatePosterPicker}
+                        className="touch-target inline-flex items-center gap-2 rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium cursor-pointer hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">upload</span>
+                        Choose Poster
+                      </button>
+                      <span className="text-xs text-[#637588] dark:text-[#92adc9] truncate max-w-64">{newPosterFile ? newPosterFile.name : 'No file selected'}</span>
+                    </div>
+                    <p className="text-xs text-[#637588] dark:text-[#92adc9] mt-2">or drag and drop an image here</p>
+                  </div>
                   {newPosterPreview && (
                     <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
                       <img src={newPosterPreview} alt="Poster preview" className="h-full w-full object-cover" />
@@ -1572,12 +1666,41 @@ const ClubDashboard = () => {
               </div>
               <div>
                 <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Replace Event Poster (optional)</label>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(event) => setPosterSelection(event.target.files?.[0] || null, setEditPosterFile, setEditPosterPreview, setEditError)}
-                  className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-primary file:font-semibold hover:file:bg-primary/20"
-                />
+                <div
+                  className={`rounded-xl border-2 border-dashed p-4 transition-colors ${
+                    isEditPosterDragActive
+                      ? 'border-primary bg-primary/5'
+                      : 'border-[#e5e7eb] dark:border-[#233648] bg-[#f8fafc] dark:bg-[#0f1720]/40'
+                  }`}
+                  onDragEnter={(event) => handlePosterDragEnter(event, setIsEditPosterDragActive, editPosterDragCounterRef)}
+                  onDragOver={handlePosterDragOver}
+                  onDragLeave={(event) => handlePosterDragLeave(event, setIsEditPosterDragActive, editPosterDragCounterRef)}
+                  onDrop={(event) => handlePosterDrop(event, setIsEditPosterDragActive, editPosterDragCounterRef, setEditPosterFile, setEditPosterPreview, setEditError)}
+                >
+                  <input
+                    ref={editPosterInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(event) => {
+                      const selectedFile = event.target.files?.[0] || null;
+                      setPosterSelection(selectedFile, setEditPosterFile, setEditPosterPreview, setEditError);
+                      event.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={openEditPosterPicker}
+                      className="touch-target inline-flex items-center gap-2 rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium cursor-pointer hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">upload</span>
+                      Choose Poster
+                    </button>
+                    <span className="text-xs text-[#637588] dark:text-[#92adc9] truncate max-w-64">{editPosterFile ? editPosterFile.name : 'No new file selected'}</span>
+                  </div>
+                  <p className="text-xs text-[#637588] dark:text-[#92adc9] mt-2">or drag and drop an image here</p>
+                </div>
                 {editPosterPreview ? (
                   <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
                     <img src={editPosterPreview} alt="Updated poster preview" className="h-full w-full object-cover" />

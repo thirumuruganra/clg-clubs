@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
@@ -18,8 +18,11 @@ const ClubSetup = () => {
   });
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState('');
+  const [isLogoDragActive, setIsLogoDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const logoInputRef = useRef(null);
+  const logoDragCounterRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -42,27 +45,24 @@ const ClubSetup = () => {
     }
   };
 
-  const onSelectLogoFile = (event) => {
-    const selectedFile = event.target.files?.[0];
+  const setSelectedLogoFile = (selectedFile) => {
     if (!selectedFile) {
       setLogoFile(null);
       setLogoPreview((previous) => {
         if (previous) URL.revokeObjectURL(previous);
         return '';
       });
-      return;
+      return true;
     }
 
     if (!ALLOWED_LOGO_TYPES.includes(selectedFile.type)) {
       setFormError('Logo must be JPEG, PNG, or WebP.');
-      event.target.value = '';
-      return;
+      return false;
     }
 
     if (selectedFile.size > CLUB_LOGO_MAX_SIZE_BYTES) {
       setFormError('Logo must be 2 MB or smaller.');
-      event.target.value = '';
-      return;
+      return false;
     }
 
     setFormError('');
@@ -71,6 +71,46 @@ const ClubSetup = () => {
       if (previous) URL.revokeObjectURL(previous);
       return URL.createObjectURL(selectedFile);
     });
+    return true;
+  };
+
+  const onSelectLogoFile = (event) => {
+    const selectedFile = event.target.files?.[0];
+    const isValid = setSelectedLogoFile(selectedFile || null);
+    if (!isValid) {
+      event.target.value = '';
+    }
+  };
+
+  const openLogoFilePicker = () => {
+    logoInputRef.current?.click();
+  };
+
+  const handleLogoDragEnter = (event) => {
+    event.preventDefault();
+    logoDragCounterRef.current += 1;
+    setIsLogoDragActive(true);
+  };
+
+  const handleLogoDragOver = (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleLogoDragLeave = (event) => {
+    event.preventDefault();
+    logoDragCounterRef.current = Math.max(0, logoDragCounterRef.current - 1);
+    if (logoDragCounterRef.current === 0) {
+      setIsLogoDragActive(false);
+    }
+  };
+
+  const handleLogoDrop = (event) => {
+    event.preventDefault();
+    logoDragCounterRef.current = 0;
+    setIsLogoDragActive(false);
+    const droppedFile = event.dataTransfer.files?.[0];
+    void setSelectedLogoFile(droppedFile || null);
   };
 
   if (loading) return (
@@ -154,7 +194,17 @@ const ClubSetup = () => {
         <form onSubmit={handleSubmit} className="space-y-8">
           {formError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{formError}</p>}
           {/* Logo Upload Area */}
-          <div className="border border-dashed border-[#e5e7eb] dark:border-[#233648] rounded-xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
+          <div
+            className={`rounded-xl border border-dashed p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8 transition-colors ${
+              isLogoDragActive
+                ? 'border-primary bg-primary/5'
+                : 'border-[#e5e7eb] dark:border-[#233648]'
+            }`}
+            onDragEnter={handleLogoDragEnter}
+            onDragOver={handleLogoDragOver}
+            onDragLeave={handleLogoDragLeave}
+            onDrop={handleLogoDrop}
+          >
             <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#637588]/30 flex items-center justify-center shrink-0 bg-[#f0f2f4] dark:bg-[#233648]">
               {logoPreview || user?.picture ? (
                 <img src={logoPreview || user?.picture} alt="Logo" className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
@@ -165,19 +215,25 @@ const ClubSetup = () => {
             <div className="flex-1">
               <h3 className="text-lg font-bold mb-1">Upload Club Logo</h3>
               <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-3">If you skip upload, your Google profile picture will be used. JPG, PNG, WebP up to 2 MB.</p>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={onSelectLogoFile}
+                className="hidden"
+              />
               <div className="flex items-center gap-3">
-                <label className="touch-target inline-flex items-center gap-2 rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium cursor-pointer hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
+                <button
+                  type="button"
+                  onClick={openLogoFilePicker}
+                  className="touch-target inline-flex items-center gap-2 rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium cursor-pointer hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+                >
                   <span className="material-symbols-outlined text-[18px]">upload</span>
                   Select File
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={onSelectLogoFile}
-                    className="hidden"
-                  />
-                </label>
+                </button>
                 <span className="text-xs text-[#637588] dark:text-[#92adc9] truncate max-w-64">{logoFile ? logoFile.name : 'No file selected'}</span>
               </div>
+              <p className="text-xs text-[#637588] dark:text-[#92adc9] mt-2">or drag and drop an image here</p>
             </div>
           </div>
 
