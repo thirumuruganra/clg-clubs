@@ -282,7 +282,6 @@ const ClubDashboard = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createError, setCreateError] = useState('');
   const [editError, setEditError] = useState('');
   const [tableError, setTableError] = useState('');
@@ -496,7 +495,7 @@ const ClubDashboard = () => {
           setTableError(`Event created, but poster upload failed: ${posterUploadError}`);
         }
         void fetchData();
-        setCreateModalOpen(false);
+        setActiveTab('dashboard');
       } else {
         const data = await res.json();
         setCreateError(data.detail || 'Failed to create event.');
@@ -1010,6 +1009,7 @@ const ClubDashboard = () => {
     { label: 'Dashboard', icon: 'dashboard', tab: 'dashboard' },
     { label: 'Followers', icon: 'groups', tab: 'followers' },
     { label: 'Event Management', icon: 'event', tab: 'events' },
+    { label: 'Create New Event', icon: 'add_circle', tab: 'create-event' },
   ];
 
   const clubIconUrl = getClubIconUrl(club);
@@ -1147,7 +1147,8 @@ const ClubDashboard = () => {
                   if (previous) URL.revokeObjectURL(previous);
                   return '';
                 });
-                setCreateModalOpen(true); 
+                setCreateError('');
+                setActiveTab('create-event');
               }} 
             />
           </div>
@@ -1210,116 +1211,29 @@ const ClubDashboard = () => {
               )}
             </div>
           </div>
-        ) : (
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {/* Header */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">Event Management</h1>
-              <p className="text-[#637588] dark:text-[#92adc9] mt-1">Create, edit, and track participation for club activities.</p>
-            </div>
-            <div className="flex gap-3 w-full sm:w-auto">
-              <button onClick={() => document.getElementById('quickCreateTitle')?.focus()} className="touch-target flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-                <span className="material-symbols-outlined text-[18px]">add</span> Create New Event
-              </button>
-            </div>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-8">
-            {[
-              { label: 'Total Upcoming Events', value: totalEvents, icon: 'event_available', badge: `+${Math.min(totalEvents, 2)} this week`, color: 'primary' },
-              { label: 'Total Active Registrations', value: totalRSVPs, icon: 'group', badge: '+15%', color: 'primary' },
-              { label: 'Avg. Attendance Rate', value: `${attendanceRate}%`, icon: 'trending_up', badge: '+5%', color: 'primary' },
-            ].map((stat, i) => (
-              <div key={i} className="bg-white dark:bg-[#1a2632] rounded-xl p-4 sm:p-6 border border-[#e5e7eb] dark:border-[#233648]">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-2 rounded-lg bg-primary/10"><span className="material-symbols-outlined text-primary text-[24px]">{stat.icon}</span></div>
-                  <span className="text-xs font-medium text-green-400 bg-green-400/10 px-2 py-1 rounded-full flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">trending_up</span>{stat.badge}
-                  </span>
+        ) : activeTab === 'create-event' ? (
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            <div className="mx-auto max-w-4xl">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold">Create New Event</h1>
+                  <p className="text-[#637588] dark:text-[#92adc9] mt-1">Publish a new club event with schedule, details, and poster.</p>
                 </div>
-                <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-1">{stat.label}</p>
-                <p className="text-2xl sm:text-3xl font-bold">{stat.value}</p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('dashboard')}
+                  className="touch-target inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#1a2632] text-sm font-bold hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                  Back to Dashboard
+                </button>
               </div>
-            ))}
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-            {/* Events Table */}
-            <div className="col-span-1 lg:col-span-2">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Upcoming Event Registration Tracker</h2>
-              </div>
-              {tableError && <p className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{tableError}</p>}
-              <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] overflow-hidden table-scroll">
-                <table className="w-full min-w-180">
-                  <thead>
-                    <tr className="border-b border-[#e5e7eb] dark:border-[#233648]">
-                      {['Event Name', 'Category', 'Date', 'Registered', 'Actions'].map(h => (
-                        <th key={h} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9]">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {events.length === 0 && (
-                      <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[#637588] italic">No events yet. Create your first event!</td></tr>
-                    )}
-                    {events.filter(e => eventMatchesSearch(e, searchQuery)).map(event => (
-                      <tr key={event.id} className="border-b border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f9fafb] dark:hover:bg-[#233648]/50 transition-colors">
-                        <td className="px-4 py-3 cursor-pointer group" onClick={() => openRsvpModal(event)}>
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-12.5 rounded-lg bg-[#0f1720] shrink-0 overflow-hidden">
-                              {event.image_url ? <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" /> : null}
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold group-hover:text-primary transition-colors">{event.title}</p>
-                              <p className="text-xs text-[#637588] dark:text-[#92adc9]">{event.location || 'No location'}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${event.tag === 'TECH' ? 'bg-primary/10 text-primary' : 'bg-orange-500/10 text-orange-400'}`}>
-                            {event.tag || 'General'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm">{event.start_time ? new Date(event.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold">{event.rsvp_count || 0}</span>
-                            <div className="w-16 h-1.5 rounded-full bg-[#233648] overflow-hidden">
-                              <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${Math.min(100, (event.rsvp_count || 0) / 2)}%` }}></div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-2">
-                            <button
-                              aria-label={`Attendance QR for ${event.title}`}
-                              onClick={() => openQrModal(event)}
-                              className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${event.attendance_qr_open ? 'bg-green-500/15 hover:bg-green-500/25' : 'hover:bg-[#233648]'}`}
-                            >
-                              <span className={`material-symbols-outlined text-[18px] ${event.attendance_qr_open ? 'text-green-500' : 'text-[#637588]'}`}>qr_code_2</span>
-                            </button>
-                            <button aria-label={`Edit ${event.title}`} onClick={() => openEditModal(event)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[18px] text-[#637588]">edit</span></button>
-                            <button aria-label={`Delete ${event.title}`} onClick={() => setDeleteTarget(event)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-red-400">delete</span></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Quick Create */}
-            <div>
-              <h2 className="text-xl font-bold mb-4">Quick Create</h2>
-              <form onSubmit={handleCreateEvent} className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] p-5 space-y-4">
+              <form onSubmit={handleCreateEvent} className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] p-5 sm:p-6 space-y-4">
                 {createError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{createError}</p>}
                 <div>
                   <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Title</label>
-                  <input id="quickCreateTitle" type="text" required value={newEvent.title} onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
+                  <input type="text" required value={newEvent.title} onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
                     placeholder="e.g. Winter Coding Bootcamp"
                     className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
                 </div>
@@ -1415,7 +1329,7 @@ const ClubDashboard = () => {
                   <input type="checkbox" id="is_paid" checked={newEvent.is_paid || false} onChange={e => setNewEvent(p => ({ ...p, is_paid: e.target.checked }))} className="w-4 h-4 text-blue-500 bg-gray-100 dark:bg-[#1a2632] border-gray-300 dark:border-[#34485c] rounded-full focus:ring-blue-500 focus:ring-2 cursor-pointer" />
                   <label htmlFor="is_paid" className="text-sm font-medium text-[#111418] dark:text-white">Is this a paid event?</label>
                 </div>
-                
+
                 {newEvent.is_paid && (
                   <div className="space-y-4">
                     <div>
@@ -1439,162 +1353,118 @@ const ClubDashboard = () => {
                   </div>
                 )}
                 <button type="submit" disabled={creating || creatingPoster}
-                  className="w-full py-3 rounded-xl bg-white dark:bg-[#233648] text-[#111418] dark:text-white font-bold text-sm border border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f0f2f4] dark:hover:bg-[#34485c] transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                  className="w-full py-3 rounded-xl bg-primary text-white font-bold text-sm border border-primary hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
                   {creating ? 'Publishing...' : creatingPoster ? 'Uploading poster...' : 'Publish Event'}
                   {!(creating || creatingPoster) && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
                 </button>
               </form>
             </div>
           </div>
+        ) : (
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {/* Header */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold">Event Management</h1>
+              <p className="text-[#637588] dark:text-[#92adc9] mt-1">Create, edit, and track participation for club activities.</p>
+            </div>
+            <div className="flex gap-3 w-full sm:w-auto">
+              <button onClick={() => setActiveTab('create-event')} className="touch-target flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+                <span className="material-symbols-outlined text-[18px]">add</span> Create New Event
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-8">
+            {[
+              { label: 'Total Upcoming Events', value: totalEvents, icon: 'event_available', badge: `+${Math.min(totalEvents, 2)} this week`, color: 'primary' },
+              { label: 'Total Active Registrations', value: totalRSVPs, icon: 'group', badge: '+15%', color: 'primary' },
+              { label: 'Avg. Attendance Rate', value: `${attendanceRate}%`, icon: 'trending_up', badge: '+5%', color: 'primary' },
+            ].map((stat, i) => (
+              <div key={i} className="bg-white dark:bg-[#1a2632] rounded-xl p-4 sm:p-6 border border-[#e5e7eb] dark:border-[#233648]">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10"><span className="material-symbols-outlined text-primary text-[24px]">{stat.icon}</span></div>
+                  <span className="text-xs font-medium text-green-400 bg-green-400/10 px-2 py-1 rounded-full flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">trending_up</span>{stat.badge}
+                  </span>
+                </div>
+                <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-1">{stat.label}</p>
+                <p className="text-2xl sm:text-3xl font-bold">{stat.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:gap-8">
+            {/* Events Table */}
+            <div className="col-span-1">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Upcoming Event Registration Tracker</h2>
+              </div>
+              {tableError && <p className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{tableError}</p>}
+              <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] overflow-hidden table-scroll">
+                <table className="w-full min-w-180">
+                  <thead>
+                    <tr className="border-b border-[#e5e7eb] dark:border-[#233648]">
+                      {['Event Name', 'Category', 'Date', 'Registered', 'Actions'].map(h => (
+                        <th key={h} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9]">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {events.length === 0 && (
+                      <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[#637588] italic">No events yet. Create your first event!</td></tr>
+                    )}
+                    {events.filter(e => eventMatchesSearch(e, searchQuery)).map(event => (
+                      <tr key={event.id} className="border-b border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f9fafb] dark:hover:bg-[#233648]/50 transition-colors">
+                        <td className="px-4 py-3 cursor-pointer group" onClick={() => openRsvpModal(event)}>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-12.5 rounded-lg bg-[#0f1720] shrink-0 overflow-hidden">
+                              {event.image_url ? <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" /> : null}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold group-hover:text-primary transition-colors">{event.title}</p>
+                              <p className="text-xs text-[#637588] dark:text-[#92adc9]">{event.location || 'No location'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${event.tag === 'TECH' ? 'bg-primary/10 text-primary' : 'bg-orange-500/10 text-orange-400'}`}>
+                            {event.tag || 'General'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{event.start_time ? new Date(event.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold">{event.rsvp_count || 0}</span>
+                            <div className="w-16 h-1.5 rounded-full bg-[#233648] overflow-hidden">
+                              <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${Math.min(100, (event.rsvp_count || 0) / 2)}%` }}></div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <button
+                              aria-label={`Attendance QR for ${event.title}`}
+                              onClick={() => openQrModal(event)}
+                              className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${event.attendance_qr_open ? 'bg-green-500/15 hover:bg-green-500/25' : 'hover:bg-[#233648]'}`}
+                            >
+                              <span className={`material-symbols-outlined text-[18px] ${event.attendance_qr_open ? 'text-green-500' : 'text-[#637588]'}`}>qr_code_2</span>
+                            </button>
+                            <button aria-label={`Edit ${event.title}`} onClick={() => openEditModal(event)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[18px] text-[#637588]">edit</span></button>
+                            <button aria-label={`Delete ${event.title}`} onClick={() => setDeleteTarget(event)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-red-400">delete</span></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
         )}
       </main>
-      {/* Create Event Modal */}
-      {createModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => { setCreateModalOpen(false); resetCreateEventForm(); }}>
-          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] overflow-y-auto modal-panel" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
-              <h2 className="text-xl font-bold">Create Event</h2>
-              <button aria-label="Close create event dialog" onClick={() => { setCreateModalOpen(false); resetCreateEventForm(); }} className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
-            </div>
-            <form onSubmit={handleCreateEvent} className="p-6 space-y-4">
-              {createError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{createError}</p>}
-              <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Title</label>
-                <input type="text" required value={newEvent.title} onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
-                  placeholder="e.g. Winter Coding Bootcamp"
-                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Short Description (max 100 words)</label>
-                <textarea value={newEvent.description} onChange={e => setNewEvent(p => ({ ...p, description: e.target.value }))}
-                  placeholder="Describe the event..."
-                  rows={3}
-                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] resize-none" />
-                <p className={`mt-1 text-xs ${isDescriptionTooLong(newEvent.description) ? 'text-red-500' : 'text-[#637588] dark:text-[#92adc9]'}`}>
-                  {countWords(newEvent.description)}/{DESCRIPTION_WORD_LIMIT} words
-                </p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Keywords (comma separated)</label>
-                <input type="text" value={newEvent.keywords} onChange={e => setNewEvent(p => ({ ...p, keywords: e.target.value }))}
-                  placeholder="e.g. workshop, python, machine learning"
-                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Start Time</label>
-                  <DatePicker
-                    selected={newEvent.start_time}
-                    onChange={(date) => setNewEvent((p) => ({ ...p, start_time: date }))}
-                    showTimeInput
-                    dateFormat="dd MMM yyyy, h:mm aa"
-                    placeholderText="Select start date and time"
-                    className="modern-datetime-input w-full"
-                    calendarClassName="modern-datepicker-calendar"
-                    popperClassName="modern-datepicker-popper"
-                    popperPlacement="bottom-start"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">End Time</label>
-                  <DatePicker
-                    selected={newEvent.end_time}
-                    onChange={(date) => setNewEvent((p) => ({ ...p, end_time: date }))}
-                    showTimeInput
-                    dateFormat="dd MMM yyyy, h:mm aa"
-                    placeholderText="Select end date and time"
-                    minDate={newEvent.start_time || undefined}
-                    className="modern-datetime-input w-full"
-                    calendarClassName="modern-datepicker-calendar"
-                    popperClassName="modern-datepicker-popper"
-                    popperPlacement="bottom-start"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Category</label>
-                  <div className="flex bg-[#f0f2f4] dark:bg-[#233648] rounded-lg p-1">
-                    {[
-                      { value: 'TECH', label: 'Tech' },
-                      { value: 'NON_TECH', label: 'Non-Tech' }
-                    ].map(tag => (
-                      <button type="button" key={tag.value} onClick={() => setNewEvent(p => ({ ...p, tag: tag.value }))}
-                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-colors ${
-                          newEvent.tag === tag.value
-                            ? 'bg-white dark:bg-[#34485c] text-[#111418] dark:text-white shadow-sm'
-                            : 'text-[#637588] dark:text-[#92adc9] hover:bg-black/5 dark:hover:bg-white/5'
-                        }`}>
-                        {tag.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Location</label>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
-                    <span className="material-symbols-outlined text-[18px] text-[#637588]">location_on</span>
-                    <input type="text" value={newEvent.location} onChange={e => setNewEvent(p => ({ ...p, location: e.target.value }))}
-                      placeholder="Add location"
-                      className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Poster (JPEG/PNG/WebP, up to 2 MB after compression)</label>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(event) => setPosterSelection(event.target.files?.[0] || null, setNewPosterFile, setNewPosterPreview, setCreateError)}
-                  className="block w-full text-sm file:mr-4 file:rounded-lg file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-primary file:font-semibold hover:file:bg-primary/20"
-                />
-                {newPosterPreview && (
-                  <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
-                    <img src={newPosterPreview} alt="Poster preview" className="h-full w-full object-cover" />
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <input type="checkbox" id="modal_is_paid" checked={newEvent.is_paid || false} onChange={e => setNewEvent(p => ({ ...p, is_paid: e.target.checked }))} className="w-4 h-4 text-blue-500 bg-gray-100 dark:bg-[#1a2632] border-gray-300 dark:border-[#34485c] rounded-full focus:ring-blue-500 focus:ring-2 cursor-pointer" />
-                <label htmlFor="modal_is_paid" className="text-sm font-medium text-[#111418] dark:text-white">Is this a paid event?</label>
-              </div>
-
-              {newEvent.is_paid && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Registration Fees</label>
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
-                      <span className="material-symbols-outlined text-[18px] text-[#637588]">payments</span>
-                      <input type="text" value={newEvent.registration_fees || ""} onChange={e => setNewEvent(p => ({ ...p, registration_fees: e.target.value }))}
-                        placeholder="e.g. ₹500"
-                        className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
-                      <span className="material-symbols-outlined text-[18px] text-[#637588]">link</span>
-                      <input type="url" value={newEvent.payment_link || ""} onChange={e => setNewEvent(p => ({ ...p, payment_link: e.target.value }))}
-                        placeholder="e.g. https://rzp.io/l/..."
-                        className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => { setCreateModalOpen(false); resetCreateEventForm(); }} className="px-4 py-2 rounded-xl text-sm font-bold text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">Cancel</button>
-                <button type="submit" disabled={creating || creatingPoster} className="px-6 py-2 rounded-xl bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-colors disabled:opacity-50">
-                  {creating ? 'Saving...' : creatingPoster ? 'Uploading poster...' : 'Create Event'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
       {/* Edit Event Modal */}
       {editEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setEditEvent(null)}>
