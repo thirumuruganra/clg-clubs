@@ -14,3 +14,4 @@ requests
 google-api-python-client
 google-auth-oauthlib
 python-jose[cryptography]
+alembic
