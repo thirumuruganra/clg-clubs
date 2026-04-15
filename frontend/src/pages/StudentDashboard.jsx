@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import StudentSidebar from '../components/StudentSidebar';
@@ -18,42 +19,38 @@ const eventMatchesSearch = (event, rawQuery) => {
 const StudentDashboard = () => {
     const { user, loading } = useAuth();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState('');
-    const [forYouEvents, setForYouEvents] = useState([]);
-    const [discoverEvents, setDiscoverEvents] = useState([]);
-    const [loadingEvents, setLoadingEvents] = useState(true);
-    const [activities, setActivities] = useState([]);
-    const [loadingActivities, setLoadingActivities] = useState(true);
     const [actionError, setActionError] = useState('');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    const fetchEvents = useCallback(async () => {
-        if (!user?.id) return;
+    const { data: recommendedData = {}, isLoading: loadingEvents } = useQuery({
+        queryKey: ['events-recommended', user?.id],
+        queryFn: async () => {
+            const res = await fetch(`${API}/api/events/feed?type=recommended&user_id=${user.id}`);
+            if (!res.ok) throw new Error('Failed to fetch events');
+            const data = await res.json();
+            warmPosterCacheForEvents(data);
+            return {
+                forYou: data,
+                discover: data.filter((event) => !event.is_from_followed_club)
+            };
+        },
+        enabled: !!user?.id,
+    });
+    
+    const forYouEvents = recommendedData.forYou || [];
+    const discoverEvents = recommendedData.discover || [];
 
-        try {
-            const recommendedRes = await fetch(`${API}/api/events/feed?type=recommended&user_id=${user.id}`);
-            if (recommendedRes.ok) {
-                const recommendedEvents = await recommendedRes.json();
-                warmPosterCacheForEvents(recommendedEvents);
-                setForYouEvents(recommendedEvents);
-                setDiscoverEvents(recommendedEvents.filter((event) => !event.is_from_followed_club));
-            }
-        } catch (err) {
-            console.error('Error fetching events:', err);
-        } finally {
-            setLoadingEvents(false);
-        }
-    }, [user]);
-
-    const fetchActivities = useCallback(async () => {
-        try {
+    const { data: activities = [], isLoading: loadingActivities } = useQuery({
+        queryKey: ['rsvps-activity'],
+        queryFn: async () => {
             const res = await fetch(`${API}/api/rsvp/rsvps/me/activity`);
-            if (res.ok) {
-                setActivities(await res.json());
-            }
-        } catch (err) { console.error('Error fetching activities:', err); }
-        finally { setLoadingActivities(false); }
-    }, []);
+            if (!res.ok) throw new Error('Failed to fetch activities');
+            return res.json();
+        },
+        enabled: !!user?.id,
+    });
 
     useEffect(() => {
         if (!loading && !user) {
@@ -68,18 +65,14 @@ const StudentDashboard = () => {
             navigate('/student/profile');
             return;
         }
-        if (user) {
-            void fetchEvents();
-            void fetchActivities();
-        }
-    }, [user, loading, navigate, fetchEvents, fetchActivities]);
+    }, [user, loading, navigate]);
 
     const handleRSVP = async (eventId, isRegistered) => {
         setActionError('');
         try {
             const method = isRegistered ? 'DELETE' : 'POST';
             const res = await fetch(`${API}/api/rsvp/events/${eventId}/rsvp`, { method });
-            if (res.ok) fetchEvents();
+            if (res.ok) queryClient.invalidateQueries({ queryKey: ['events-recommended', user?.id] });
             else {
                 const data = await res.json();
                 setActionError(data.detail || (isRegistered ? 'Failed to unregister.' : 'Already registered for this event.'));

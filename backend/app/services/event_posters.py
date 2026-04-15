@@ -3,7 +3,8 @@ import re
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.storage import (
     delete_storage_object,
@@ -105,15 +106,15 @@ def clear_event_poster(event: Event) -> bool:
     return True
 
 
-def cleanup_expired_event_posters(db: Session, now: Optional[datetime] = None, limit: int = 200) -> dict[str, int]:
+async def cleanup_expired_event_posters(db: AsyncSession, now: Optional[datetime] = None, limit: int = 200) -> dict[str, int]:
     current_time = now or datetime.utcnow()
-    events = (
-        db.query(Event)
-        .filter(Event.end_time <= current_time, Event.poster_storage_path.isnot(None))
+    result = await db.execute(
+        select(Event)
+        .where(Event.end_time <= current_time, Event.poster_storage_path.isnot(None))
         .order_by(Event.end_time.asc())
         .limit(limit)
-        .all()
     )
+    events = result.scalars().all()
 
     checked = len(events)
     deleted = 0
@@ -127,7 +128,7 @@ def cleanup_expired_event_posters(db: Session, now: Optional[datetime] = None, l
             failed += 1
 
     if deleted > 0:
-        db.commit()
+        await db.commit()
 
     return {
         "checked": checked,

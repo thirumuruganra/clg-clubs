@@ -4,8 +4,8 @@ authlib
 httpx
 python-multipart
 python-dotenv
-sqlalchemy
-psycopg2-binary
+sqlalchemy[asyncio]
+asyncpg
 cryptography
 pydantic
 itsdangerous

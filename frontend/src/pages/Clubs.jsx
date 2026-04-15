@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
@@ -9,35 +10,33 @@ const API = '';
 const Clubs = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [clubs, setClubs] = useState([]);
-  const [loadingClubs, setLoadingClubs] = useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [followError, setFollowError] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const fetchClubs = useCallback(async () => {
-    if (!user?.id) return;
-
-    try {
+  const { data: clubs = [], isLoading: loadingClubs } = useQuery({
+    queryKey: ['clubs', user?.id],
+    queryFn: async () => {
       const res = await fetch(`${API}/api/clubs/?user_id=${user.id}`);
-      if (res.ok) setClubs(await res.json());
-    } catch (err) { console.error('Error fetching clubs:', err); }
-    finally { setLoadingClubs(false); }
-  }, [user]);
+      if (!res.ok) throw new Error('Failed to fetch clubs');
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
 
   useEffect(() => {
     if (!loading && !user) { navigate('/login'); return; }
     if (user && (!user.batch || !user.department || !user.degree)) { navigate('/student/profile'); return; }
-    if (user) void fetchClubs();
-  }, [user, loading, navigate, fetchClubs]);
+  }, [user, loading, navigate]);
 
   const handleFollow = async (e, clubId) => {
     e.stopPropagation();
     setFollowError('');
     try {
       const res = await fetch(`${API}/api/follow/clubs/${clubId}/follow`, { method: 'POST' });
-      if (res.ok) fetchClubs();
+      if (res.ok) queryClient.invalidateQueries({ queryKey: ['clubs', user?.id] });
       else {
         const data = await res.json();
         setFollowError(data.detail || 'Could not follow this club right now.');
@@ -52,7 +51,7 @@ const Clubs = () => {
     e.stopPropagation();
     try {
       const res = await fetch(`${API}/api/follow/clubs/${clubId}/follow`, { method: 'DELETE' });
-      if (res.ok) fetchClubs();
+      if (res.ok) queryClient.invalidateQueries({ queryKey: ['clubs', user?.id] });
     } catch (err) { console.error(err); }
   };
 

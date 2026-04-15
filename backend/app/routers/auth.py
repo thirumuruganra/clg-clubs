@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.database import get_db
 from app.models.user import User
 from app.core.security import (
@@ -167,7 +168,7 @@ async def login_with_calendar_scope(request: Request):
 
 
 @router.get('/callback', name='auth_callback')
-async def auth_callback(request: Request, db: Session = Depends(get_db)):
+async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
     """
     Handles the callback from Google OAuth2.
     Sets a JWT cookie and redirects to frontend.
@@ -212,7 +213,8 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         role = "CLUB_ADMIN"
 
     # Upsert user
-    db_user = db.query(User).filter(User.email == email).first()
+    result = await db.execute(select(User).where(User.email == email))
+    db_user = result.scalar_one_or_none()
     user = cast(Any, db_user)
     if user is None:
         user = User(
@@ -224,15 +226,15 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
             picture=picture
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
     else:
         user.google_token = google_token
         user.google_scopes = google_scopes_json
         user.name = name
         user.picture = picture
         user.role = role
-        db.commit()
+        await db.commit()
 
     # Create JWT token
     jwt_token = create_access_token({
@@ -242,7 +244,6 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     })
 
     # Determine redirect URL
-    # Club admins should go to the club dashboard flow regardless of student profile completeness fields.
     redirect_url = request.session.pop("post_auth_redirect", None)
     if not redirect_url:
         user_role = str(getattr(user, "role", "") or "")
