@@ -1,27 +1,36 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
 import { AuthContext } from './auth-context';
 
 export function AuthProvider({ children }) {
-  const { data: user = null, isLoading: loading, refetch: refetchUser } = useQuery({
-    queryKey: ['authUser'],
-    queryFn: async () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUser = async () => {
+    try {
       const res = await fetch('/api/auth/me');
-      if (!res.ok) {
-        return null;
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+      } else {
+        setUser(null);
       }
-      return res.json();
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: false,
-  });
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
 
   const logout = () => {
     window.location.href = '/api/auth/logout';
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, refetchUser }}>
+    <AuthContext.Provider value={{ user, loading, logout, refetchUser: fetchUser }}>
       {children}
     </AuthContext.Provider>
   );

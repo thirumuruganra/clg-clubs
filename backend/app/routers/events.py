@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.concurrency import run_in_threadpool
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_, delete as sa_delete
+from sqlalchemy.orm import Session
+from sqlalchemy import or_
 import json
 import re
 import os
@@ -52,11 +51,11 @@ def _validate_short_description(description: Optional[str]) -> None:
         raise HTTPException(status_code=422, detail="Description must be 100 words or fewer")
 
 
-def _apply_event_search(stmt, search: Optional[str]):
+def _apply_event_search(query, search: Optional[str]):
     if not search or not search.strip():
-        return stmt
+        return query
     search_term = f"%{search.strip()}%"
-    return stmt.where(
+    return query.filter(
         or_(
             Event.title.ilike(search_term),
             Event.description.ilike(search_term),
@@ -84,6 +83,21 @@ def _tokenize_text(raw_text: Optional[str]) -> set[str]:
 def _build_attendance_checkin_url(event_id: int, qr_code: str) -> str:
     query = urlencode({"event_id": event_id, "qr": qr_code})
     return f"{FRONTEND_CHECKIN_BASE_URL}/student/attendance-checkin?{query}"
+
+
+def _require_admin_owned_event(event_id: int, db: Session, current_user: User) -> Event:
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if current_user.role != "CLUB_ADMIN":
+        raise HTTPException(status_code=403, detail="Only club admins can manage attendance QR")
+
+    club = db.query(Club).filter(Club.id == event.club_id).first()
+    if not club or club.admin_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only manage attendance QR for your own club events")
+
+    return event
 
 
 def _normalize_user_interests(interests: List[str]) -> set[str]:
@@ -114,75 +128,43 @@ def _calculate_recommendation_score(event: Event, interest_tokens: set[str], is_
     return score
 
 
-async def _require_admin_owned_event(event_id: int, db: AsyncSession, current_user: User) -> Event:
-    event_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = event_res.scalar_one_or_none()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-
-    if current_user.role != "CLUB_ADMIN":
-        raise HTTPException(status_code=403, detail="Only club admins can manage attendance QR")
-
-    club_res = await db.execute(select(Club).where(Club.id == event.club_id))
-    club = club_res.scalar_one_or_none()
-    if not club or club.admin_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You can only manage attendance QR for your own club events")
-
-    return event
-
-
-def _build_event_dict(event: Event, club_name: Optional[str], rsvp_count: int, **extras) -> dict:
-    return {
-        "id": event.id,
-        "club_id": event.club_id,
-        "club_name": club_name,
-        "title": event.title,
-        "description": event.description,
-        "location": event.location,
-        "start_time": event.start_time.isoformat() if event.start_time else None,
-        "end_time": event.end_time.isoformat() if event.end_time else None,
-        "tag": event.tag,
-        "image_url": event.image_url,
-        "keywords": event.keywords,
-        "payment_link": event.payment_link,
-        "is_paid": event.is_paid,
-        "registration_fees": event.registration_fees,
-        "rsvp_count": rsvp_count,
-        "attendance_qr_open": bool(event.attendance_qr_open),
-        **extras,
-    }
-
-
-async def _get_rsvp_count(db: AsyncSession, event_id: int) -> int:
-    res = await db.execute(
-        select(func.count()).select_from(RSVP).where(RSVP.event_id == event_id)
-    )
-    return res.scalar_one()
-
-
 @router.get("/all")
-async def get_all_events(search: Optional[str] = Query(None), db: AsyncSession = Depends(get_db)):
+def get_all_events(search: Optional[str] = Query(None), db: Session = Depends(get_db)):
     """Get all events (for calendar view)."""
-    stmt = select(Event).order_by(Event.start_time.asc())
-    stmt = _apply_event_search(stmt, search)
-    events_res = await db.execute(stmt)
-    events = events_res.scalars().all()
-
+    query = db.query(Event)
+    query = _apply_event_search(query, search)
+    events = query.order_by(Event.start_time.asc()).all()
     result = []
     for event in events:
-        club_res = await db.execute(select(Club).where(Club.id == event.club_id))
-        club = club_res.scalar_one_or_none()
-        rsvp_count = await _get_rsvp_count(db, event.id)
-        result.append(_build_event_dict(event, club.name if club else None, rsvp_count))
+        club = db.query(Club).filter(Club.id == event.club_id).first()
+        rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
+        result.append({
+            "id": event.id,
+            "club_id": event.club_id,
+            "club_name": club.name if club else None,
+            "title": event.title,
+            "description": event.description,
+            "location": event.location,
+            "start_time": event.start_time.isoformat() if event.start_time else None,
+            "end_time": event.end_time.isoformat() if event.end_time else None,
+            "tag": event.tag,
+            "image_url": event.image_url,
+            "keywords": event.keywords,
+            "payment_link": event.payment_link,
+            "is_paid": event.is_paid,
+            "registration_fees": event.registration_fees,
+            "rsvp_count": rsvp_count,
+            "attendance_qr_open": bool(event.attendance_qr_open),
+        })
     return result
 
 
 @router.get("/feed")
-async def get_event_feed(
+def get_event_feed(
     type: str = Query("following", pattern="^(following|discover|recommended)$"),
     user_id: Optional[int] = Query(None),
     search: Optional[str] = Query(None),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     """
     Get event feed.
@@ -194,40 +176,36 @@ async def get_event_feed(
     interest_tokens = set()
 
     if user_id:
-        follows_res = await db.execute(select(Follow).where(Follow.user_id == user_id))
-        followed_club_ids = [f.club_id for f in follows_res.scalars().all()]
-
-        user_res = await db.execute(select(User).where(User.id == user_id))
-        user = user_res.scalar_one_or_none()
+        followed_club_ids = [
+            f.club_id for f in db.query(Follow).filter(Follow.user_id == user_id).all()
+        ]
+        user = db.query(User).filter(User.id == user_id).first()
         if user:
             interest_tokens = _normalize_user_interests(_safe_json_list(user.interests))
 
     if not user_id:
-        stmt = select(Event).order_by(Event.start_time.asc())
-        stmt = _apply_event_search(stmt, search)
-        events_res = await db.execute(stmt)
-        events = events_res.scalars().all()
+        # If no user_id, return all events chronologically.
+        query = db.query(Event)
+        query = _apply_event_search(query, search)
+        events = query.order_by(Event.start_time.asc()).all()
     else:
         if type == "following":
             if not followed_club_ids:
                 return []
-            stmt = select(Event).where(Event.club_id.in_(followed_club_ids)).order_by(Event.start_time.asc())
-            stmt = _apply_event_search(stmt, search)
-            events_res = await db.execute(stmt)
-            events = events_res.scalars().all()
+            query = db.query(Event).filter(Event.club_id.in_(followed_club_ids))
+            query = _apply_event_search(query, search)
+            events = query.order_by(Event.start_time.asc()).all()
         elif type == "discover":
             if followed_club_ids:
-                stmt = select(Event).where(~Event.club_id.in_(followed_club_ids)).order_by(Event.start_time.asc())
+                query = db.query(Event).filter(~Event.club_id.in_(followed_club_ids))
             else:
-                stmt = select(Event).order_by(Event.start_time.asc())
-            stmt = _apply_event_search(stmt, search)
-            events_res = await db.execute(stmt)
-            events = events_res.scalars().all()
+                query = db.query(Event)
+            query = _apply_event_search(query, search)
+            events = query.order_by(Event.start_time.asc()).all()
         else:  # recommended
-            stmt = select(Event)
-            stmt = _apply_event_search(stmt, search)
-            events_res = await db.execute(stmt)
-            events = events_res.scalars().all()
+            query = db.query(Event)
+            query = _apply_event_search(query, search)
+            events = query.all()
             events = sorted(
                 events,
                 key=lambda event: (
@@ -238,81 +216,100 @@ async def get_event_feed(
 
     result = []
     for event in events:
-        club_res = await db.execute(select(Club).where(Club.id == event.club_id))
-        club = club_res.scalar_one_or_none()
-        rsvp_count = await _get_rsvp_count(db, event.id)
-
+        club = db.query(Club).filter(Club.id == event.club_id).first()
+        rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
         is_rsvped = False
         is_from_followed_club = event.club_id in followed_club_ids
         recommendation_score = 0.0
-
         if user_id:
-            rsvp_check_res = await db.execute(
-                select(RSVP).where(RSVP.event_id == event.id, RSVP.user_id == user_id)
-            )
-            is_rsvped = rsvp_check_res.scalar_one_or_none() is not None
+            is_rsvped = db.query(RSVP).filter(
+                RSVP.event_id == event.id, RSVP.user_id == user_id
+            ).first() is not None
             if type == "recommended":
-                recommendation_score = _calculate_recommendation_score(event, interest_tokens, is_from_followed_club)
+                recommendation_score = _calculate_recommendation_score(
+                    event,
+                    interest_tokens,
+                    is_from_followed_club,
+                )
 
-        result.append(_build_event_dict(
-            event, club.name if club else None, rsvp_count,
-            is_rsvped=is_rsvped,
-            is_from_followed_club=is_from_followed_club,
-            recommendation_score=recommendation_score,
-        ))
+        result.append({
+            "id": event.id,
+            "club_id": event.club_id,
+            "club_name": club.name if club else None,
+            "title": event.title,
+            "description": event.description,
+            "location": event.location,
+            "start_time": event.start_time.isoformat() if event.start_time else None,
+            "end_time": event.end_time.isoformat() if event.end_time else None,
+            "tag": event.tag,
+            "image_url": event.image_url,
+            "keywords": event.keywords,
+            "payment_link": event.payment_link,
+            "is_paid": event.is_paid,
+            "registration_fees": event.registration_fees,
+            "rsvp_count": rsvp_count,
+            "is_rsvped": is_rsvped,
+            "is_from_followed_club": is_from_followed_club,
+            "recommendation_score": recommendation_score,
+            "attendance_qr_open": bool(event.attendance_qr_open),
+        })
     return result
 
 
 @router.get("/{event_id}")
-async def get_event(event_id: int, user_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+def get_event(event_id: int, user_id: Optional[int] = Query(None), db: Session = Depends(get_db)):
     """Get a single event by ID."""
-    event_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = event_res.scalar_one_or_none()
+    event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    club_res = await db.execute(select(Club).where(Club.id == event.club_id))
-    club = club_res.scalar_one_or_none()
-    rsvp_count = await _get_rsvp_count(db, event.id)
+    club = db.query(Club).filter(Club.id == event.club_id).first()
+    rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
 
     is_rsvped = False
     if user_id:
-        rsvp_check_res = await db.execute(
-            select(RSVP).where(RSVP.event_id == event.id, RSVP.user_id == user_id)
-        )
-        is_rsvped = rsvp_check_res.scalar_one_or_none() is not None
+        is_rsvped = db.query(RSVP).filter(
+            RSVP.event_id == event.id, RSVP.user_id == user_id
+        ).first() is not None
 
     # Live activity: RSVPs in the last hour
     one_hour_ago = datetime.utcnow() - timedelta(hours=1)
-    recent_res = await db.execute(
-        select(func.count()).select_from(RSVP).where(
-            RSVP.event_id == event.id,
-            RSVP.created_at >= one_hour_ago
-        )
-    )
-    recent_rsvps = recent_res.scalar_one()
+    recent_rsvps = db.query(RSVP).filter(
+        RSVP.event_id == event.id,
+        RSVP.created_at >= one_hour_ago
+    ).count()
 
-    return _build_event_dict(
-        event, club.name if club else None, rsvp_count,
-        is_rsvped=is_rsvped,
-        recent_activity=recent_rsvps,
-    )
+    return {
+        "id": event.id,
+        "club_id": event.club_id,
+        "club_name": club.name if club else None,
+        "title": event.title,
+        "description": event.description,
+        "location": event.location,
+        "start_time": event.start_time.isoformat() if event.start_time else None,
+        "end_time": event.end_time.isoformat() if event.end_time else None,
+        "tag": event.tag,
+        "image_url": event.image_url,
+        "keywords": event.keywords,
+            "payment_link": event.payment_link,
+            "is_paid": event.is_paid,
+            "registration_fees": event.registration_fees,
+        "rsvp_count": rsvp_count,
+        "is_rsvped": is_rsvped,
+        "recent_activity": recent_rsvps,
+            "attendance_qr_open": bool(event.attendance_qr_open),
+    }
 
 
 @router.post("/")
-async def create_event(
-    event: EventCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
+def create_event(event: EventCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Create a new event. Only CLUB_ADMIN users who own the club can create events."""
     _validate_short_description(event.description)
 
     if current_user.role != "CLUB_ADMIN":
         raise HTTPException(status_code=403, detail="Only club admins can create events")
-
-    club_res = await db.execute(select(Club).where(Club.id == event.club_id))
-    club = club_res.scalar_one_or_none()
+    # Verify the club exists
+    club = db.query(Club).filter(Club.id == event.club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
     if club.admin_id != current_user.id:
@@ -333,28 +330,45 @@ async def create_event(
         registration_fees=event.registration_fees,
     )
     db.add(db_event)
-    await db.commit()
-    await db.refresh(db_event)
+    db.commit()
+    db.refresh(db_event)
 
-    return _build_event_dict(db_event, club.name, 0)
+    return {
+        "id": db_event.id,
+        "club_id": db_event.club_id,
+        "club_name": club.name,
+        "title": db_event.title,
+        "description": db_event.description,
+        "location": db_event.location,
+        "start_time": db_event.start_time.isoformat() if db_event.start_time else None,
+        "end_time": db_event.end_time.isoformat() if db_event.end_time else None,
+        "tag": db_event.tag,
+        "image_url": db_event.image_url,
+        "keywords": db_event.keywords,
+            "payment_link": db_event.payment_link,
+            "is_paid": db_event.is_paid,
+            "registration_fees": db_event.registration_fees,
+        "rsvp_count": 0,
+        "attendance_qr_open": bool(db_event.attendance_qr_open),
+    }
 
 
 @router.post("/{event_id}/poster")
 async def upload_event_poster(
     event_id: int,
     file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Upload or replace an event poster in Supabase Storage bucket."""
-    event = await _require_admin_owned_event(event_id, db, current_user)
+    event = _require_admin_owned_event(event_id, db, current_user)
 
     file_bytes = await file.read()
     if not file_bytes:
         raise HTTPException(status_code=400, detail="Poster file is empty")
 
     try:
-        poster_payload = await run_in_threadpool(replace_event_poster, event, file_bytes, file.content_type or "")
+        poster_payload = replace_event_poster(event, file_bytes, file.content_type or "")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -363,8 +377,8 @@ async def upload_event_poster(
             detail=f"Poster upload failed. Verify Supabase bucket settings. {exc}",
         ) from exc
 
-    await db.commit()
-    await db.refresh(event)
+    db.commit()
+    db.refresh(event)
 
     return {
         "status": "success",
@@ -376,22 +390,14 @@ async def upload_event_poster(
 
 
 @router.put("/{event_id}")
-async def update_event(
-    event_id: int,
-    event_update: EventUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
+def update_event(event_id: int, event_update: EventUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Update an existing event. Only the club admin who owns the event can update it."""
     _validate_short_description(event_update.description)
 
-    event_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = event_res.scalar_one_or_none()
+    event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-
-    club_res = await db.execute(select(Club).where(Club.id == event.club_id))
-    club = club_res.scalar_one_or_none()
+    club = db.query(Club).filter(Club.id == event.club_id).first()
     if not club or club.admin_id != current_user.id:
         raise HTTPException(status_code=403, detail="You can only update events for your own club")
 
@@ -415,13 +421,13 @@ async def update_event(
             pass
         elif not normalized_image_url:
             try:
-                await run_in_threadpool(clear_event_poster, event)
+                clear_event_poster(event)
             except RuntimeError as exc:
                 raise HTTPException(status_code=502, detail=f"Failed to delete existing poster: {exc}") from exc
         else:
             if event.poster_storage_path:
                 try:
-                    await run_in_threadpool(clear_event_poster, event)
+                    clear_event_poster(event)
                 except RuntimeError as exc:
                     raise HTTPException(status_code=502, detail=f"Failed to delete existing poster: {exc}") from exc
                 event.poster_deleted_at = None
@@ -435,30 +441,41 @@ async def update_event(
     if event_update.registration_fees is not None:
         event.registration_fees = event_update.registration_fees
 
-    await db.commit()
-    await db.refresh(event)
+    db.commit()
+    db.refresh(event)
 
-    # Refresh club reference after commit
-    club_res = await db.execute(select(Club).where(Club.id == event.club_id))
-    club = club_res.scalar_one_or_none()
-    rsvp_count = await _get_rsvp_count(db, event.id)
+    club = db.query(Club).filter(Club.id == event.club_id).first()
+    rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
 
-    return _build_event_dict(event, club.name if club else None, rsvp_count)
+    return {
+        "id": event.id,
+        "club_id": event.club_id,
+        "club_name": club.name if club else None,
+        "title": event.title,
+        "description": event.description,
+        "location": event.location,
+        "start_time": event.start_time.isoformat() if event.start_time else None,
+        "end_time": event.end_time.isoformat() if event.end_time else None,
+        "tag": event.tag,
+        "image_url": event.image_url,
+        "keywords": event.keywords,
+            "payment_link": event.payment_link,
+            "is_paid": event.is_paid,
+            "registration_fees": event.registration_fees,
+        "rsvp_count": rsvp_count,
+        "attendance_qr_open": bool(event.attendance_qr_open),
+    }
 
 
 @router.get("/{event_id}/attendance-qr")
-async def get_event_attendance_qr(
-    event_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
+def get_event_attendance_qr(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get attendance QR payload for an event (club admin owner only)."""
-    event = await _require_admin_owned_event(event_id, db, current_user)
+    event = _require_admin_owned_event(event_id, db, current_user)
 
     if not event.attendance_qr_code:
         event.attendance_qr_code = uuid.uuid4().hex
-        await db.commit()
-        await db.refresh(event)
+        db.commit()
+        db.refresh(event)
 
     return {
         "event_id": event.id,
@@ -468,20 +485,16 @@ async def get_event_attendance_qr(
 
 
 @router.post("/{event_id}/attendance-qr/open")
-async def open_event_attendance_qr(
-    event_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
+def open_event_attendance_qr(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Open attendance QR for student scans (club admin owner only)."""
-    event = await _require_admin_owned_event(event_id, db, current_user)
+    event = _require_admin_owned_event(event_id, db, current_user)
 
     if not event.attendance_qr_code:
         event.attendance_qr_code = uuid.uuid4().hex
 
     event.attendance_qr_open = True
-    await db.commit()
-    await db.refresh(event)
+    db.commit()
+    db.refresh(event)
 
     return {
         "status": "success",
@@ -492,16 +505,12 @@ async def open_event_attendance_qr(
 
 
 @router.post("/{event_id}/attendance-qr/close")
-async def close_event_attendance_qr(
-    event_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
+def close_event_attendance_qr(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Close attendance QR scans for an event (club admin owner only)."""
-    event = await _require_admin_owned_event(event_id, db, current_user)
+    event = _require_admin_owned_event(event_id, db, current_user)
 
     event.attendance_qr_open = False
-    await db.commit()
+    db.commit()
 
     return {
         "status": "success",
@@ -511,58 +520,43 @@ async def close_event_attendance_qr(
 
 
 @router.delete("/{event_id}")
-async def delete_event(
-    event_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
+def delete_event(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Delete an event. Only the club admin who owns the event can delete it."""
-    event_res = await db.execute(select(Event).where(Event.id == event_id))
-    event = event_res.scalar_one_or_none()
+    event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-
-    club_res = await db.execute(select(Club).where(Club.id == event.club_id))
-    club = club_res.scalar_one_or_none()
+    club = db.query(Club).filter(Club.id == event.club_id).first()
     if not club or club.admin_id != current_user.id:
         raise HTTPException(status_code=403, detail="You can only delete events for your own club")
 
     if event.poster_storage_path or event.image_url:
         try:
-            await run_in_threadpool(clear_event_poster, event)
+            clear_event_poster(event)
         except RuntimeError as exc:
             raise HTTPException(status_code=502, detail=f"Failed to delete event poster from storage: {exc}") from exc
 
     # Delete associated RSVPs first
-    await db.execute(
-        sa_delete(RSVP).where(RSVP.event_id == event_id)
-    )
-    await db.delete(event)
-    await db.commit()
+    db.query(RSVP).filter(RSVP.event_id == event_id).delete()
+    db.delete(event)
+    db.commit()
 
     return {"status": "success", "message": "Event deleted"}
 
 
 @router.get("/{event_id}/activity")
-async def get_event_activity(event_id: int, db: AsyncSession = Depends(get_db)):
+def get_event_activity(event_id: int, db: Session = Depends(get_db)):
     """Get live activity for an event (RSVP count in the last hour)."""
-    event_res = await db.execute(select(Event).where(Event.id == event_id))
-    if not event_res.scalar_one_or_none():
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
     one_hour_ago = datetime.utcnow() - timedelta(hours=1)
-    recent_res = await db.execute(
-        select(func.count()).select_from(RSVP).where(
-            RSVP.event_id == event_id,
-            RSVP.created_at >= one_hour_ago
-        )
-    )
-    recent_count = recent_res.scalar_one()
+    recent_count = db.query(RSVP).filter(
+        RSVP.event_id == event_id,
+        RSVP.created_at >= one_hour_ago
+    ).count()
 
-    total_res = await db.execute(
-        select(func.count()).select_from(RSVP).where(RSVP.event_id == event_id)
-    )
-    total_count = total_res.scalar_one()
+    total_count = db.query(RSVP).filter(RSVP.event_id == event_id).count()
 
     return {
         "event_id": event_id,

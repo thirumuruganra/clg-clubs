@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.schemas import UserUpdate
@@ -34,17 +33,15 @@ def _normalize_interest_values(interests: List[str]) -> List[str]:
         normalized.append(cleaned)
     return normalized
 
-
 @router.get("/{user_id}")
-async def read_user(user_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+def read_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
-
+    
     joined_clubs_list = _safe_json_list(user.joined_clubs)
     interests_list = _safe_json_list(user.interests)
-
+    
     return {
         "id": user.id,
         "email": user.email,
@@ -59,11 +56,9 @@ async def read_user(user_id: int, db: AsyncSession = Depends(get_db)):
         "interests": interests_list,
     }
 
-
 @router.put("/{user_id}")
-async def update_user(user_id: int, user_update: UserUpdate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -83,9 +78,9 @@ async def update_user(user_id: int, user_update: UserUpdate, db: AsyncSession = 
             raise HTTPException(status_code=422, detail="Please select at least 3 interests")
         user.interests = json.dumps(normalized_interests)
 
-    await db.commit()
-    await db.refresh(user)
-
+    db.commit()
+    db.refresh(user)
+    
     joined_clubs_list = _safe_json_list(user.joined_clubs)
     interests_list = _safe_json_list(user.interests)
     return {

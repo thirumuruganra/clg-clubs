@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.concurrency import run_in_threadpool
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.club import Club
 from app.models.follow import Follow
@@ -32,63 +30,49 @@ def _club_payload(club: Club, follower_count: int, is_following: bool = False):
     }
 
 
-async def _get_follower_count(db: AsyncSession, club_id: int) -> int:
-    res = await db.execute(
-        select(func.count()).select_from(Follow).where(Follow.club_id == club_id)
-    )
-    return res.scalar_one()
-
-
-async def _is_following(db: AsyncSession, user_id: int, club_id: int) -> bool:
-    res = await db.execute(
-        select(Follow).where(Follow.user_id == user_id, Follow.club_id == club_id)
-    )
-    return res.scalar_one_or_none() is not None
-
-
 @router.get("/")
-async def get_all_clubs(user_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+def get_all_clubs(user_id: Optional[int] = Query(None), db: Session = Depends(get_db)):
     """Get all clubs with follower count and follow status for current user."""
-    from sqlalchemy.orm import selectinload
-    clubs_res = await db.execute(select(Club).options(selectinload(Club.admin)))
-    clubs = clubs_res.scalars().all()
-
+    clubs = db.query(Club).all()
     result = []
     for club in clubs:
-        follower_count = await _get_follower_count(db, club.id)
-        following = False
+        follower_count = db.query(Follow).filter(Follow.club_id == club.id).count()
+        is_following = False
         if user_id:
-            following = await _is_following(db, user_id, club.id)
-        result.append(_club_payload(club, follower_count, following))
+            is_following = db.query(Follow).filter(
+                Follow.user_id == user_id, Follow.club_id == club.id
+            ).first() is not None
+
+        result.append(_club_payload(club, follower_count, is_following))
     return result
 
 
 @router.get("/{club_id}")
-async def get_club(club_id: int, user_id: Optional[int] = Query(None), db: AsyncSession = Depends(get_db)):
+def get_club(club_id: int, user_id: Optional[int] = Query(None), db: Session = Depends(get_db)):
     """Get a single club by ID."""
-    from sqlalchemy.orm import selectinload
-    res = await db.execute(select(Club).options(selectinload(Club.admin)).where(Club.id == club_id))
-    club = res.scalar_one_or_none()
+    club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
 
-    follower_count = await _get_follower_count(db, club.id)
-    following = False
+    follower_count = db.query(Follow).filter(Follow.club_id == club.id).count()
+    is_following = False
     if user_id:
-        following = await _is_following(db, user_id, club.id)
+        is_following = db.query(Follow).filter(
+            Follow.user_id == user_id, Follow.club_id == club.id
+        ).first() is not None
 
-    return _club_payload(club, follower_count, following)
+    return _club_payload(club, follower_count, is_following)
 
 
 @router.post("/")
-async def create_club(club: ClubCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_club(club: ClubCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Create a new club. Only CLUB_ADMIN users can create clubs."""
     if current_user.role != "CLUB_ADMIN":
         raise HTTPException(status_code=403, detail="Only CLUB_ADMIN users can create clubs")
 
     # Check if admin already has a club
-    existing_res = await db.execute(select(Club).where(Club.admin_id == current_user.id))
-    if existing_res.scalar_one_or_none():
+    existing = db.query(Club).filter(Club.admin_id == current_user.id).first()
+    if existing:
         raise HTTPException(status_code=400, detail="This admin already manages a club")
 
     requested_logo_url = (club.logo_url or "").strip()
@@ -102,23 +86,16 @@ async def create_club(club: ClubCreate, db: AsyncSession = Depends(get_db), curr
         admin_id=current_user.id,
     )
     db.add(db_club)
-    await db.commit()
-    await db.refresh(db_club)
-
-    # Re-fetch with admin relationship loaded
-    from sqlalchemy.orm import selectinload
-    res = await db.execute(select(Club).options(selectinload(Club.admin)).where(Club.id == db_club.id))
-    db_club = res.scalar_one()
+    db.commit()
+    db.refresh(db_club)
 
     return _club_payload(db_club, follower_count=0, is_following=False)
 
 
 @router.put("/{club_id}")
-async def update_club(club_id: int, club_update: ClubUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_club(club_id: int, club_update: ClubUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Update an existing club. Only the owning admin can update."""
-    from sqlalchemy.orm import selectinload
-    res = await db.execute(select(Club).options(selectinload(Club.admin)).where(Club.id == club_id))
-    club = res.scalar_one_or_none()
+    club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
     if club.admin_id != current_user.id:
@@ -135,10 +112,10 @@ async def update_club(club_id: int, club_update: ClubUpdate, db: AsyncSession = 
     if club_update.instagram_handle is not None:
         club.instagram_handle = club_update.instagram_handle
 
-    await db.commit()
-    await db.refresh(club)
+    db.commit()
+    db.refresh(club)
 
-    follower_count = await _get_follower_count(db, club.id)
+    follower_count = db.query(Follow).filter(Follow.club_id == club.id).count()
 
     return _club_payload(club, follower_count=follower_count, is_following=False)
 
@@ -147,13 +124,11 @@ async def update_club(club_id: int, club_update: ClubUpdate, db: AsyncSession = 
 async def upload_club_logo(
     club_id: int,
     file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Upload or replace a club logo in Supabase Storage under club_logos/club-<id>/."""
-    from sqlalchemy.orm import selectinload
-    res = await db.execute(select(Club).options(selectinload(Club.admin)).where(Club.id == club_id))
-    club = res.scalar_one_or_none()
+    club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
     if club.admin_id != current_user.id:
@@ -164,7 +139,7 @@ async def upload_club_logo(
         raise HTTPException(status_code=400, detail="Logo file is empty")
 
     try:
-        logo_payload = await run_in_threadpool(replace_club_logo, club, file_bytes, file.content_type or "")
+        logo_payload = replace_club_logo(club, file_bytes, file.content_type or "")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -173,10 +148,10 @@ async def upload_club_logo(
             detail=f"Logo upload failed. Verify Supabase bucket settings. {exc}",
         ) from exc
 
-    await db.commit()
-    await db.refresh(club)
+    db.commit()
+    db.refresh(club)
 
-    follower_count = await _get_follower_count(db, club.id)
+    follower_count = db.query(Follow).filter(Follow.club_id == club.id).count()
 
     return {
         "status": "success",
@@ -189,33 +164,20 @@ async def upload_club_logo(
 
 
 @router.get("/{club_id}/events")
-async def get_club_events(club_id: int, db: AsyncSession = Depends(get_db)):
+def get_club_events(club_id: int, db: Session = Depends(get_db)):
     """Get all events for a specific club."""
     from app.models.event import Event
     from app.models.rsvp import RSVP
 
-    club_res = await db.execute(select(Club).where(Club.id == club_id))
-    club = club_res.scalar_one_or_none()
+    club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
 
-    events_res = await db.execute(
-        select(Event).where(Event.club_id == club_id).order_by(Event.start_time.asc())
-    )
-    events = events_res.scalars().all()
-
+    events = db.query(Event).filter(Event.club_id == club_id).order_by(Event.start_time.asc()).all()
     result = []
     for event in events:
-        rsvp_count_res = await db.execute(
-            select(func.count()).select_from(RSVP).where(RSVP.event_id == event.id)
-        )
-        rsvp_count = rsvp_count_res.scalar_one()
-
-        attended_count_res = await db.execute(
-            select(func.count()).select_from(RSVP).where(RSVP.event_id == event.id, RSVP.attended == True)
-        )
-        attended_count = attended_count_res.scalar_one()
-
+        rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
+        attended_count = db.query(RSVP).filter(RSVP.event_id == event.id, RSVP.attended == True).count()
         result.append({
             "id": event.id,
             "club_id": event.club_id,

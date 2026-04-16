@@ -1,5 +1,6 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import sessionmaker
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -9,16 +10,12 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 def _build_postgres_url() -> str:
-    """Build PostgreSQL asyncpg URL from env vars when DATABASE_URL is not provided."""
+    """Build PostgreSQL URL from env vars when DATABASE_URL is not provided."""
     database_url = os.getenv("DATABASE_URL", "").strip()
     if database_url:
-        # Normalise legacy scheme variants to postgresql+asyncpg://
+        # Some providers use postgres:// while SQLAlchemy expects postgresql://.
         if database_url.startswith("postgres://"):
-            database_url = database_url.replace("postgres://", "postgresql://", 1)
-        if database_url.startswith("postgresql+psycopg2://"):
-            database_url = database_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://", 1)
-        elif database_url.startswith("postgresql://") and "+asyncpg" not in database_url:
-            database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            return database_url.replace("postgres://", "postgresql://", 1)
         return database_url
 
     user = os.getenv("POSTGRES_USER", "postgres")
@@ -28,48 +25,38 @@ def _build_postgres_url() -> str:
     database = os.getenv("POSTGRES_DB", "wavc_app")
 
     if password:
-        return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}"
-    return f"postgresql+asyncpg://{user}@{host}:{port}/{database}"
+        return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
+    return f"postgresql+psycopg2://{user}@{host}:{port}/{database}"
 
-
-# Async database URL (postgresql+asyncpg://...)
+# Database connection
+# PostgreSQL URL format: postgresql+psycopg2://user:password@host:port/database
 DATABASE_URL = _build_postgres_url()
 
-if not DATABASE_URL.startswith("postgresql+asyncpg"):
+if not DATABASE_URL.startswith("postgresql"):
     raise RuntimeError(
-        "DATABASE_URL must point to PostgreSQL via asyncpg "
-        "(e.g. postgresql+asyncpg://user:pass@host:port/db)."
+        "DATABASE_URL must point to PostgreSQL (use postgresql:// or postgresql+psycopg2://)."
     )
 
-# Async engine — used for all runtime queries.
-engine = create_async_engine(
-    DATABASE_URL,
-    # Connection pool tuning
-    pool_size=10,        # Number of persistent connections in the pool
-    max_overflow=20,     # Extra connections allowed when pool is saturated
-    pool_pre_ping=True,  # Validate connection before checkout (drops stale/dead conns)
-    pool_recycle=1800,   # Recycle connections every 30 min to avoid idle timeout drops
-    pool_timeout=30,     # Raise an error if no connection available within 30 s
-    echo=False,
-)
+try:
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+    # Quick test to verify connection
+    with engine.connect() as conn:
+        pass
+    print("Connected to PostgreSQL database")
+except Exception as e:
+    raise RuntimeError(
+        "Could not connect to PostgreSQL database. "
+        "Set valid credentials using DATABASE_URL or POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_HOST/POSTGRES_PORT/POSTGRES_DB in backend/.env. "
+        f"Original error: {e}"
+    ) from e
 
-# Async session factory
-async_session_factory = async_sessionmaker(
-    bind=engine,
-    expire_on_commit=False,
-    class_=AsyncSession,
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
-
-async def get_db():
-    """FastAPI dependency that yields an AsyncSession per request."""
-    async with async_session_factory() as session:
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

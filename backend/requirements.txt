@@ -4,8 +4,8 @@ authlib
 httpx
 python-multipart
 python-dotenv
-sqlalchemy[asyncio]
-asyncpg
+sqlalchemy
+psycopg2-binary
 cryptography
 pydantic
 itsdangerous
@@ -14,4 +14,3 @@ requests
 google-api-python-client
 google-auth-oauthlib
 python-jose[cryptography]
-alembic

@@ -3,8 +3,7 @@ from starlette.config import Config
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy.orm import Session
 from app.database import get_db
 import os
 from typing import Iterable
@@ -60,7 +59,7 @@ def verify_token(token: str) -> dict:
         return None
 
 
-async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
+def get_current_user(request: Request, db: Session = Depends(get_db)):
     """FastAPI dependency: extract user from JWT cookie."""
     from app.models.user import User
 
@@ -76,8 +75,7 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token payload")
 
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 

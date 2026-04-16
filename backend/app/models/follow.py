@@ -7,8 +7,8 @@ class Follow(Base):
     __tablename__ = "follows"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)  # phase-2 index: feed queries filter follows by user_id
-    club_id = Column(Integer, ForeignKey("clubs.id"), nullable=False, index=True)  # phase-2 index: follower-count queries filter by club_id
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    club_id = Column(Integer, ForeignKey("clubs.id"), nullable=False)
 
     # Prevent duplicate follows
     __table_args__ = (

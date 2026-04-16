@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial, warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
@@ -19,46 +18,47 @@ const eventMatchesSearch = (event, rawQuery) => {
 const Calendar = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [selectedClubId, setSelectedClubId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [clubs, setClubs] = useState([]);
 
-  const { data: events = [] } = useQuery({
-    queryKey: ['events-calendar'],
-    queryFn: async () => {
+  const fetchEvents = useCallback(async () => {
+    try {
       const res = await fetch(`${API}/api/events/all`);
-      if (!res.ok) throw new Error('Failed to fetch events');
-      const allEvents = await res.json();
-      warmPosterCacheForEvents(allEvents);
-      return allEvents;
-    },
-    enabled: !!user,
-  });
+      if (res.ok) {
+        const allEvents = await res.json();
+        warmPosterCacheForEvents(allEvents);
+        setEvents(allEvents);
+      }
+    } catch (err) { console.error(err); }
+  }, []);
 
-  const { data: clubs = [] } = useQuery({
-    queryKey: ['clubs', user?.id],
-    queryFn: async () => {
+  const fetchClubs = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
       const res = await fetch(`${API}/api/clubs/?user_id=${user.id}`);
-      if (!res.ok) throw new Error('Failed to fetch clubs');
-      return res.json();
-    },
-    enabled: !!user?.id,
-  });
+      if (res.ok) setClubs(await res.json());
+    } catch (err) { console.error(err); }
+  }, [user]);
 
   useEffect(() => {
-    if (!loading && !user) navigate('/login');
-  }, [user, loading, navigate]);
+    if (!loading && !user) { navigate('/login'); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (user) { void fetchEvents(); void fetchClubs(); }
+  }, [user, loading, navigate, fetchEvents, fetchClubs]);
 
   const handleRSVP = async (eventId, isRegistered) => {
     try {
       const method = isRegistered ? 'DELETE' : 'POST';
       const res = await fetch(`${API}/api/rsvp/events/${eventId}/rsvp`, { method });
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ['events-calendar'] });
+        fetchEvents();
         if (selectedEvent?.id === eventId) {
           const updated = await fetch(`${API}/api/events/${eventId}?user_id=${user.id}`);
           if (updated.ok) setSelectedEvent(await updated.json());

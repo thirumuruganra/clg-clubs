@@ -11,7 +11,7 @@ class Club(Base):
     logo_url = Column(String(500), nullable=True)
     category = Column(String(50), nullable=False)       # "TECH" or "NON_TECH"
     instagram_handle = Column(String(100), nullable=True)
-    admin_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)  # phase-2 index: ownership checks filter by admin_id
+    admin_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Relationships
     admin = relationship("User", backref="clubs")
