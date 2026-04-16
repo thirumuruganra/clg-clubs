@@ -136,6 +136,7 @@ const normalizeYearLabel = (value) => {
   const raw = normalizeValue(value);
   if (!raw) return '';
 
+  if (/\b(v|5|5th|fifth)\b/.test(raw)) return 'V';
   if (/\b(iv|4|4th|fourth)\b/.test(raw)) return 'IV';
   if (/\b(iii|3|3rd|third)\b/.test(raw)) return 'III';
   if (/\b(ii|2|2nd|second)\b/.test(raw)) return 'II';
@@ -682,21 +683,40 @@ const ClubDashboard = () => {
     notice: '',
   });
 
-  const calculateYear = (batchStr) => {
+  const getDegreeDuration = (degreeStr) => {
+    const normalizedDegree = normalizeCompact(degreeStr);
+    if (!normalizedDegree) return null;
+
+    if (normalizedDegree.includes('mtech') && normalizedDegree.includes('integrated')) {
+      return 5;
+    }
+    if (normalizedDegree === 'be' || normalizedDegree.includes('btech')) {
+      return 4;
+    }
+    if (normalizedDegree === 'me' || normalizedDegree.includes('mtech')) {
+      return 2;
+    }
+
+    return null;
+  };
+
+  const calculateYear = (batchStr, degreeStr) => {
     if (!batchStr) return '-';
     const passout = parseInt(batchStr, 10);
     if (isNaN(passout)) return '-';
-    // Assume batchStr is passout batch
+
+    const duration = getDegreeDuration(degreeStr);
+    if (!duration) return '-';
+
     const currentYear = new Date().getFullYear();
     const diff = passout - currentYear;
-    // Current mapping (assuming current year is fall semester or similar):
-    // If passout is 2026 and current is 2026 -> Final Year (IV)
-    if (diff === 0) return 'IV';
-    if (diff === 1) return 'III';
-    if (diff === 2) return 'II';
-    if (diff === 3) return 'I';
     if (diff < 0) return 'Alumni';
-    return '-';
+
+    const yearNumber = duration - diff;
+    if (yearNumber < 1 || yearNumber > duration) return '-';
+
+    const romanYears = ['', 'I', 'II', 'III', 'IV', 'V'];
+    return romanYears[yearNumber] || '-';
   };
 
   const openRsvpModal = async (eventObj) => {
@@ -936,7 +956,7 @@ const ClubDashboard = () => {
           if (rsvp.is_paid) return rsvp;
 
           const userData = rsvp.user || {};
-          const currentYear = calculateYear(userData.batch);
+          const currentYear = calculateYear(userData.batch, userData.degree);
 
           let bestPaymentIndex = -1;
           let bestMatch = null;
@@ -1005,7 +1025,7 @@ const ClubDashboard = () => {
       return;
     }
 
-    const yearRank = { IV: 4, III: 3, II: 2, I: 1, Alumni: 0, '-': -1 };
+    const yearRank = { V: 5, IV: 4, III: 3, II: 2, I: 1, Alumni: 0, '-': -1 };
     const sortedAttended = [...attended].sort((a, b) => {
       const userA = a.user || {};
       const userB = b.user || {};
@@ -1015,8 +1035,8 @@ const ClubDashboard = () => {
       const deptCompare = deptA.localeCompare(deptB);
       if (deptCompare !== 0) return deptCompare;
 
-      const yearA = yearRank[calculateYear(userA.batch)] ?? -1;
-      const yearB = yearRank[calculateYear(userB.batch)] ?? -1;
+      const yearA = yearRank[calculateYear(userA.batch, userA.degree)] ?? -1;
+      const yearB = yearRank[calculateYear(userB.batch, userB.degree)] ?? -1;
       if (yearA !== yearB) return yearB - yearA;
 
       const nameA = String(userA.name || '').trim();
@@ -1032,7 +1052,7 @@ const ClubDashboard = () => {
         index + 1,
         u.name || '-',
         u.department || '-',
-        calculateYear(u.batch),
+        calculateYear(u.batch, u.degree),
         u.register_number || '-'
       ];
     });
@@ -1266,7 +1286,7 @@ const ClubDashboard = () => {
                           </td>
                           <td className="px-4 py-3 text-sm text-[#637588] dark:text-[#92adc9]">{follower.email || '-'}</td>
                           <td className="px-4 py-3 text-sm">{follower.department || '-'}</td>
-                          <td className="px-4 py-3 text-sm">{calculateYear(follower.batch)}</td>
+                          <td className="px-4 py-3 text-sm">{calculateYear(follower.batch, follower.degree)}</td>
                           <td className="px-4 py-3 text-sm">{follower.register_number || '-'}</td>
                         </tr>
                       );
@@ -1891,7 +1911,7 @@ const ClubDashboard = () => {
                               <td className="px-4 py-3 font-medium">{index + 1}</td>
                               <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{u.name || "-"}</td>
                               <td className="px-4 py-3">{u.department || "-"}</td>
-                              <td className="px-4 py-3">{calculateYear(u.batch)}</td>
+                              <td className="px-4 py-3">{calculateYear(u.batch, u.degree)}</td>
                               <td className="px-4 py-3 font-mono text-xs">{u.register_number || "-"}</td>
                               {rsvpModal.tab !== "payment" && (
                                 <td className="px-4 py-3 text-xs whitespace-nowrap">
