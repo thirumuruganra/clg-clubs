@@ -700,15 +700,45 @@ const ClubDashboard = () => {
     return null;
   };
 
-  const calculateYear = (batchStr, degreeStr) => {
-    if (!batchStr) return '-';
-    const passout = parseInt(batchStr, 10);
-    if (isNaN(passout)) return '-';
+  const getAdmissionYearFromRegisterNumber = (registerNumber) => {
+    const digitsOnly = String(registerNumber || '').replace(/\D/g, '');
+    if (digitsOnly.length < 6) return null;
 
+    // SSN register numbers usually encode admission year as the 5th and 6th digits.
+    const admissionYearCode = parseInt(digitsOnly.slice(4, 6), 10);
+    if (Number.isNaN(admissionYearCode)) return null;
+
+    return 2000 + admissionYearCode;
+  };
+
+  const calculateYearFromAdmission = (admissionYear, duration, currentYear) => {
+    if (!admissionYear || !duration) return null;
+
+    // Year progression aligns with academic year rollover, so currentYear - admissionYear
+    // maps 2024 intake to II in 2026.
+    let yearNumber = currentYear - admissionYear;
+    if (yearNumber <= 0) yearNumber = 1;
+
+    if (yearNumber > duration) return 'Alumni';
+
+    const romanYears = ['', 'I', 'II', 'III', 'IV', 'V'];
+    return romanYears[yearNumber] || '-';
+  };
+
+  const calculateYear = (batchStr, degreeStr, registerNumber) => {
     const duration = getDegreeDuration(degreeStr);
     if (!duration) return '-';
 
     const currentYear = new Date().getFullYear();
+
+    const admissionYear = getAdmissionYearFromRegisterNumber(registerNumber);
+    const yearFromRegister = calculateYearFromAdmission(admissionYear, duration, currentYear);
+    if (yearFromRegister) return yearFromRegister;
+
+    if (!batchStr) return '-';
+    const passout = parseInt(batchStr, 10);
+    if (isNaN(passout)) return '-';
+
     const diff = passout - currentYear;
     if (diff < 0) return 'Alumni';
 
@@ -1286,7 +1316,7 @@ const ClubDashboard = () => {
                           </td>
                           <td className="px-4 py-3 text-sm text-[#637588] dark:text-[#92adc9]">{follower.email || '-'}</td>
                           <td className="px-4 py-3 text-sm">{follower.department || '-'}</td>
-                          <td className="px-4 py-3 text-sm">{calculateYear(follower.batch, follower.degree)}</td>
+                          <td className="px-4 py-3 text-sm">{calculateYear(follower.batch, follower.degree, follower.register_number)}</td>
                           <td className="px-4 py-3 text-sm">{follower.register_number || '-'}</td>
                         </tr>
                       );
@@ -1911,7 +1941,7 @@ const ClubDashboard = () => {
                               <td className="px-4 py-3 font-medium">{index + 1}</td>
                               <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{u.name || "-"}</td>
                               <td className="px-4 py-3">{u.department || "-"}</td>
-                              <td className="px-4 py-3">{calculateYear(u.batch, u.degree)}</td>
+                              <td className="px-4 py-3">{calculateYear(u.batch, u.degree, u.register_number)}</td>
                               <td className="px-4 py-3 font-mono text-xs">{u.register_number || "-"}</td>
                               {rsvpModal.tab !== "payment" && (
                                 <td className="px-4 py-3 text-xs whitespace-nowrap">
