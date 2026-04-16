@@ -986,7 +986,7 @@ const ClubDashboard = () => {
           if (rsvp.is_paid) return rsvp;
 
           const userData = rsvp.user || {};
-          const currentYear = calculateYear(userData.batch, userData.degree);
+          const currentYear = calculateYear(userData.batch, userData.degree, userData.register_number);
 
           let bestPaymentIndex = -1;
           let bestMatch = null;
@@ -1065,8 +1065,8 @@ const ClubDashboard = () => {
       const deptCompare = deptA.localeCompare(deptB);
       if (deptCompare !== 0) return deptCompare;
 
-      const yearA = yearRank[calculateYear(userA.batch, userA.degree)] ?? -1;
-      const yearB = yearRank[calculateYear(userB.batch, userB.degree)] ?? -1;
+      const yearA = yearRank[calculateYear(userA.batch, userA.degree, userA.register_number)] ?? -1;
+      const yearB = yearRank[calculateYear(userB.batch, userB.degree, userB.register_number)] ?? -1;
       if (yearA !== yearB) return yearB - yearA;
 
       const nameA = String(userA.name || '').trim();
@@ -1082,7 +1082,7 @@ const ClubDashboard = () => {
         index + 1,
         u.name || '-',
         u.department || '-',
-        calculateYear(u.batch, u.degree),
+        calculateYear(u.batch, u.degree, u.register_number),
         u.register_number || '-'
       ];
     });
