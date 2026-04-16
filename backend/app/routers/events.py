@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, delete as sa_delete
 import json
@@ -353,7 +354,7 @@ async def upload_event_poster(
         raise HTTPException(status_code=400, detail="Poster file is empty")
 
     try:
-        poster_payload = replace_event_poster(event, file_bytes, file.content_type or "")
+        poster_payload = await run_in_threadpool(replace_event_poster, event, file_bytes, file.content_type or "")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -414,13 +415,13 @@ async def update_event(
             pass
         elif not normalized_image_url:
             try:
-                clear_event_poster(event)
+                await run_in_threadpool(clear_event_poster, event)
             except RuntimeError as exc:
                 raise HTTPException(status_code=502, detail=f"Failed to delete existing poster: {exc}") from exc
         else:
             if event.poster_storage_path:
                 try:
-                    clear_event_poster(event)
+                    await run_in_threadpool(clear_event_poster, event)
                 except RuntimeError as exc:
                     raise HTTPException(status_code=502, detail=f"Failed to delete existing poster: {exc}") from exc
                 event.poster_deleted_at = None
@@ -528,7 +529,7 @@ async def delete_event(
 
     if event.poster_storage_path or event.image_url:
         try:
-            clear_event_poster(event)
+            await run_in_threadpool(clear_event_poster, event)
         except RuntimeError as exc:
             raise HTTPException(status_code=502, detail=f"Failed to delete event poster from storage: {exc}") from exc
 

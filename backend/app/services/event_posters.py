@@ -122,7 +122,7 @@ async def cleanup_expired_event_posters(db: AsyncSession, now: Optional[datetime
 
     for event in events:
         try:
-            clear_event_poster(event)
+            await run_in_threadpool(clear_event_poster, event)
             deleted += 1
         except RuntimeError:
             failed += 1

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.database import get_db
@@ -163,7 +164,7 @@ async def upload_club_logo(
         raise HTTPException(status_code=400, detail="Logo file is empty")
 
     try:
-        logo_payload = replace_club_logo(club, file_bytes, file.content_type or "")
+        logo_payload = await run_in_threadpool(replace_club_logo, club, file_bytes, file.content_type or "")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except RuntimeError as exc:
