@@ -2,6 +2,8 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
+import SideNavShell from './layout/SideNavShell';
+import { IconButton } from './ui/icon-button';
 
 const sideNavItems = [
   { label: 'Event', icon: 'event', path: '/student/calendar' },
@@ -14,111 +16,85 @@ const StudentSidebar = ({ mobileMenuOpen, onClose, children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const handleAvatarError = (event) => {
+    event.currentTarget.style.display = 'none';
+    const fallback = event.currentTarget.parentElement?.querySelector('[data-avatar-fallback="student"]');
+    if (fallback) fallback.style.display = 'flex';
+  };
+
   const handleNavigate = (path) => {
     navigate(path);
     if (onClose) onClose();
   };
 
-  return (
-    <>
-      <div className="hidden lg:block w-64 shrink-0" aria-hidden="true"></div>
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 w-64 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col overflow-hidden transition-transform duration-300 ease-in-out`}
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
-      >
-      <div className="p-4 sm:p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
-        <button
-          type="button"
-          onClick={() => handleNavigate('/student/dashboard')}
-          className="flex items-center gap-3"
-        >
-          <div className="size-8">
-            <img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" />
-          </div>
-          <div className="flex-1 min-w-0 text-left">
-            <span className="text-lg font-bold truncate block">WAVC</span>
-            <p className="text-xs text-[#637588] dark:text-[#92adc9]">Student Portal</p>
-          </div>
-        </button>
+  const mappedNavItems = sideNavItems.map((item) => ({
+    key: item.path,
+    label: item.label,
+    icon: item.icon,
+    active: location.pathname === item.path,
+    path: item.path,
+  }));
+
+  const sidebarHeader = (
+    <button
+      type="button"
+      onClick={() => handleNavigate('/student/dashboard')}
+      className="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+    >
+      <div className="size-8">
+        <img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" />
       </div>
+      <div className="min-w-0 flex-1 text-left">
+        <span className="block truncate text-lg font-bold">WAVC</span>
+        <p className="text-xs text-text-secondary">Student Portal</p>
+      </div>
+    </button>
+  );
 
-      <nav className="shrink-0 p-3 sm:p-4 space-y-1">
-        {sideNavItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <button
-              key={item.path}
-              onClick={() => handleNavigate(item.path)}
-              className={`touch-target flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                  : 'text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-              {item.label}
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 pb-4">{children}</div>
-
-      <div
-        className="mt-auto shrink-0 border-t border-[#233648] bg-white dark:bg-[#111a22] p-3 sm:p-4"
-        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+  const sidebarFooter = (
+    <div className="flex items-center gap-2 rounded-xl p-1 transition-colors hover:bg-surface-muted">
+      <button
+        type="button"
+        onClick={() => handleNavigate('/student/profile')}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
+        {user?.picture && user.picture.trim() !== '' ? (
+          <img
+            src={user.picture}
+            alt={user?.name || 'Student'}
+            className="size-10 rounded-full object-cover"
+            onError={handleAvatarError}
+            referrerPolicy="no-referrer"
+          />
+        ) : null}
         <div
-          role="button"
-          tabIndex={0}
-          onClick={() => handleNavigate('/student/profile')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              handleNavigate('/student/profile');
-            }
-          }}
-          className="w-full text-left flex items-center gap-3 rounded-xl p-2 hover:bg-[#233648] transition-colors cursor-pointer"
+          data-avatar-fallback="student"
+          className="flex size-10 items-center justify-center rounded-full bg-primary font-bold text-white"
+          style={{ display: user?.picture && user.picture.trim() !== '' ? 'none' : 'flex' }}
         >
-          {user?.picture && user.picture.trim() !== '' ? (
-            <img
-              src={user.picture}
-              alt={user?.name || 'Student'}
-              className="size-10 rounded-full object-cover"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
-              }}
-              referrerPolicy="no-referrer"
-            />
-          ) : null}
-          <div
-            className="size-10 rounded-full flex items-center justify-center text-white font-bold"
-            style={{
-              background: '#137fec',
-              display: user?.picture && user.picture.trim() !== '' ? 'none' : 'flex',
-            }}
-          >
-            {(user?.name || 'S')[0].toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{user?.name || 'Student'}</p>
-            <p className="text-xs text-[#637588] dark:text-[#92adc9]">Student Profile</p>
-          </div>
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              logout();
-            }}
-            aria-label="Sign out"
-            className="touch-target w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors"
-          >
-            <span className="material-symbols-outlined text-[20px] text-[#637588]">logout</span>
-          </button>
+          {(user?.name || 'S')[0].toUpperCase()}
         </div>
-      </div>
-      </aside>
-    </>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{user?.name || 'Student'}</p>
+          <p className="text-xs text-text-secondary">Student Profile</p>
+        </div>
+      </button>
+      <IconButton ariaLabel="Sign out" onClick={logout}>
+        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">logout</span>
+      </IconButton>
+    </div>
+  );
+
+  return (
+    <SideNavShell
+      ariaLabel="Student navigation"
+      mobileMenuOpen={mobileMenuOpen}
+      navItems={mappedNavItems}
+      onNavSelect={(item) => handleNavigate(item.path)}
+      header={sidebarHeader}
+      bodyContent={children}
+      footer={sidebarFooter}
+    />
   );
 };
 

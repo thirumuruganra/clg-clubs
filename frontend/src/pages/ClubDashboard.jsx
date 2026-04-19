@@ -6,9 +6,10 @@ import imageCompression from 'browser-image-compression';
 import 'react-datepicker/dist/react-datepicker.css';
 import { QRCodeSVG } from 'qrcode.react';
 import ClubCalendar from './ClubCalendar';
-import { cn, getClubIconUrl, getClubInitial } from '../lib/utils';
+import { getClubIconUrl, getClubInitial } from '../lib/utils';
 import ClubDashboardSidebar from '../components/club-dashboard/ClubDashboardSidebar';
 import ClubDashboardTopBar from '../components/club-dashboard/ClubDashboardTopBar';
+import AppShell from '../components/layout/AppShell';
 import FollowersTab from '../components/club-dashboard/FollowersTab';
 import CreateEventTab from '../components/club-dashboard/CreateEventTab';
 import EventManagementTab from '../components/club-dashboard/EventManagementTab';
@@ -22,6 +23,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
+import { Button } from '../components/ui/button';
+import { EmptyState } from '../components/ui/empty-state';
+import { FieldMessage } from '../components/ui/field-message';
+import { IconButton } from '../components/ui/icon-button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Skeleton } from '../components/ui/skeleton';
+import { StatusBadge } from '../components/ui/status-badge';
+import { Textarea } from '../components/ui/textarea';
+import { Toast } from '../components/ui/toast';
 
 const API = '';
 const DESCRIPTION_WORD_LIMIT = 100;
@@ -1120,43 +1131,43 @@ const ClubDashboard = () => {
   const attendanceRate = totalRSVPs > 0 ? Math.round((totalAttended / totalRSVPs) * 100) : 0;
 
   const sideNavItems = [
-    { label: 'Overview', icon: 'dashboard', tab: 'dashboard' },
+    { label: 'Event Management', icon: 'dashboard', tab: 'dashboard' },
     { label: 'Followers', icon: 'groups', tab: 'followers' },
-    { label: 'Event Management', icon: 'event', tab: 'events' },
+    { label: 'Event Calendar', icon: 'event', tab: 'events' },
     { label: 'Create Event', icon: 'add_circle', tab: 'create-event' },
   ];
 
   const clubIconUrl = getClubIconUrl(club);
   const clubInitial = getClubInitial(club);
 
+  const sidebarNode = (
+    <ClubDashboardSidebar
+      mobileMenuOpen={mobileMenuOpen}
+      sideNavItems={sideNavItems}
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      setMobileMenuOpen={setMobileMenuOpen}
+      club={club}
+      clubIconUrl={clubIconUrl}
+      clubInitial={clubInitial}
+      user={user}
+      navigate={navigate}
+      logout={logout}
+    />
+  );
+
+  const topBarNode = (
+    <ClubDashboardTopBar
+      activeTab={activeTab}
+      setMobileMenuOpen={setMobileMenuOpen}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+    />
+  );
+
   return (
-    <div className="flex h-dvh w-full bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white overflow-hidden relative">
-      {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setMobileMenuOpen(false)}></div>
-      )}
-
-      <ClubDashboardSidebar
-        mobileMenuOpen={mobileMenuOpen}
-        sideNavItems={sideNavItems}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        club={club}
-        clubIconUrl={clubIconUrl}
-        clubInitial={clubInitial}
-        user={user}
-        navigate={navigate}
-        logout={logout}
-      />
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden w-full">
-        <ClubDashboardTopBar
-          activeTab={activeTab}
-          setMobileMenuOpen={setMobileMenuOpen}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-        />
+    <AppShell sidebar={sidebarNode} topbar={topBarNode} mobileMenuOpen={mobileMenuOpen} onCloseMenu={() => setMobileMenuOpen(false)}>
+      <div className="relative flex h-full w-full flex-col overflow-hidden font-display text-slate-900 dark:text-white">
 
         {user && user.has_google_calendar_access === false && (
           <div className="mx-4 lg:mx-8 mt-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
@@ -1164,15 +1175,16 @@ const ClubDashboard = () => {
               <p className="text-sm">
                 Grant Google Calendar access only when needed for calendar-integrated admin actions.
               </p>
-              <button
+              <Button
                 type="button"
+                size="sm"
+                className="bg-amber-600 text-xs text-white hover:bg-amber-700"
                 onClick={() => {
                   window.location.href = calendarConsentUrl;
                 }}
-                className="inline-flex items-center justify-center rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-amber-700"
               >
                 Connect Google Calendar
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -1252,40 +1264,45 @@ const ClubDashboard = () => {
             setDeleteTarget={setDeleteTarget}
           />
         )}
-      </main>
+
       {/* Edit Event Modal */}
       {editEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setEditEvent(null)}>
-          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] overflow-y-auto modal-panel" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-border-subtle dark:border-border-strong overflow-y-auto modal-panel" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-border-subtle dark:border-border-strong">
               <h2 className="text-xl font-bold">Edit Event</h2>
-              <button aria-label="Close edit event dialog" onClick={() => setEditEvent(null)} className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+              <IconButton ariaLabel="Close edit event dialog" onClick={() => setEditEvent(null)} size="sm">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </IconButton>
             </div>
             <form onSubmit={handleUpdateEvent} className="p-6 space-y-4">
-              {editError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{editError}</p>}
+              {editError ? <Toast tone="error" title="Could not save event" description={editError} /> : null}
               <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Title</label>
-                <input type="text" required value={editEvent.title} onChange={e => setEditEvent(p => ({ ...p, title: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white" />
+                <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary" htmlFor="edit_event_title" required>Event Title</Label>
+                <Input id="edit_event_title" type="text" required value={editEvent.title} onChange={e => setEditEvent(p => ({ ...p, title: e.target.value }))} className="border-none" />
               </div>
               <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Short Description (max 100 words)</label>
-                <textarea value={editEvent.description} onChange={e => setEditEvent(p => ({ ...p, description: e.target.value }))}
+                <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary" htmlFor="edit_event_description">Short Description (max 100 words)</Label>
+                <Textarea
+                  id="edit_event_description"
+                  value={editEvent.description}
+                  onChange={e => setEditEvent(p => ({ ...p, description: e.target.value }))}
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white resize-none" />
-                <p className={`mt-1 text-xs ${isDescriptionTooLong(editEvent.description) ? 'text-red-500' : 'text-[#637588] dark:text-[#92adc9]'}`}>
+                  className="border-none"
+                />
+                <FieldMessage tone={isDescriptionTooLong(editEvent.description) ? 'error' : 'neutral'} className="mt-1">
                   {countWords(editEvent.description)}/{DESCRIPTION_WORD_LIMIT} words
-                </p>
+                </FieldMessage>
               </div>
               <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Keywords (comma separated)</label>
-                <input type="text" value={editEvent.keywords} onChange={e => setEditEvent(p => ({ ...p, keywords: e.target.value }))}
+                <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary" htmlFor="edit_event_keywords">Keywords (comma separated)</Label>
+                <Input id="edit_event_keywords" type="text" value={editEvent.keywords} onChange={e => setEditEvent(p => ({ ...p, keywords: e.target.value }))}
                   placeholder="e.g. workshop, python, machine learning"
-                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
+                  className="border-none" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Start Time</label>
+                  <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary">Start Time</Label>
                   <DatePicker
                     selected={editEvent.start_time}
                     onChange={(date) => setEditEvent((p) => ({ ...p, start_time: date }))}
@@ -1300,7 +1317,7 @@ const ClubDashboard = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">End Time</label>
+                  <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary">End Time</Label>
                   <DatePicker
                     selected={editEvent.end_time}
                     onChange={(date) => setEditEvent((p) => ({ ...p, end_time: date }))}
@@ -1317,40 +1334,39 @@ const ClubDashboard = () => {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Location</label>
-                <input type="text" value={editEvent.location} onChange={e => setEditEvent(p => ({ ...p, location: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white" />
+                <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary" htmlFor="edit_event_location">Location</Label>
+                <Input id="edit_event_location" type="text" value={editEvent.location} onChange={e => setEditEvent(p => ({ ...p, location: e.target.value }))} className="border-none" />
               </div>
               <div className="flex items-center gap-2 mb-2">
-                <input type="checkbox" id="edit_is_paid" checked={editEvent.is_paid || false} onChange={e => setEditEvent(p => ({ ...p, is_paid: e.target.checked }))} className="w-4 h-4 text-blue-500 bg-gray-100 dark:bg-[#1a2632] border-gray-300 dark:border-[#34485c] rounded-full focus:ring-blue-500 focus:ring-2 cursor-pointer" />
-                <label htmlFor="edit_is_paid" className="text-sm font-medium text-[#111418] dark:text-white">Is this a paid event?</label>
+                <input type="checkbox" id="edit_is_paid" checked={editEvent.is_paid || false} onChange={e => setEditEvent(p => ({ ...p, is_paid: e.target.checked }))} className="size-4 rounded-full border border-border-subtle bg-surface-muted text-primary focus:ring-2 focus:ring-primary cursor-pointer" />
+                <Label htmlFor="edit_is_paid" className="text-sm">Is this a paid event?</Label>
               </div>
 
               {editEvent.is_paid && (
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Registration Fees</label>
-                    <input type="text" value={editEvent.registration_fees || ""} onChange={e => setEditEvent(p => ({ ...p, registration_fees: e.target.value }))}
+                    <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary" htmlFor="edit_event_registration_fees">Registration Fees</Label>
+                    <Input id="edit_event_registration_fees" type="text" value={editEvent.registration_fees || ""} onChange={e => setEditEvent(p => ({ ...p, registration_fees: e.target.value }))}
                       placeholder="e.g. ₹500"
-                      className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white" />
+                      className="border-none" />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
-                    <input type="url" value={editEvent.payment_link || ""} onChange={e => setEditEvent(p => ({ ...p, payment_link: e.target.value }))}
+                    <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary" htmlFor="edit_event_payment_link">Payment Link (Optional)</Label>
+                    <Input id="edit_event_payment_link" type="url" value={editEvent.payment_link || ""} onChange={e => setEditEvent(p => ({ ...p, payment_link: e.target.value }))}
                       placeholder="e.g. https://rzp.io/l/..."
-                      className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white" />
+                      className="border-none" />
                   </div>
                 </div>
               )}
               <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-2 block">Category</label>
+                <Label className="mb-2 block text-xs text-text-secondary dark:text-text-dark-secondary">Category</Label>
                 <div className="flex gap-3">
                   {[{ label: 'Tech', value: 'TECH', icon: 'computer' }, { label: 'Non-Tech', value: 'NON_TECH', icon: 'palette' }].map(tag => (
                     <button key={tag.value} type="button" onClick={() => setEditEvent(p => ({ ...p, tag: tag.value }))}
                       className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border transition-all ${
                         editEvent.tag === tag.value
                           ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-[#e5e7eb] dark:border-[#233648] text-[#637588] dark:text-[#92adc9] hover:border-[#637588]'
+                            : 'border-border-subtle dark:border-border-strong text-text-secondary dark:text-text-dark-secondary hover:border-text-secondary'
                       }`}>
                       <span className="material-symbols-outlined text-[18px]">{tag.icon}</span>
                       {tag.label}
@@ -1359,12 +1375,12 @@ const ClubDashboard = () => {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Replace Event Poster (optional)</label>
+                <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary">Replace Event Poster (optional)</Label>
                 <div
                   className={`rounded-xl border-2 border-dashed p-4 transition-colors ${
                     isEditPosterDragActive
                       ? 'border-primary bg-primary/5'
-                      : 'border-[#e5e7eb] dark:border-[#233648] bg-[#f8fafc] dark:bg-[#0f1720]/40'
+                        : 'border-border-subtle dark:border-border-strong bg-surface-muted dark:bg-[#0f1720]/40'
                   }`}
                   onDragEnter={(event) => handlePosterDragEnter(event, setIsEditPosterDragActive, editPosterDragCounterRef)}
                   onDragOver={handlePosterDragOver}
@@ -1383,46 +1399,48 @@ const ClubDashboard = () => {
                     className="hidden"
                   />
                   <div className="flex flex-wrap items-center gap-3">
-                    <button
+                    <Button
                       type="button"
+                      variant="secondary"
                       onClick={openEditPosterPicker}
-                      className="touch-target inline-flex items-center gap-2 rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium cursor-pointer hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+                      className="cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[18px]">upload</span>
                       Choose Poster
-                    </button>
-                    <span className="text-xs text-[#637588] dark:text-[#92adc9] truncate max-w-64">{editPosterFile ? editPosterFile.name : 'No new file selected'}</span>
+                    </Button>
+                    <span className="text-xs text-text-secondary dark:text-text-dark-secondary truncate max-w-64">{editPosterFile ? editPosterFile.name : 'No new file selected'}</span>
                   </div>
-                  <p className="text-xs text-[#637588] dark:text-[#92adc9] mt-2">or drag and drop an image here</p>
+                  <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2">or drag and drop an image here</p>
                 </div>
                 {editPosterPreview ? (
-                  <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
+                  <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-border-subtle dark:border-border-strong overflow-hidden bg-[#0f1720]">
                     <img src={editPosterPreview} alt="Updated poster preview" className="h-full w-full object-cover" />
                   </div>
                 ) : editEvent.image_url ? (
-                  <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
+                  <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-border-subtle dark:border-border-strong overflow-hidden bg-[#0f1720]">
                     <img src={editEvent.image_url} alt="Current poster" className="h-full w-full object-cover" />
                   </div>
                 ) : null}
                 {editEvent.image_url && !editPosterFile && (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setEditEvent((previous) => ({ ...previous, image_url: '' }))}
-                    className="mt-2 text-xs font-semibold text-red-500 hover:text-red-400"
+                    className="mt-2 h-8 px-0 text-xs font-semibold text-danger hover:bg-transparent hover:text-danger/80"
                   >
                     Remove existing poster
-                  </button>
+                  </Button>
                 )}
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setEditEvent(null)} className="flex-1 py-3 rounded-xl border border-[#e5e7eb] dark:border-[#233648] text-sm font-bold hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setEditEvent(null)}>
                   Cancel
-                </button>
-                <button type="submit" disabled={editing || editingPoster}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-2">
+                </Button>
+                <Button type="submit" className="flex-1" disabled={editing || editingPoster}>
                   {editing ? 'Saving...' : editingPoster ? 'Uploading poster...' : 'Save Changes'}
                   {!(editing || editingPoster) && <span className="material-symbols-outlined text-[18px]">check</span>}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -1431,68 +1449,77 @@ const ClubDashboard = () => {
 
       {qrModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={closeQrModal}>
-          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-[#e5e7eb] dark:border-[#233648] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-[#e5e7eb] dark:border-[#233648]">
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-border-subtle dark:border-border-strong flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-border-subtle dark:border-border-strong">
               <div>
                 <h2 className="text-lg font-bold">Attendance QR</h2>
-                <p className="text-xs text-[#637588] dark:text-[#92adc9] mt-1">{qrModal.event?.title || 'Event'}</p>
+                <p className="mt-1 text-xs text-text-secondary dark:text-text-dark-secondary">{qrModal.event?.title || 'Event'}</p>
               </div>
-              <button aria-label="Close attendance QR dialog" onClick={closeQrModal} className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+              <IconButton ariaLabel="Close attendance QR dialog" onClick={closeQrModal} size="sm">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </IconButton>
             </div>
 
             <div className="p-5 flex flex-col gap-4">
-              <div className="rounded-xl border border-[#e5e7eb] dark:border-[#233648] p-3 bg-[#f9fafb] dark:bg-[#111a22] text-sm flex items-center justify-between">
-                <span className="text-[#637588] dark:text-[#92adc9]">Status</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-bold ${qrModal.event?.attendance_qr_open ? 'bg-green-500/15 text-green-600 dark:text-green-400' : 'bg-slate-500/15 text-[#637588] dark:text-[#92adc9]'}`}>
+              <div className="rounded-xl border border-border-subtle dark:border-border-strong bg-surface-muted dark:bg-[#111a22] p-3 text-sm flex items-center justify-between">
+                <span className="text-text-secondary dark:text-text-dark-secondary">Status</span>
+                <StatusBadge tone={qrModal.event?.attendance_qr_open ? 'success' : 'neutral'}>
                   {qrModal.event?.attendance_qr_open ? 'OPEN' : 'CLOSED'}
-                </span>
+                </StatusBadge>
               </div>
 
-              {qrModal.error && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{qrModal.error}</p>}
-              {qrModal.notice && <p className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-600 dark:text-green-400">{qrModal.notice}</p>}
+              {qrModal.error ? <Toast tone="error" title="QR action failed" description={qrModal.error} /> : null}
+              {qrModal.notice ? <Toast tone="success" title="QR updated" description={qrModal.notice} /> : null}
 
-              <div className="rounded-xl border border-[#e5e7eb] dark:border-[#233648] p-4 flex items-center justify-center min-h-72 bg-white dark:bg-[#1a2632]">
+              <div className="rounded-xl border border-border-subtle dark:border-border-strong p-4 flex items-center justify-center min-h-72 bg-white dark:bg-[#1a2632]">
                 {qrModal.loading ? (
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <Skeleton className="size-20 rounded-full" />
                 ) : qrModal.checkinUrl ? (
                   <QRCodeSVG value={qrModal.checkinUrl} size={240} bgColor="#ffffff" fgColor="#111418" includeMargin />
                 ) : (
-                  <p className="text-sm text-[#637588] dark:text-[#92adc9]">QR will appear here.</p>
+                  <EmptyState
+                    icon="qr_code_2"
+                    title="QR pending"
+                    description="Open attendance QR to generate and share check-in access."
+                  />
                 )}
               </div>
 
               {qrModal.checkinUrl && (
-                <div className="rounded-xl border border-[#e5e7eb] dark:border-[#233648] p-3 bg-[#f9fafb] dark:bg-[#111a22]">
-                  <p className="text-xs text-[#637588] dark:text-[#92adc9] mb-2">Attendance link</p>
+                <div className="rounded-xl border border-border-subtle dark:border-border-strong bg-surface-muted dark:bg-[#111a22] p-3">
+                  <p className="mb-2 text-xs text-text-secondary dark:text-text-dark-secondary">Attendance link</p>
                   <p className="text-xs font-mono break-all text-slate-700 dark:text-slate-200">{qrModal.checkinUrl}</p>
                 </div>
               )}
 
               <div className="flex flex-wrap gap-3 justify-end">
-                <button
+                <Button
                   onClick={() => toggleQrAttendance(true)}
                   disabled={qrModal.loading}
-                  className="touch-target inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/15 text-green-700 dark:text-green-400 text-sm font-bold hover:bg-green-600/25 transition-colors disabled:opacity-50"
+                  variant="secondary"
+                  className="bg-green-600/15 text-green-700 hover:bg-green-600/25 dark:text-green-400"
                 >
                   <span className="material-symbols-outlined text-[18px]">play_arrow</span>
                   Open QR
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => toggleQrAttendance(false)}
                   disabled={qrModal.loading}
-                  className="touch-target inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600/15 text-red-600 dark:text-red-400 text-sm font-bold hover:bg-red-600/25 transition-colors disabled:opacity-50"
+                  variant="secondary"
+                  className="bg-red-600/15 text-red-600 hover:bg-red-600/25 dark:text-red-400"
                 >
                   <span className="material-symbols-outlined text-[18px]">stop</span>
                   Close QR
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={copyQrLink}
                   disabled={qrModal.loading || !qrModal.checkinUrl}
-                  className="touch-target inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition-colors disabled:opacity-50"
+                  variant="secondary"
+                  className="text-primary"
                 >
                   <span className="material-symbols-outlined text-[18px]">content_copy</span>
                   Copy Link
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1502,67 +1529,74 @@ const ClubDashboard = () => {
       {/* RSVP / Attendance Modal */}
       {rsvpModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })}>
-          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-4xl border border-[#e5e7eb] dark:border-[#233648] flex flex-col modal-panel" onClick={e => e.stopPropagation()}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-[#e5e7eb] dark:border-[#233648] gap-4">
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-4xl border border-border-subtle dark:border-border-strong flex flex-col modal-panel" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border-subtle dark:border-border-strong p-6 gap-4">
               <div>
                 <h2 className="text-xl font-bold">{rsvpModal.event?.title || "Event"} - Attendees</h2>
-                <p className="text-xs text-[#637588] dark:text-[#92adc9] mt-1">{rsvpModal.rsvps.length} Students Registered</p>
+                <p className="mt-1 text-xs text-text-secondary dark:text-text-dark-secondary">{rsvpModal.rsvps.length} Students Registered</p>
               </div>
               
               {rsvpModal.event?.is_paid && (
-                <div className="flex bg-[#f0f2f4] dark:bg-[#233648] p-1 rounded-xl w-full sm:w-auto">
-                    <button 
+                <div className="flex bg-surface-muted dark:bg-border-strong p-1 rounded-xl w-full sm:w-auto">
+                    <Button
                       onClick={() => setRsvpModal(p => ({ ...p, tab: "attendance" }))} 
-                      className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-colors ${rsvpModal.tab !== "payment" ? "bg-white dark:bg-[#1a2632] shadow-sm text-primary" : "text-[#637588] dark:text-[#92adc9] hover:text-[#111418] hover:dark:text-white"}`}>
+                      variant={rsvpModal.tab !== "payment" ? 'primary' : 'ghost'}
+                      size="sm"
+                      className="flex-1 sm:flex-none">
                       Student OD
-                    </button>
-                    <button 
+                    </Button>
+                    <Button
                       onClick={() => setRsvpModal(p => ({ ...p, tab: "payment" }))} 
-                      className={`flex-1 sm:flex-none px-4 py-2 text-sm font-bold rounded-lg transition-colors ${rsvpModal.tab === "payment" ? "bg-white dark:bg-[#1a2632] shadow-sm text-primary" : "text-[#637588] dark:text-[#92adc9] hover:text-[#111418] hover:dark:text-white"}`}>
+                      variant={rsvpModal.tab === "payment" ? 'primary' : 'ghost'}
+                      size="sm"
+                      className="flex-1 sm:flex-none">
                       Payments
-                    </button>
+                    </Button>
                 </div>
               )}
               
               <div className="flex items-center gap-3">
-                <button onClick={exportAttendanceCSV} disabled={rsvpModal.loading || rsvpModal.rsvps.length === 0} className="touch-target flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/10 text-green-600 dark:text-green-400 text-sm font-bold hover:bg-green-600/20 transition-colors disabled:opacity-50">
+                <Button onClick={exportAttendanceCSV} disabled={rsvpModal.loading || rsvpModal.rsvps.length === 0} variant="secondary" className="text-green-600 hover:bg-green-600/20 dark:text-green-400">
                   <span className="material-symbols-outlined text-[18px]">download</span> Export CSV
-                </button>
-                <button aria-label="Close attendees dialog" onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })} className="touch-target w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[20px]">close</span></button>
+                </Button>
+                <IconButton ariaLabel="Close attendees dialog" onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })} size="sm">
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                </IconButton>
               </div>
             </div>
             
             <div className="p-6 overflow-y-auto flex-1">
               {rsvpModal.loading ? (
-                <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
+                <div className="flex justify-center py-12"><Skeleton className="size-20 rounded-full" /></div>
               ) : rsvpModal.rsvps.length === 0 ? (
-                <div className="text-center py-12 text-[#637588] dark:text-[#92adc9]">No students have registered for this event yet.</div>
+                <EmptyState
+                  icon="group_off"
+                  title="No RSVPs yet"
+                  description="Students who register for this event will appear here for attendance and payment tracking."
+                />
               ) : (
                 <div className="flex flex-col gap-4">
                   {rsvpModal.tab === "payment" && rsvpModal.event?.is_paid && (
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-2">
-                      <div className="text-sm text-[#637588]">Upload payment CSV to auto-match captured/success rows using name, email, register no, year and department.</div>
-                        <label className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition-colors">
+                      <div className="text-sm text-text-secondary">Upload payment CSV to auto-match captured/success rows using name, email, register no, year and department.</div>
+                        <label className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-surface-muted px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-surface-muted/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
                             <span className="material-symbols-outlined text-[18px]">upload_file</span> Upload CSV
                             <input type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
                         </label>
                     </div>
                   )}
                   {paymentFeedback && (
-                    <p className={cn(
-                      'rounded-lg px-3 py-2 text-sm',
-                      paymentFeedback.type === 'success'
-                        ? 'border border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400'
-                        : 'border border-red-500/30 bg-red-500/10 text-red-500',
-                    )}>
-                      {paymentFeedback.text}
-                    </p>
+                    <Toast
+                      tone={paymentFeedback.type === 'success' ? 'success' : 'error'}
+                      title={paymentFeedback.type === 'success' ? 'Payment match complete' : 'Payment match failed'}
+                      description={paymentFeedback.text}
+                    />
                   )}
-                  {rsvpError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{rsvpError}</p>}
+                  {rsvpError ? <Toast tone="error" title="Export failed" description={rsvpError} /> : null}
 
-                  <div className="border border-[#e5e7eb] dark:border-[#233648] rounded-xl overflow-hidden table-scroll">
+                  <div className="border border-border-subtle dark:border-border-strong rounded-xl overflow-hidden table-scroll">
                     <table className="w-full min-w-205 text-sm text-left">
-                      <thead className="bg-[#f9fafb] dark:bg-[#111a22] text-xs uppercase text-[#637588] dark:text-[#92adc9] font-bold border-b border-[#e5e7eb] dark:border-[#233648]">
+                      <thead className="bg-surface-muted dark:bg-[#111a22] border-b border-border-subtle dark:border-border-strong text-xs uppercase text-text-secondary dark:text-text-dark-secondary font-bold">
                         <tr>
                           <th className="px-4 py-3">S.NO</th>
                           <th className="px-4 py-3">NAME</th>
@@ -1572,16 +1606,16 @@ const ClubDashboard = () => {
                           {rsvpModal.tab !== "payment" && (
                             <th className="px-4 py-3">ATTENDANCE MARKED AT</th>
                           )}
-                          <th className="px-4 py-3 text-center border-l border-[#e5e7eb] dark:border-[#233648]">
+                          <th className="px-4 py-3 text-center border-l border-border-subtle dark:border-border-strong">
                               {rsvpModal.tab === "payment" ? "PAID" : "ATTENDED"}
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#233648]">
+                      <tbody className="divide-y divide-border-subtle dark:divide-border-strong">
                         {rsvpModal.rsvps.map((rsvp, index) => {
                           const u = rsvp.user || {};
                           return (
-                            <tr key={rsvp.id} className="hover:bg-[#f9fafb] dark:hover:bg-[#233648]/30 transition-colors">
+                            <tr key={rsvp.id} className="transition-colors hover:bg-surface-muted dark:hover:bg-border-strong/30">
                               <td className="px-4 py-3 font-medium">{index + 1}</td>
                               <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{u.name || "-"}</td>
                               <td className="px-4 py-3">{u.department || "-"}</td>
@@ -1592,20 +1626,20 @@ const ClubDashboard = () => {
                                   {formatAttendanceMarkedAt(rsvp.attended_marked_at)}
                                 </td>
                               )}
-                              <td className="px-4 py-3 text-center border-l border-[#e5e7eb] dark:border-[#233648]">
+                              <td className="px-4 py-3 text-center border-l border-border-subtle dark:border-border-strong">
                                 {rsvpModal.tab === "payment" ? (
                                     <input 
                                       type="checkbox" 
                                       checked={rsvp.is_paid || false}
                                       onChange={() => handleTogglePayment(rsvp.id, rsvp.is_paid)}
-                                      className="w-5 h-5 rounded border-[#e5e7eb] dark:border-[#34485c] text-primary focus:ring-primary dark:bg-[#1a2632] cursor-pointer"
+                                      className="size-5 rounded border border-border-subtle bg-surface-muted text-primary focus:ring-primary cursor-pointer"
                                     />
                                 ) : (
                                     <input 
                                       type="checkbox" 
                                       checked={rsvp.attended || false}
                                       onChange={() => handleToggleAttendance(rsvp.id, rsvp.attended)}
-                                      className="w-5 h-5 rounded border-[#e5e7eb] dark:border-[#34485c] text-primary focus:ring-primary dark:bg-[#1a2632] cursor-pointer"
+                                      className="size-5 rounded border border-border-subtle bg-surface-muted text-primary focus:ring-primary cursor-pointer"
                                     />
                                 )}
                               </td>
@@ -1636,7 +1670,8 @@ const ClubDashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </AppShell>
   );
 };
 

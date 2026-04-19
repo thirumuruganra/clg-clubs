@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
 import wavcIcon from '../assets/WAVC-edit.png';
+import { Button } from '../components/ui/button';
+import { FieldMessage } from '../components/ui/field-message';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select } from '../components/ui/select';
 
 const API = '';
 
@@ -178,7 +183,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-dvh bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white">
-      <header className="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22]">
+      <header className="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-border-subtle dark:border-border-strong bg-white dark:bg-[#111a22]">
         <div className="flex items-center gap-3">
           <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
           <span className="text-lg font-bold">WAVC</span>
@@ -187,14 +192,14 @@ const Profile = () => {
           <button
             type="button"
             onClick={() => navigate('/student/dashboard')}
-            className="touch-target px-3 sm:px-4 py-2 rounded-xl border border-[#e5e7eb] dark:border-[#233648] text-xs sm:text-sm font-medium hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+            className="touch-target px-3 sm:px-4 py-2 rounded-xl border border-border-subtle dark:border-border-strong text-xs sm:text-sm font-medium hover:bg-surface-muted dark:hover:bg-border-strong transition-colors"
           >
             Back to Dashboard
           </button>
           <button
             type="button"
             onClick={logout}
-            className="touch-target px-3 sm:px-4 py-2 rounded-xl border border-[#e5e7eb] dark:border-[#233648] text-xs sm:text-sm font-medium hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+            className="touch-target px-3 sm:px-4 py-2 rounded-xl border border-border-subtle dark:border-border-strong text-xs sm:text-sm font-medium hover:bg-surface-muted dark:hover:bg-border-strong transition-colors"
           >
             Sign Out
           </button>
@@ -203,15 +208,19 @@ const Profile = () => {
 
       <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
         <h1 className="text-3xl sm:text-4xl font-bold mb-2">{isIncomplete ? 'Set up your student profile' : 'Edit your student profile'}</h1>
-        <p className="text-[#637588] dark:text-[#92adc9] mb-10 text-lg">
+        <p className="text-text-secondary dark:text-text-dark-secondary mb-10 text-lg">
           Keep your details up to date for better recommendations, easier registrations, and relevant club activity.
         </p>
 
         <form onSubmit={handleSave} className="space-y-8">
-            {saveError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{saveError}</p>}
+            {saveError ? (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
+                <FieldMessage tone="error">{saveError}</FieldMessage>
+              </div>
+            ) : null}
 
-            <div className="border border-dashed border-[#e5e7eb] dark:border-[#233648] rounded-xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
-              <div className="w-28 h-28 rounded-full border-2 border-dashed border-[#637588]/30 flex items-center justify-center shrink-0 bg-[#f0f2f4] dark:bg-[#233648] overflow-hidden">
+            <div className="border border-dashed border-border-subtle dark:border-border-strong rounded-xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
+              <div className="w-28 h-28 rounded-full border-2 border-dashed border-text-secondary/30 flex items-center justify-center shrink-0 bg-surface-muted dark:bg-border-strong overflow-hidden">
                 {hasValidPicture ? (
                   <img
                     src={user.picture}
@@ -221,12 +230,12 @@ const Profile = () => {
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <span className="text-4xl font-bold text-[#637588]">{getInitial()}</span>
+                  <span className="text-4xl font-bold text-text-secondary">{getInitial()}</span>
                 )}
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-bold mb-1">Student Profile Picture</h3>
-                <p className="text-sm text-[#637588] dark:text-[#92adc9]">
+                <p className="text-sm text-text-secondary dark:text-text-dark-secondary">
                   Your Google profile picture is used automatically. It updates when your Google account photo changes.
                 </p>
               </div>
@@ -234,44 +243,44 @@ const Profile = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div className="space-y-1">
-                <label className="block text-sm font-bold text-[#111418] dark:text-white">Full Name</label>
-                <input type="text" value={user.name || ''} disabled className="w-full px-4 py-2 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-[#637588] dark:text-[#92adc9] opacity-70 cursor-not-allowed" />
+                <Label htmlFor="profile-name">Full Name</Label>
+                <Input id="profile-name" type="text" value={user.name || ''} disabled className="opacity-70" />
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-bold text-[#111418] dark:text-white">Email</label>
-                <input type="text" value={user.email || ''} disabled className="w-full px-4 py-2 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-[#637588] dark:text-[#92adc9] opacity-70 cursor-not-allowed" />
+                <Label htmlFor="profile-email">Email</Label>
+                <Input id="profile-email" type="text" value={user.email || ''} disabled className="opacity-70" />
               </div>
               <div className="space-y-1 md:col-span-2">
-                <label className="block text-sm font-bold text-[#111418] dark:text-white">Register Number <span className="text-red-500">*</span></label>
-                <input type="text" name="register_number" value={formData.register_number} onChange={handleChange} required placeholder="e.g. 3122XXXXXXXX" className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
+                <Label htmlFor="profile-register-number" required>Register Number</Label>
+                <Input id="profile-register-number" type="text" name="register_number" value={formData.register_number} onChange={handleChange} required aria-required="true" placeholder="e.g. 3122XXXXXXXX" />
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-bold text-[#111418] dark:text-white">Passout Year <span className="text-red-500">*</span></label>
-                <input type="text" name="batch" value={formData.batch} onChange={handleChange} required placeholder="e.g. 2024" className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
+                <Label htmlFor="profile-batch" required>Passout Year</Label>
+                <Input id="profile-batch" type="text" name="batch" value={formData.batch} onChange={handleChange} required aria-required="true" placeholder="e.g. 2024" />
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-bold text-[#111418] dark:text-white">Course <span className="text-red-500">*</span></label>
-                <select name="department" value={formData.department} onChange={handleChange} required className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white">
+                <Label htmlFor="profile-department" required>Course</Label>
+                <Select id="profile-department" name="department" value={formData.department} onChange={handleChange} required aria-required="true">
                   <option value="" disabled>Select your course</option>
                   {COURSE_OPTIONS.map((course) => (
                     <option key={course} value={course}>{course}</option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-bold text-[#111418] dark:text-white">Degree <span className="text-red-500">*</span></label>
-                <select name="degree" value={formData.degree} onChange={handleChange} required className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white">
+                <Label htmlFor="profile-degree" required>Degree</Label>
+                <Select id="profile-degree" name="degree" value={formData.degree} onChange={handleChange} required aria-required="true">
                   <option value="" disabled>Select your degree</option>
                   {DEGREE_OPTIONS.map((degree) => (
                     <option key={degree} value={degree}>{degree}</option>
                   ))}
-                </select>
+                </Select>
               </div>
             </div>
 
             {/* Joined Clubs Section */}
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-[#111418] dark:text-white">Joined Clubs</label>
+              <Label htmlFor="profile-club-search">Joined Clubs</Label>
 
               {/* Club chips */}
               <div className="flex flex-wrap gap-2 min-h-9">
@@ -297,14 +306,18 @@ const Profile = () => {
                   </span>
                 ))}
                 {formData.joined_clubs.length === 0 && (
-                  <span className="text-sm text-[#637588] dark:text-[#92adc9] italic py-1.5">No clubs joined yet</span>
+                  <span className="text-sm text-text-secondary dark:text-text-dark-secondary italic py-1.5">No clubs joined yet</span>
                 )}
               </div>
 
               {/* Typeahead for adding clubs */}
               <div className="relative">
-                <input
+                <Input
+                  id="profile-club-search"
                   type="text"
+                  aria-label="Search clubs to join"
+                  aria-autocomplete="list"
+                  aria-expanded={clubSearchOpen}
                   value={clubSearch}
                   onChange={(e) => {
                     setClubSearch(e.target.value);
@@ -321,17 +334,16 @@ const Profile = () => {
                     }
                   }}
                   placeholder="Type club name to join..."
-                  className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:outline-none"
                 />
 
                 {clubSearchOpen && (
-                  <div className="absolute z-50 mt-1 w-full rounded-xl bg-white dark:bg-[#1a2632] border border-[#e5e7eb] dark:border-[#233648] shadow-xl max-h-60 overflow-y-auto">
+                  <div className="absolute z-50 mt-1 w-full rounded-xl bg-white dark:bg-[#1a2632] border border-border-subtle dark:border-border-strong shadow-xl max-h-60 overflow-y-auto">
                     {availableClubs.length === 0 && (
-                      <p className="px-4 py-3 text-sm text-[#637588] dark:text-[#92adc9] italic">All clubs have been joined</p>
+                      <p className="px-4 py-3 text-sm text-text-secondary dark:text-text-dark-secondary italic">All clubs have been joined</p>
                     )}
 
                     {availableClubs.length > 0 && matchedClubs.length === 0 && (
-                      <p className="px-4 py-3 text-sm text-[#637588] dark:text-[#92adc9] italic">No matching clubs found</p>
+                      <p className="px-4 py-3 text-sm text-text-secondary dark:text-text-dark-secondary italic">No matching clubs found</p>
                     )}
 
                     {matchedClubs.map((club) => {
@@ -343,7 +355,7 @@ const Profile = () => {
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleAddClub(club.name)}
-                        className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-primary/10 transition-colors text-[#111418] dark:text-white text-sm"
+                        className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-primary/10 transition-colors text-text-primary dark:text-white text-sm"
                       >
                         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                           {clubIconUrl ? (
@@ -354,7 +366,7 @@ const Profile = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <span className="font-medium truncate block">{club.name}</span>
-                          <span className="text-xs text-[#637588] dark:text-[#92adc9]">{club.category}</span>
+                          <span className="text-xs text-text-secondary dark:text-text-dark-secondary">{club.category}</span>
                         </div>
                       </button>
                       );
@@ -367,8 +379,8 @@ const Profile = () => {
             {/* Interests Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="block text-sm font-bold text-[#111418] dark:text-white">Interests <span className="text-red-500">*</span></label>
-                <span className="text-xs text-[#637588] dark:text-[#92adc9]">Select at least 3</span>
+                <Label htmlFor="profile-interest-input" required>Interests</Label>
+                <span className="text-xs text-text-secondary dark:text-text-dark-secondary">Select at least 3</span>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -381,10 +393,11 @@ const Profile = () => {
                     <button
                       key={interest}
                       type="button"
+                      aria-pressed={selected}
                       onClick={() => (selected ? handleRemoveInterest(interest) : addInterest(interest))}
                       className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors ${selected
                         ? 'bg-primary/15 text-primary border-primary/40'
-                        : 'bg-white dark:bg-[#1a2632] text-[#111418] dark:text-white border-[#e5e7eb] dark:border-[#233648] hover:border-primary/40'
+                        : 'bg-white dark:bg-[#1a2632] text-text-primary dark:text-white border-border-subtle dark:border-border-strong hover:border-primary/40'
                         }`}
                     >
                       {interest}
@@ -394,8 +407,10 @@ const Profile = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2">
-                <input
+                <Input
+                  id="profile-interest-input"
                   type="text"
+                  aria-label="Add custom interest"
                   value={interestInput}
                   onChange={(e) => setInterestInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -405,15 +420,15 @@ const Profile = () => {
                     }
                   }}
                   placeholder="Add custom interest (e.g. blockchain)"
-                  className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base text-[#111418] dark:text-white focus:ring-2 focus:ring-primary focus:outline-none"
                 />
-                <button
+                <Button
                   type="button"
                   onClick={handleAddCustomInterest}
-                  className="px-4 py-2 rounded-xl bg-primary/10 text-primary font-semibold hover:bg-primary/20 transition-colors"
+                  variant="secondary"
+                  className="border border-border-subtle"
                 >
                   Add
-                </button>
+                </Button>
               </div>
 
               <div className="flex flex-wrap gap-2 min-h-9">
@@ -439,19 +454,19 @@ const Profile = () => {
                   </span>
                 ))}
                 {formData.interests.length === 0 && (
-                  <span className="text-sm text-[#637588] dark:text-[#92adc9] italic py-1.5">No interests selected yet</span>
+                  <span className="text-sm text-text-secondary dark:text-text-dark-secondary italic py-1.5">No interests selected yet</span>
                 )}
               </div>
             </div>
 
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-6 pt-6 border-t border-[#e5e7eb] dark:border-[#233648] mt-6">
-              <button type="button" onClick={() => navigate('/student/dashboard')} className="touch-target text-sm font-bold text-[#637588] dark:text-[#92adc9] hover:text-white transition-colors">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-6 pt-6 border-t border-border-subtle dark:border-border-strong mt-6">
+              <Button type="button" variant="ghost" onClick={() => navigate('/student/dashboard')} className="text-sm font-bold text-text-secondary">
                 Cancel
-              </button>
-              <button type="submit" disabled={saving} className="touch-target px-8 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/30 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50">
+              </Button>
+              <Button type="submit" disabled={saving} className="px-8 text-sm font-bold">
                 {saving ? 'Saving...' : isIncomplete ? 'Complete Setup & Continue' : 'Save Changes'}
                 {!saving && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

@@ -11,7 +11,7 @@ const LandingPage = () => {
 
   return (
     <div className="relative flex min-h-dvh w-full flex-col overflow-x-hidden bg-white dark:bg-[#111a22]">
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-solid border-slate-200 dark:border-[#233648] bg-white/80 dark:bg-[#111a22]/80 backdrop-blur-md px-4 py-3 lg:px-10">
+      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-solid border-slate-200 dark:border-border-strong bg-white/80 dark:bg-[#111a22]/80 backdrop-blur-md px-4 py-3 lg:px-10">
         <div className="flex items-center gap-4 text-slate-900 dark:text-white">
           <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary overflow-hidden">
             <img src={wavcIcon} alt="WAVC Logo" className="w-full h-full object-contain p-1" />
@@ -25,7 +25,7 @@ const LandingPage = () => {
             {navItems.map((item) => (
               <a
                 key={item.label}
-                className="text-slate-600 dark:text-[#92adc9] text-sm font-medium leading-normal hover:text-primary transition-colors"
+                className="text-slate-600 dark:text-text-dark-secondary text-sm font-medium leading-normal hover:text-primary transition-colors"
                 href={item.href}
               >
                 {item.label}
@@ -91,7 +91,7 @@ const LandingPage = () => {
       <main className="grow flex flex-col">
         <section className="px-4 py-10 md:px-8 lg:px-40 lg:py-16">
           <div className="layout-content-container mx-auto flex max-w-240 flex-col gap-8">
-            <div className="relative overflow-hidden rounded-3xl border border-[#e5e7eb] dark:border-[#233648] bg-[#111a22] p-6 sm:p-10 lg:p-14">
+            <div className="relative overflow-hidden rounded-3xl border border-border-subtle dark:border-border-strong bg-[#111a22] p-6 sm:p-10 lg:p-14">
               <img
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFz8Sp13s0cFzmpOBbUsIuW1qaQx3sSlvaM3FW-fQJiV76a1OWm0mD0yJq2vPUFIV1b6_c6S7eWTWpwcmqdkDAKpNds1aGanbjWDSRASLUs94a6YLzd7IATej5VQD5_WsT3g5kiHvXY1uzJfBdVeFvhdsLoqh9KsvKHQP4x7buVQXRecw_nabFOI_btwgWck6ndH4rLnEd80EZ8Xk_xhU0I81W8MUU-BYZeQncPOr7sgG6gd_WQj-JPyOe0spjfQMQKEM4Jx3AW4c"
                 alt="Students collaborating at a campus event"
@@ -131,37 +131,37 @@ const LandingPage = () => {
               {[
                 { title: 'Centralized Events', body: 'Find upcoming activities from all clubs in one place.' },
                 { title: 'Personalized Feed', body: 'Get recommendations based on your interests and follows.' },
-                { title: 'Admin Workflows', body: 'Publish events, track RSVPs, and manage attendance.' },
+                { title: 'Club Workflows', body: 'Publish events, track RSVPs, and manage attendance.' },
               ].map((item) => (
                 <article
                   key={item.title}
-                  className="rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm dark:border-[#233648] dark:bg-[#1a2632]"
+                  className="rounded-2xl border border-border-subtle bg-white p-5 shadow-sm dark:border-border-strong dark:bg-[#1a2632]"
                 >
-                  <h2 className="text-lg font-bold text-[#111418] dark:text-white">{item.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-[#637588] dark:text-[#92adc9]">{item.body}</p>
+                  <h2 className="text-lg font-bold text-text-primary dark:text-white">{item.title}</h2>
+                  <p className="mt-2 text-sm leading-6 text-text-secondary dark:text-text-dark-secondary">{item.body}</p>
                 </article>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="about" className="px-4 py-6 md:px-8 lg:px-40">
-          <div className="layout-content-container mx-auto grid max-w-240 gap-4 rounded-3xl border border-[#e5e7eb] bg-white p-6 dark:border-[#233648] dark:bg-[#1a2632] lg:grid-cols-2 lg:p-8">
-            <div>
-              <h2 className="text-2xl font-bold text-[#111418] dark:text-white">Built for campus communities</h2>
-              <p className="mt-3 text-sm leading-6 text-[#637588] dark:text-[#92adc9]">
+        <section id="about" className="px-4 pt-2 pb-2 md:px-8 lg:px-40 lg:pt-6 lg:pb-20">
+          <div className="layout-content-container mx-auto grid max-w-240 items-stretch gap-6 rounded-3xl border border-border-subtle bg-white p-6 dark:border-border-strong dark:bg-[#1a2632] lg:grid-cols-[1.1fr_1fr] lg:p-8">
+            <div className="flex h-full flex-col justify-center gap-4 lg:pr-4">
+              <h2 className="text-2xl font-bold text-text-primary dark:text-white">Built for campus communities</h2>
+              <p className="mt-3 text-sm leading-6 text-text-secondary dark:text-text-dark-secondary">
                 WAVC helps students discover relevant events and helps clubs run smoother operations with one shared workflow.
               </p>
             </div>
-            <div id="how-it-works" className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <div id="how-it-works" className="grid grid-cols-1 content-start gap-3 sm:grid-cols-3 lg:grid-cols-1">
               {[
                 { title: 'Discover', body: 'Browse curated events from followed and new clubs.' },
                 { title: 'Register', body: 'RSVP quickly and keep your activity history organized.' },
                 { title: 'Participate', body: 'Attend events and grow your campus involvement.' },
               ].map((step) => (
-                <div key={step.title} className="rounded-xl border border-[#e5e7eb] bg-[#f6f7f8] p-4 dark:border-[#233648] dark:bg-[#111a22]">
-                  <h3 className="text-sm font-bold text-[#111418] dark:text-white">{step.title}</h3>
-                  <p className="mt-1 text-xs leading-5 text-[#637588] dark:text-[#92adc9]">{step.body}</p>
+                <div key={step.title} className="h-full rounded-xl border border-border-subtle bg-[#f6f7f8] p-4 dark:border-border-strong dark:bg-[#111a22]">
+                  <h3 className="text-sm font-bold text-text-primary dark:text-white">{step.title}</h3>
+                  <p className="mt-1 text-xs leading-5 text-text-secondary dark:text-text-dark-secondary">{step.body}</p>
                 </div>
               ))}
             </div>
@@ -169,7 +169,7 @@ const LandingPage = () => {
         </section>
       </main>
 
-      <footer id="contact" className="mt-auto flex flex-col gap-6 border-t border-slate-200 bg-slate-50 px-5 py-10 text-center dark:border-[#233648] dark:bg-[#111a22]">
+      <footer id="contact" className="mt-auto flex flex-col gap-6 border-t border-slate-200 bg-slate-50 px-5 py-10 text-center dark:border-border-strong dark:bg-[#111a22]">
         <div className="layout-content-container mx-auto flex flex-col max-w-240 w-full">
           <div className="flex flex-col items-center justify-center gap-6 mb-8">
             <div className="flex items-center gap-2 text-slate-900 dark:text-white mb-2">
@@ -180,16 +180,16 @@ const LandingPage = () => {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
               {['About Us', 'Privacy Policy', 'Terms of Service', 'Support'].map((item) => (
-                <a key={item} className="text-slate-500 dark:text-[#92adc9] text-sm font-normal hover:text-primary transition-colors" href="#">{item}</a>
+                <a key={item} className="text-slate-500 dark:text-text-dark-secondary text-sm font-normal hover:text-primary transition-colors" href="#">{item}</a>
               ))}
             </div>
           </div>
           <div className="flex flex-wrap justify-center gap-6 mb-6">
-            <a className="flex items-center justify-center w-12 h-12 text-slate-400 dark:text-[#92adc9] hover:text-primary dark:hover:text-white transition-colors bg-slate-200 dark:bg-slate-800 rounded-full" href="#">
+            <a className="flex items-center justify-center w-12 h-12 text-slate-400 dark:text-text-dark-secondary hover:text-primary dark:hover:text-white transition-colors bg-slate-200 dark:bg-slate-800 rounded-full" href="#">
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>public</span>
             </a>
             <a
-              className="flex items-center justify-center w-12 h-12 text-slate-400 dark:text-[#92adc9] hover:text-primary dark:hover:text-white transition-colors bg-slate-200 dark:bg-slate-800 rounded-full"
+              className="flex items-center justify-center w-12 h-12 text-slate-400 dark:text-text-dark-secondary hover:text-primary dark:hover:text-white transition-colors bg-slate-200 dark:bg-slate-800 rounded-full"
               href="mailto:wavc.contact@gmail.com"
               aria-label="Email wavc.contact@gmail.com"
               title="wavc.contact@gmail.com"
