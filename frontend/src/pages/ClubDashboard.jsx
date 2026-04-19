@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import DatePicker from 'react-datepicker';
@@ -11,6 +11,7 @@ import ClubDashboardSidebar from '../components/club-dashboard/ClubDashboardSide
 import ClubDashboardTopBar from '../components/club-dashboard/ClubDashboardTopBar';
 import AppShell from '../components/layout/AppShell';
 import FollowersTab from '../components/club-dashboard/FollowersTab';
+import ClubMembersTab from '../components/club-dashboard/ClubMembersTab';
 import CreateEventTab from '../components/club-dashboard/CreateEventTab';
 import EventManagementTab from '../components/club-dashboard/EventManagementTab';
 import {
@@ -25,6 +26,7 @@ import {
 } from '../components/ui/alert-dialog';
 import { Button } from '../components/ui/button';
 import { EmptyState } from '../components/ui/empty-state';
+import { EventPosterFallback } from '../components/ui/event-poster-fallback';
 import { FieldMessage } from '../components/ui/field-message';
 import { IconButton } from '../components/ui/icon-button';
 import { Input } from '../components/ui/input';
@@ -52,6 +54,23 @@ const EMPTY_EVENT_FORM = {
   is_paid: false,
   registration_fees: '',
 };
+
+const STUDENT_DEPARTMENT_OPTIONS = [
+  'Biomedical Engineering',
+  'Chemical Engineering',
+  'Civil Engineering',
+  'Artificial Intelligence and Data Science',
+  'Computer Science and Engineering',
+  'Computer Science and Engineering (Internet of Things)',
+  'Computer Science and Engineering (Cyber Security)',
+  'Electrical and Electronics Engineering',
+  'ECE',
+  'ECE (VLSI Design and Technology)',
+  'IT',
+  'Mechanical Engineering',
+];
+
+const STUDENT_YEAR_OPTIONS = ['I', 'II', 'III', 'IV', 'V', 'Alumni'];
 
 const countWords = (value = '') => {
   const trimmed = value.trim();
@@ -295,6 +314,18 @@ const ClubDashboard = () => {
   const [followers, setFollowers] = useState([]);
   const [followersLoading, setFollowersLoading] = useState(false);
   const [followersError, setFollowersError] = useState('');
+  const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState('');
+  const [memberActionError, setMemberActionError] = useState('');
+  const [memberActionSuccess, setMemberActionSuccess] = useState('');
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberDepartmentFilter, setMemberDepartmentFilter] = useState('');
+  const [memberYearFilter, setMemberYearFilter] = useState('');
+  const [studentResults, setStudentResults] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentsError, setStudentsError] = useState('');
   const [loadingData, setLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -473,10 +504,13 @@ const ClubDashboard = () => {
         setClub(myClub);
         setFollowersLoading(true);
         setFollowersError('');
+        setMembersLoading(true);
+        setMembersError('');
 
-        const [eventsRes, followersRes] = await Promise.all([
+        const [eventsRes, followersRes, membersRes] = await Promise.all([
           fetch(`${API}/api/clubs/${myClub.id}/events`),
           fetch(`${API}/api/follow/clubs/${myClub.id}/followers`),
+          fetch(`${API}/api/clubs/${myClub.id}/members`),
         ]);
 
         if (eventsRes.ok) {
@@ -493,11 +527,21 @@ const ClubDashboard = () => {
           setFollowersError('Could not load followers right now.');
         }
 
+        if (membersRes.ok) {
+          const membersPayload = await membersRes.json();
+          setMembers(Array.isArray(membersPayload.members) ? membersPayload.members : []);
+        } else {
+          setMembers([]);
+          setMembersError('Could not load club members right now.');
+        }
+
         setFollowersLoading(false);
+        setMembersLoading(false);
       }
     } catch (err) { console.error(err); }
     finally {
       setFollowersLoading(false);
+      setMembersLoading(false);
       setLoadingData(false);
     }
   }, [navigate, user]);
@@ -507,6 +551,117 @@ const ClubDashboard = () => {
     if (user && user.role !== 'CLUB_ADMIN') { navigate('/student/dashboard'); return; }
     if (user) void fetchData();
   }, [user, loading, navigate, fetchData]);
+
+  const openAddMemberModal = () => {
+    setAddMemberOpen(true);
+    setMemberActionError('');
+    setMemberActionSuccess('');
+  };
+
+  const closeAddMemberModal = () => {
+    setAddMemberOpen(false);
+    setMemberSearch('');
+    setMemberDepartmentFilter('');
+    setMemberYearFilter('');
+    setStudentResults([]);
+    setStudentsError('');
+  };
+
+  useEffect(() => {
+    if (!addMemberOpen || !club?.id) return;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(async () => {
+      setStudentsLoading(true);
+      setStudentsError('');
+
+      try {
+        const params = new URLSearchParams();
+        params.set('exclude_club_id', String(club.id));
+
+        const trimmedSearch = memberSearch.trim();
+        if (trimmedSearch) params.set('q', trimmedSearch);
+        if (memberDepartmentFilter) params.set('department', memberDepartmentFilter);
+        if (memberYearFilter) params.set('year', memberYearFilter);
+
+        const response = await fetch(`${API}/api/users/students?${params.toString()}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.detail || 'Failed to load registered students.');
+        }
+
+        const payload = await response.json();
+        setStudentResults(Array.isArray(payload.students) ? payload.students : []);
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+        setStudentResults([]);
+        setStudentsError(err?.message || 'Failed to load registered students.');
+      } finally {
+        setStudentsLoading(false);
+      }
+    }, 200);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [addMemberOpen, club, memberSearch, memberDepartmentFilter, memberYearFilter]);
+
+  const handleAddMember = async (studentId) => {
+    if (!club?.id) return;
+
+    setMemberActionError('');
+    setMemberActionSuccess('');
+
+    try {
+      const response = await fetch(`${API}/api/clubs/${club.id}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: studentId }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Failed to add club member.');
+      }
+
+      setMemberActionSuccess('Member added successfully.');
+      setStudentResults((prev) => prev.filter((student) => student.id !== studentId));
+      await fetchData();
+    } catch (err) {
+      setMemberActionError(err?.message || 'Failed to add club member.');
+    }
+  };
+
+  const handleRemoveMember = async (member) => {
+    if (!club?.id) return;
+
+    const memberName = member?.name || member?.email || 'this member';
+    const confirmed = window.confirm(`Remove ${memberName} from club members?`);
+    if (!confirmed) return;
+
+    setMemberActionError('');
+    setMemberActionSuccess('');
+
+    try {
+      const response = await fetch(`${API}/api/clubs/${club.id}/members/${member.user_id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Failed to remove club member.');
+      }
+
+      setMemberActionSuccess('Member removed successfully.');
+      await fetchData();
+    } catch (err) {
+      setMemberActionError(err?.message || 'Failed to remove club member.');
+    }
+  };
 
   const handleCreateEvent = async (e) => {
     e.preventDefault();
@@ -688,7 +843,22 @@ const ClubDashboard = () => {
     finally { setEditing(false); }
   };
 
-  const [rsvpModal, setRsvpModal] = useState({ open: false, event: null, rsvps: [], loading: false, tab: "attendance" });
+  const [rsvpModal, setRsvpModal] = useState({
+    open: false,
+    event: null,
+    rsvps: [],
+    workforce: [],
+    loading: false,
+    workforceLoading: false,
+    tab: 'team',
+  });
+  const [workforceActionError, setWorkforceActionError] = useState('');
+  const [workforceActionSuccess, setWorkforceActionSuccess] = useState('');
+  const [workforceMemberUserId, setWorkforceMemberUserId] = useState('');
+  const [workforceVolunteerQuery, setWorkforceVolunteerQuery] = useState('');
+  const [workforceVolunteerResults, setWorkforceVolunteerResults] = useState([]);
+  const [workforceVolunteerLoading, setWorkforceVolunteerLoading] = useState(false);
+  const [workforceVolunteerError, setWorkforceVolunteerError] = useState('');
   const [qrModal, setQrModal] = useState({
     open: false,
     event: null,
@@ -764,20 +934,142 @@ const ClubDashboard = () => {
     return romanYears[yearNumber] || '-';
   };
 
-  const openRsvpModal = async (eventObj) => {
+  const closeRsvpModal = () => {
+    setRsvpModal({
+      open: false,
+      event: null,
+      rsvps: [],
+      workforce: [],
+      loading: false,
+      workforceLoading: false,
+      tab: 'team',
+    });
+    setWorkforceActionError('');
+    setWorkforceActionSuccess('');
+    setWorkforceMemberUserId('');
+    setWorkforceVolunteerQuery('');
+    setWorkforceVolunteerResults([]);
+    setWorkforceVolunteerError('');
+    setWorkforceVolunteerLoading(false);
     setRsvpError('');
     setPaymentFeedback(null);
-    setRsvpModal({ open: true, event: eventObj, rsvps: [], loading: true, tab: "attendance" });
-    try {
-      const res = await fetch(`${API}/api/rsvp/events/${eventObj.id}/rsvps`);
-      if (res.ok) {
-        const data = await res.json();
-        setRsvpModal(prev => ({ ...prev, rsvps: data.rsvps || [], loading: false }));
-      } else {
-        setRsvpModal(prev => ({ ...prev, loading: false }));
+  };
+
+  const sortWorkforce = (workforceList) => {
+    return [...workforceList].sort((left, right) => {
+      if (left.role !== right.role) {
+        return left.role === 'CLUB_MEMBER' ? -1 : 1;
       }
+      const leftName = String(left.name || left.email || '').toLowerCase();
+      const rightName = String(right.name || right.email || '').toLowerCase();
+      return leftName.localeCompare(rightName);
+    });
+  };
+
+  const openRsvpModal = async (eventObj, initialTab = 'team') => {
+    setRsvpError('');
+    setPaymentFeedback(null);
+    setWorkforceActionError('');
+    setWorkforceActionSuccess('');
+    setWorkforceMemberUserId('');
+    setWorkforceVolunteerQuery('');
+    setWorkforceVolunteerResults([]);
+    setWorkforceVolunteerError('');
+    setRsvpModal({
+      open: true,
+      event: eventObj,
+      rsvps: [],
+      workforce: [],
+      loading: true,
+      workforceLoading: true,
+      tab: initialTab,
+    });
+
+    try {
+      const [rsvpRes, workforceRes] = await Promise.all([
+        fetch(`${API}/api/rsvp/events/${eventObj.id}/rsvps`),
+        fetch(`${API}/api/events/${eventObj.id}/workforce`),
+      ]);
+
+      const rsvps = rsvpRes.ok ? (await rsvpRes.json()).rsvps || [] : [];
+      const workforce = workforceRes.ok ? sortWorkforce((await workforceRes.json()).workers || []) : [];
+
+      setRsvpModal(prev => ({
+        ...prev,
+        rsvps,
+        workforce,
+        loading: false,
+        workforceLoading: false,
+      }));
     } catch {
-      setRsvpModal(prev => ({ ...prev, loading: false }));
+      setRsvpModal(prev => ({ ...prev, loading: false, workforceLoading: false }));
+    }
+  };
+
+  const openOdSheet = (eventObj) => {
+    void openRsvpModal(eventObj, 'attendance');
+  };
+
+  const handleAddEventWorker = async (userId, role) => {
+    if (!rsvpModal.event || !userId) return;
+
+    setWorkforceActionError('');
+    setWorkforceActionSuccess('');
+
+    try {
+      const response = await fetch(`${API}/api/events/${rsvpModal.event.id}/workforce`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: Number(userId), role }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Failed to assign worker.');
+      }
+
+      const assignedWorker = await response.json();
+      setRsvpModal((prev) => ({
+        ...prev,
+        workforce: sortWorkforce([...prev.workforce, assignedWorker]),
+      }));
+      setWorkforceActionSuccess(role === 'CLUB_MEMBER' ? 'Club member assigned to event.' : 'Volunteer assigned to event.');
+
+      if (role === 'CLUB_MEMBER') {
+        setWorkforceMemberUserId('');
+      }
+    } catch (err) {
+      setWorkforceActionError(err?.message || 'Failed to assign worker.');
+    }
+  };
+
+  const handleRemoveEventWorker = async (worker) => {
+    if (!rsvpModal.event) return;
+
+    const workerName = worker?.name || worker?.email || 'this user';
+    const confirmed = window.confirm(`Remove ${workerName} from this event?`);
+    if (!confirmed) return;
+
+    setWorkforceActionError('');
+    setWorkforceActionSuccess('');
+
+    try {
+      const response = await fetch(`${API}/api/events/${rsvpModal.event.id}/workforce/${worker.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Failed to remove worker.');
+      }
+
+      setRsvpModal((prev) => ({
+        ...prev,
+        workforce: prev.workforce.filter((entry) => entry.id !== worker.id),
+      }));
+      setWorkforceActionSuccess('Worker removed from event.');
+    } catch (err) {
+      setWorkforceActionError(err?.message || 'Failed to remove worker.');
     }
   };
 
@@ -1118,6 +1410,73 @@ const ClubDashboard = () => {
     document.body.removeChild(link);
   };
 
+  useEffect(() => {
+    if (!rsvpModal.open || rsvpModal.tab !== 'team') return;
+
+    const query = workforceVolunteerQuery.trim();
+    if (!query) {
+      setWorkforceVolunteerResults([]);
+      setWorkforceVolunteerError('');
+      setWorkforceVolunteerLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(async () => {
+      setWorkforceVolunteerLoading(true);
+      setWorkforceVolunteerError('');
+      try {
+        const params = new URLSearchParams();
+        params.set('q', query);
+        params.set('limit', '50');
+
+        const response = await fetch(`${API}/api/users/students?${params.toString()}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.detail || 'Failed to load volunteer candidates.');
+        }
+
+        const payload = await response.json();
+        setWorkforceVolunteerResults(Array.isArray(payload.students) ? payload.students : []);
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+        setWorkforceVolunteerResults([]);
+        setWorkforceVolunteerError(err?.message || 'Failed to load volunteer candidates.');
+      } finally {
+        setWorkforceVolunteerLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [rsvpModal.open, rsvpModal.tab, workforceVolunteerQuery]);
+
+  const assignedEventWorkerUserIds = useMemo(() => {
+    return new Set((rsvpModal.workforce || []).map((worker) => worker.user_id));
+  }, [rsvpModal.workforce]);
+
+  const availableClubMembersForEvent = useMemo(() => {
+    return members.filter((member) => !assignedEventWorkerUserIds.has(member.user_id));
+  }, [members, assignedEventWorkerUserIds]);
+
+  const volunteerCandidateResults = useMemo(() => {
+    return workforceVolunteerResults.filter((student) => !assignedEventWorkerUserIds.has(student.id));
+  }, [workforceVolunteerResults, assignedEventWorkerUserIds]);
+
+  const memberDepartmentOptions = useMemo(() => {
+    const values = new Set(STUDENT_DEPARTMENT_OPTIONS);
+    studentResults.forEach((student) => {
+      const department = String(student.department || '').trim();
+      if (department) values.add(department);
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [studentResults]);
+
   if (loading || loadingData) return (
     <div className="min-h-dvh flex items-center justify-center bg-background-dark text-white">
       <div className="animate-pulse text-lg">Loading club dashboard...</div>
@@ -1133,6 +1492,7 @@ const ClubDashboard = () => {
   const sideNavItems = [
     { label: 'Event Management', icon: 'dashboard', tab: 'dashboard' },
     { label: 'Followers', icon: 'groups', tab: 'followers' },
+    { label: 'Club Members', icon: 'group_add', tab: 'members' },
     { label: 'Event Calendar', icon: 'event', tab: 'events' },
     { label: 'Create Event', icon: 'add_circle', tab: 'create-event' },
   ];
@@ -1220,6 +1580,31 @@ const ClubDashboard = () => {
             followersError={followersError}
             calculateYear={calculateYear}
           />
+        ) : activeTab === 'members' ? (
+          <ClubMembersTab
+            members={members}
+            membersLoading={membersLoading}
+            membersError={membersError}
+            calculateYear={calculateYear}
+            memberActionError={memberActionError}
+            memberActionSuccess={memberActionSuccess}
+            onOpenAddMember={openAddMemberModal}
+            onRemoveMember={handleRemoveMember}
+            addMemberOpen={addMemberOpen}
+            onCloseAddMember={closeAddMemberModal}
+            memberSearch={memberSearch}
+            setMemberSearch={setMemberSearch}
+            memberDepartmentFilter={memberDepartmentFilter}
+            setMemberDepartmentFilter={setMemberDepartmentFilter}
+            memberYearFilter={memberYearFilter}
+            setMemberYearFilter={setMemberYearFilter}
+            studentResults={studentResults}
+            studentsLoading={studentsLoading}
+            studentsError={studentsError}
+            onAddMember={handleAddMember}
+            memberDepartmentOptions={memberDepartmentOptions}
+            studentYearOptions={STUDENT_YEAR_OPTIONS}
+          />
         ) : activeTab === 'create-event' ? (
           <CreateEventTab
             createError={createError}
@@ -1259,6 +1644,7 @@ const ClubDashboard = () => {
             searchQuery={searchQuery}
             eventMatchesSearch={eventMatchesSearch}
             openRsvpModal={openRsvpModal}
+            openOdSheet={openOdSheet}
             openQrModal={openQrModal}
             openEditModal={openEditModal}
             setDeleteTarget={setDeleteTarget}
@@ -1420,7 +1806,11 @@ const ClubDashboard = () => {
                   <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-border-subtle dark:border-border-strong overflow-hidden bg-[#0f1720]">
                     <img src={editEvent.image_url} alt="Current poster" className="h-full w-full object-cover" />
                   </div>
-                ) : null}
+                ) : (
+                  <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-border-subtle dark:border-border-strong overflow-hidden bg-[#0f1720]">
+                    <EventPosterFallback title={editEvent.title} size="compact" />
+                  </div>
+                )}
                 {editEvent.image_url && !editPosterFile && (
                   <Button
                     type="button"
@@ -1528,45 +1918,184 @@ const ClubDashboard = () => {
 
       {/* RSVP / Attendance Modal */}
       {rsvpModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={closeRsvpModal}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-4xl border border-border-subtle dark:border-border-strong flex flex-col modal-panel" onClick={e => e.stopPropagation()}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border-subtle dark:border-border-strong p-6 gap-4">
               <div>
-                <h2 className="text-xl font-bold">{rsvpModal.event?.title || "Event"} - Attendees</h2>
-                <p className="mt-1 text-xs text-text-secondary dark:text-text-dark-secondary">{rsvpModal.rsvps.length} Students Registered</p>
+                <h2 className="text-xl font-bold">{rsvpModal.event?.title || 'Event'} - Event Team & OD</h2>
+                <p className="mt-1 text-xs text-text-secondary dark:text-text-dark-secondary">
+                  {rsvpModal.tab === 'team'
+                    ? `${rsvpModal.workforce.length} Assigned Workers`
+                    : `${rsvpModal.rsvps.length} Students Registered`}
+                </p>
               </div>
-              
-              {rsvpModal.event?.is_paid && (
-                <div className="flex bg-surface-muted dark:bg-border-strong p-1 rounded-xl w-full sm:w-auto">
+
+              <div className="flex bg-surface-muted dark:bg-border-strong p-1 rounded-xl w-full sm:w-auto">
+                <Button
+                  onClick={() => setRsvpModal(p => ({ ...p, tab: 'team' }))}
+                  variant={rsvpModal.tab === 'team' ? 'primary' : 'ghost'}
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                >
+                  Event Team
+                </Button>
+                <Button
+                  onClick={() => setRsvpModal(p => ({ ...p, tab: 'attendance' }))}
+                  variant={rsvpModal.tab === 'attendance' ? 'primary' : 'ghost'}
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                >
+                  Student OD
+                </Button>
+                {rsvpModal.event?.is_paid && (
                     <Button
-                      onClick={() => setRsvpModal(p => ({ ...p, tab: "attendance" }))} 
-                      variant={rsvpModal.tab !== "payment" ? 'primary' : 'ghost'}
+                      onClick={() => setRsvpModal(p => ({ ...p, tab: 'payment' }))}
+                      variant={rsvpModal.tab === 'payment' ? 'primary' : 'ghost'}
                       size="sm"
-                      className="flex-1 sm:flex-none">
-                      Student OD
-                    </Button>
-                    <Button
-                      onClick={() => setRsvpModal(p => ({ ...p, tab: "payment" }))} 
-                      variant={rsvpModal.tab === "payment" ? 'primary' : 'ghost'}
-                      size="sm"
-                      className="flex-1 sm:flex-none">
+                      className="flex-1 sm:flex-none"
+                    >
                       Payments
                     </Button>
-                </div>
-              )}
-              
+                )}
+              </div>
+
               <div className="flex items-center gap-3">
-                <Button onClick={exportAttendanceCSV} disabled={rsvpModal.loading || rsvpModal.rsvps.length === 0} variant="secondary" className="text-green-600 hover:bg-green-600/20 dark:text-green-400">
-                  <span className="material-symbols-outlined text-[18px]">download</span> Export CSV
-                </Button>
-                <IconButton ariaLabel="Close attendees dialog" onClick={() => setRsvpModal({ open: false, event: null, rsvps: [], loading: false })} size="sm">
+                {rsvpModal.tab !== 'team' && (
+                  <Button onClick={exportAttendanceCSV} disabled={rsvpModal.loading || rsvpModal.rsvps.length === 0} variant="secondary" className="text-green-600 hover:bg-green-600/20 dark:text-green-400">
+                    <span className="material-symbols-outlined text-[18px]">download</span> Export CSV
+                  </Button>
+                )}
+                <IconButton ariaLabel="Close attendees dialog" onClick={closeRsvpModal} size="sm">
                   <span className="material-symbols-outlined text-[20px]">close</span>
                 </IconButton>
               </div>
             </div>
             
             <div className="p-6 overflow-y-auto flex-1">
-              {rsvpModal.loading ? (
+              {rsvpModal.tab === 'team' ? (
+                rsvpModal.workforceLoading ? (
+                  <div className="flex justify-center py-12"><Skeleton className="size-20 rounded-full" /></div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                      <div className="rounded-xl border border-border-subtle dark:border-border-strong p-4 space-y-3">
+                        <p className="text-sm font-semibold">Assign Club Member</p>
+                        <select
+                          value={workforceMemberUserId}
+                          onChange={(event) => setWorkforceMemberUserId(event.target.value)}
+                          className="h-10 w-full rounded-xl border border-border-subtle bg-white px-3 text-sm focus:border-primary focus:outline-none dark:border-border-strong dark:bg-[#111a22] dark:text-white"
+                        >
+                          <option value="">Select member</option>
+                          {availableClubMembersForEvent.map((member) => (
+                            <option key={member.user_id} value={member.user_id}>
+                              {(member.name || member.email || 'Student')} {member.register_number ? `(${member.register_number})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          type="button"
+                          onClick={() => handleAddEventWorker(workforceMemberUserId, 'CLUB_MEMBER')}
+                          disabled={!workforceMemberUserId}
+                          className="w-full"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">group_add</span>
+                          Add Club Member
+                        </Button>
+                      </div>
+
+                      <div className="rounded-xl border border-border-subtle dark:border-border-strong p-4 space-y-3">
+                        <p className="text-sm font-semibold">Assign Volunteer</p>
+                        <input
+                          value={workforceVolunteerQuery}
+                          onChange={(event) => setWorkforceVolunteerQuery(event.target.value)}
+                          placeholder="Search student by name, email, register number"
+                          className="h-10 w-full rounded-xl border border-border-subtle bg-white px-3 text-sm focus:border-primary focus:outline-none dark:border-border-strong dark:bg-[#111a22] dark:text-white"
+                        />
+                        {workforceVolunteerLoading ? (
+                          <p className="text-xs text-text-secondary dark:text-text-dark-secondary">Searching students...</p>
+                        ) : workforceVolunteerQuery.trim() ? (
+                          volunteerCandidateResults.length > 0 ? (
+                            <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                              {volunteerCandidateResults.slice(0, 8).map((student) => (
+                                <div key={student.id} className="flex items-center justify-between rounded-lg bg-surface-muted dark:bg-border-strong px-3 py-2">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium">{student.name || student.email}</p>
+                                    <p className="truncate text-xs text-text-secondary dark:text-text-dark-secondary">{student.register_number || student.email}</p>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => handleAddEventWorker(student.id, 'VOLUNTEER')}
+                                  >
+                                    Add
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-text-secondary dark:text-text-dark-secondary">No available students found for this search.</p>
+                          )
+                        ) : (
+                          <p className="text-xs text-text-secondary dark:text-text-dark-secondary">Type to search volunteer candidates.</p>
+                        )}
+                        {workforceVolunteerError ? <p className="text-xs text-red-500">{workforceVolunteerError}</p> : null}
+                      </div>
+                    </div>
+
+                    {workforceActionError ? <Toast tone="error" title="Team update failed" description={workforceActionError} /> : null}
+                    {workforceActionSuccess ? <Toast tone="success" title="Team updated" description={workforceActionSuccess} /> : null}
+
+                    {rsvpModal.workforce.length === 0 ? (
+                      <EmptyState
+                        icon="group_off"
+                        title="No workers assigned"
+                        description="Add club members and volunteers who will work for this event."
+                      />
+                    ) : (
+                      <div className="border border-border-subtle dark:border-border-strong rounded-xl overflow-hidden table-scroll">
+                        <table className="w-full min-w-205 text-sm text-left">
+                          <thead className="bg-surface-muted dark:bg-[#111a22] border-b border-border-subtle dark:border-border-strong text-xs uppercase text-text-secondary dark:text-text-dark-secondary font-bold">
+                            <tr>
+                              <th className="px-4 py-3">S.NO</th>
+                              <th className="px-4 py-3">NAME</th>
+                              <th className="px-4 py-3">ROLE</th>
+                              <th className="px-4 py-3">DEPARTMENT</th>
+                              <th className="px-4 py-3">YEAR</th>
+                              <th className="px-4 py-3">REGISTER NO</th>
+                              <th className="px-4 py-3 text-center">ACTIONS</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border-subtle dark:divide-border-strong">
+                            {rsvpModal.workforce.map((worker, index) => (
+                              <tr key={worker.id} className="transition-colors hover:bg-surface-muted dark:hover:bg-border-strong/30">
+                                <td className="px-4 py-3 font-medium">{index + 1}</td>
+                                <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{worker.name || worker.email || '-'}</td>
+                                <td className="px-4 py-3">
+                                  <StatusBadge tone={worker.role === 'CLUB_MEMBER' ? 'info' : 'neutral'}>
+                                    {worker.role === 'CLUB_MEMBER' ? 'Club Member' : 'Volunteer'}
+                                  </StatusBadge>
+                                </td>
+                                <td className="px-4 py-3">{worker.department || '-'}</td>
+                                <td className="px-4 py-3">{calculateYear(worker.batch, worker.degree, worker.register_number)}</td>
+                                <td className="px-4 py-3 font-mono text-xs">{worker.register_number || '-'}</td>
+                                <td className="px-4 py-3 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveEventWorker(worker)}
+                                    className="rounded-lg border border-red-500/25 px-2.5 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
+                                  >
+                                    Remove
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )
+              ) : rsvpModal.loading ? (
                 <div className="flex justify-center py-12"><Skeleton className="size-20 rounded-full" /></div>
               ) : rsvpModal.rsvps.length === 0 ? (
                 <EmptyState
@@ -1576,7 +2105,7 @@ const ClubDashboard = () => {
                 />
               ) : (
                 <div className="flex flex-col gap-4">
-                  {rsvpModal.tab === "payment" && rsvpModal.event?.is_paid && (
+                  {rsvpModal.tab === 'payment' && rsvpModal.event?.is_paid && (
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-2">
                       <div className="text-sm text-text-secondary">Upload payment CSV to auto-match captured/success rows using name, email, register no, year and department.</div>
                         <label className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-surface-muted px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-surface-muted/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
@@ -1603,11 +2132,11 @@ const ClubDashboard = () => {
                           <th className="px-4 py-3">DEPARTMENT</th>
                           <th className="px-4 py-3">YEAR</th>
                           <th className="px-4 py-3">REGISTER NO</th>
-                          {rsvpModal.tab !== "payment" && (
+                          {rsvpModal.tab !== 'payment' && (
                             <th className="px-4 py-3">ATTENDANCE MARKED AT</th>
                           )}
                           <th className="px-4 py-3 text-center border-l border-border-subtle dark:border-border-strong">
-                              {rsvpModal.tab === "payment" ? "PAID" : "ATTENDED"}
+                              {rsvpModal.tab === 'payment' ? 'PAID' : 'ATTENDED'}
                           </th>
                         </tr>
                       </thead>
@@ -1617,26 +2146,26 @@ const ClubDashboard = () => {
                           return (
                             <tr key={rsvp.id} className="transition-colors hover:bg-surface-muted dark:hover:bg-border-strong/30">
                               <td className="px-4 py-3 font-medium">{index + 1}</td>
-                              <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{u.name || "-"}</td>
-                              <td className="px-4 py-3">{u.department || "-"}</td>
+                              <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{u.name || '-'}</td>
+                              <td className="px-4 py-3">{u.department || '-'}</td>
                               <td className="px-4 py-3">{calculateYear(u.batch, u.degree, u.register_number)}</td>
-                              <td className="px-4 py-3 font-mono text-xs">{u.register_number || "-"}</td>
-                              {rsvpModal.tab !== "payment" && (
+                              <td className="px-4 py-3 font-mono text-xs">{u.register_number || '-'}</td>
+                              {rsvpModal.tab !== 'payment' && (
                                 <td className="px-4 py-3 text-xs whitespace-nowrap">
                                   {formatAttendanceMarkedAt(rsvp.attended_marked_at)}
                                 </td>
                               )}
                               <td className="px-4 py-3 text-center border-l border-border-subtle dark:border-border-strong">
-                                {rsvpModal.tab === "payment" ? (
-                                    <input 
-                                      type="checkbox" 
+                                {rsvpModal.tab === 'payment' ? (
+                                    <input
+                                      type="checkbox"
                                       checked={rsvp.is_paid || false}
                                       onChange={() => handleTogglePayment(rsvp.id, rsvp.is_paid)}
                                       className="size-5 rounded border border-border-subtle bg-surface-muted text-primary focus:ring-primary cursor-pointer"
                                     />
                                 ) : (
-                                    <input 
-                                      type="checkbox" 
+                                    <input
+                                      type="checkbox"
                                       checked={rsvp.attended || false}
                                       onChange={() => handleToggleAttendance(rsvp.id, rsvp.attended)}
                                       className="size-5 rounded border border-border-subtle bg-surface-muted text-primary focus:ring-primary cursor-pointer"

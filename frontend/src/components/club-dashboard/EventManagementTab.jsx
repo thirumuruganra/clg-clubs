@@ -5,6 +5,37 @@ import { EmptyState } from '../ui/empty-state';
 import { StatusBadge } from '../ui/status-badge';
 import { Toast } from '../ui/toast';
 
+const EventDateBadgeAvatar = ({ startTime }) => {
+  if (!startTime) {
+    return (
+      <div className="flex h-full w-full flex-col overflow-hidden rounded-lg border border-border-strong bg-[#0b1320]">
+        <span className="flex h-4 items-center justify-center border-b border-border-strong bg-[#122032] text-[9px] font-bold uppercase tracking-[0.12em] text-text-dark-secondary">TBD</span>
+        <span className="flex flex-1 items-center justify-center text-sm font-black text-white">--</span>
+      </div>
+    );
+  }
+
+  const date = new Date(startTime);
+  if (Number.isNaN(date.getTime())) {
+    return (
+      <div className="flex h-full w-full flex-col overflow-hidden rounded-lg border border-border-strong bg-[#0b1320]">
+        <span className="flex h-4 items-center justify-center border-b border-border-strong bg-[#122032] text-[9px] font-bold uppercase tracking-[0.12em] text-text-dark-secondary">TBD</span>
+        <span className="flex flex-1 items-center justify-center text-sm font-black text-white">--</span>
+      </div>
+    );
+  }
+
+  const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  const day = date.toLocaleDateString('en-US', { day: '2-digit' });
+
+  return (
+    <div className="flex h-full w-full flex-col overflow-hidden rounded-lg border border-primary/30 bg-[#081321] shadow-[0_6px_16px_rgba(5,12,22,0.45)]">
+      <span className="flex h-4 items-center justify-center border-b border-primary/35 bg-primary/20 text-[9px] font-bold uppercase tracking-[0.14em] text-primary">{month}</span>
+      <span className="flex flex-1 items-center justify-center text-base font-black leading-none text-white">{day}</span>
+    </div>
+  );
+};
+
 const EventManagementTab = ({
   setActiveTab,
   totalEvents,
@@ -15,6 +46,7 @@ const EventManagementTab = ({
   searchQuery,
   eventMatchesSearch,
   openRsvpModal,
+  openOdSheet,
   openQrModal,
   openEditModal,
   setDeleteTarget,
@@ -107,7 +139,7 @@ const EventManagementTab = ({
                 <td className="group cursor-pointer px-4 py-3" onClick={() => openRsvpModal(event)}>
                   <div className="flex items-center gap-3">
                     <div className="h-12.5 w-10 shrink-0 overflow-hidden rounded-lg bg-[#0f1720]">
-                      {event.image_url ? <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" /> : null}
+                      {event.image_url ? <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" /> : <EventDateBadgeAvatar startTime={event.start_time} />}
                     </div>
                     <div>
                       <p className="text-sm font-bold transition-colors group-hover:text-primary">{event.title}</p>
@@ -137,6 +169,13 @@ const EventManagementTab = ({
                       className={`h-8 w-8 rounded-full transition-colors ${event.attendance_qr_open ? 'bg-primary/20 hover:bg-primary/30' : 'hover:bg-surface-muted dark:hover:bg-border-strong'}`}
                     >
                       <span className={`material-symbols-outlined text-[18px] ${event.attendance_qr_open ? 'text-primary' : 'text-text-secondary'}`}>qr_code_2</span>
+                    </button>
+                    <button
+                      aria-label={`Open OD sheet for ${event.title}`}
+                      onClick={() => openOdSheet(event)}
+                      className="h-8 w-8 rounded-full transition-colors hover:bg-surface-muted dark:hover:bg-border-strong"
+                    >
+                      <span className="material-symbols-outlined text-[18px] text-text-secondary">table_view</span>
                     </button>
                     <button aria-label={`Edit ${event.title}`} onClick={() => openEditModal(event)} className="h-8 w-8 rounded-full transition-colors hover:bg-surface-muted dark:hover:bg-border-strong">
                       <span className="material-symbols-outlined text-[18px] text-text-secondary">edit</span>

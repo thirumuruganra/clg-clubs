@@ -4,6 +4,7 @@ import AppTopBar from '../layout/AppTopBar';
 const tabTitles = {
   dashboard: 'Event Management',
   followers: 'Followers',
+  members: 'Club Members',
   events: 'Event Calendar',
   'create-event': 'Create Event',
 };
@@ -18,7 +19,7 @@ const ClubDashboardTopBar = ({ activeTab, setMobileMenuOpen, searchQuery, setSea
       showSearch={showSearch}
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
-      searchPlaceholder="Search events or followers..."
+      searchPlaceholder="Search events, followers, or members..."
     />
   );
 };
