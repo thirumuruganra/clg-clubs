@@ -1,32 +1,218 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './AuthContext';
-import LandingPage from './pages/LandingPage';
-import Login from './pages/Login';
-import StudentDashboard from './pages/StudentDashboard';
-import Profile from './pages/Profile';
-import Calendar from './pages/Calendar';
-import ClubDashboard from './pages/ClubDashboard';
-import ClubSetup from './pages/ClubSetup';
-import Clubs from './pages/Clubs';
-import ClubProfile from './pages/ClubProfile';
-import AttendanceCheckin from './pages/AttendanceCheckin';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './auth-context';
+
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const Login = lazy(() => import('./pages/Login'));
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Calendar = lazy(() => import('./pages/Calendar'));
+const ClubDashboard = lazy(() => import('./pages/ClubDashboard'));
+const ClubSetup = lazy(() => import('./pages/ClubSetup'));
+const Clubs = lazy(() => import('./pages/Clubs'));
+const ClubProfile = lazy(() => import('./pages/ClubProfile'));
+const AttendanceCheckin = lazy(() => import('./pages/AttendanceCheckin'));
+const ClubCalendar = lazy(() => import('./pages/ClubCalendar'));
+
+const ROUTE_TITLES = {
+  '/': 'WAVC - Stay in the loop',
+  '/login': 'WAVC - Login',
+  '/student/dashboard': 'WAVC - Student Dashboard',
+  '/student/profile': 'WAVC - Student Profile',
+  '/student/calendar': 'WAVC - Student Calendar',
+  '/student/clubs': 'WAVC - Clubs',
+  '/student/attendance-checkin': 'WAVC - Attendance Check-in',
+  '/club/dashboard': 'WAVC - Club Dashboard',
+  '/club/setup': 'WAVC - Club Setup',
+  '/club/profile': 'WAVC - Club Profile',
+  '/club/calendar': 'WAVC - Club Calendar',
+};
+
+function LoadingRouteFallback() {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-surface-canvas px-6 text-center text-sm text-text-secondary">
+      Loading account...
+    </div>
+  );
+}
+
+function ProtectedRoute({ children, allowRoles }) {
+  const { loading, user } = useAuth();
+
+  if (loading) return <LoadingRouteFallback />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (allowRoles?.length && !allowRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
+function PublicRoute({ children }) {
+  const { loading, user } = useAuth();
+
+  if (loading) return <LoadingRouteFallback />;
+  if (user) {
+    const homePath = user.role === 'CLUB_ADMIN' ? '/club/dashboard' : '/student/dashboard';
+    return <Navigate to={homePath} replace />;
+  }
+
+  return children;
+}
+
+function NotFound() {
+  return (
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface-canvas px-6 text-center">
+      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">404</p>
+      <h1 className="text-balance text-2xl font-bold text-text-primary">Page not found</h1>
+      <p className="max-w-md text-pretty text-sm text-text-secondary">
+        Route missing. Use dashboard navigation to continue.
+      </p>
+    </main>
+  );
+}
+
+class AppErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error) {
+    console.error('Route rendering error:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface-canvas px-6 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">Application error</p>
+          <h1 className="text-balance text-2xl font-bold text-text-primary">Something broke on this page</h1>
+          <p className="max-w-md text-pretty text-sm text-text-secondary">
+            Retry by refreshing. If this continues, contact maintainers.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+          >
+            Reload
+          </button>
+        </main>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+function RouteMetadata() {
+  const location = useLocation();
+
+  useEffect(() => {
+    document.title = ROUTE_TITLES[location.pathname] || 'WAVC - Campus Clubs';
+  }, [location.pathname]);
+
+  return null;
+}
 
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/student/dashboard" element={<StudentDashboard />} />
-          <Route path="/student/profile" element={<Profile />} />
-          <Route path="/student/calendar" element={<Calendar />} />
-          <Route path="/student/clubs" element={<Clubs />} />
-          <Route path="/student/attendance-checkin" element={<AttendanceCheckin />} />
-          <Route path="/club/dashboard" element={<ClubDashboard />} />
-          <Route path="/club/setup" element={<ClubSetup />} />
-          <Route path="/club/profile" element={<ClubProfile />} />
-        </Routes>
+        <RouteMetadata />
+        <AppErrorBoundary>
+          <Suspense fallback={<LoadingRouteFallback />}>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route
+                path="/login"
+                element={(
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                )}
+              />
+              <Route
+                path="/student/dashboard"
+                element={(
+                  <ProtectedRoute allowRoles={['STUDENT']}>
+                    <StudentDashboard />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/student/profile"
+                element={(
+                  <ProtectedRoute allowRoles={['STUDENT']}>
+                    <Profile />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/student/calendar"
+                element={(
+                  <ProtectedRoute allowRoles={['STUDENT']}>
+                    <Calendar />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/student/clubs"
+                element={(
+                  <ProtectedRoute allowRoles={['STUDENT']}>
+                    <Clubs />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/student/attendance-checkin"
+                element={(
+                  <ProtectedRoute allowRoles={['STUDENT']}>
+                    <AttendanceCheckin />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/club/dashboard"
+                element={(
+                  <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
+                    <ClubDashboard />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/club/setup"
+                element={(
+                  <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
+                    <ClubSetup />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/club/profile"
+                element={(
+                  <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
+                    <ClubProfile />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/club/calendar"
+                element={(
+                  <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
+                    <ClubCalendar />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </AppErrorBoundary>
       </Router>
     </AuthProvider>
   );
