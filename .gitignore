@@ -39,6 +39,7 @@ run.txt
 new_features.md
 desktop.ini
 *.csv
+.github/
 
 # Local deploy helpers (not committed)
 deploy-heroku.sh
