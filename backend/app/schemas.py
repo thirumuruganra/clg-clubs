@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 
 
@@ -162,3 +162,78 @@ class FollowResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ===== CLUB MEMBER SCHEMAS =====
+
+class ClubMemberCreate(BaseModel):
+    user_id: int
+
+
+class ClubMemberResponse(BaseModel):
+    id: int
+    club_id: int
+    user_id: int
+    created_at: Optional[datetime] = None
+    name: Optional[str] = None
+    email: Optional[str] = None
+    picture: Optional[str] = None
+    department: Optional[str] = None
+    degree: Optional[str] = None
+    batch: Optional[str] = None
+    register_number: Optional[str] = None
+
+
+class ClubMembersListResponse(BaseModel):
+    club_id: int
+    member_count: int
+    members: List[ClubMemberResponse]
+
+
+# ===== STUDENT DIRECTORY SCHEMAS =====
+
+class StudentDirectoryStudentResponse(BaseModel):
+    id: int
+    name: Optional[str] = None
+    email: str
+    picture: Optional[str] = None
+    department: Optional[str] = None
+    degree: Optional[str] = None
+    batch: Optional[str] = None
+    register_number: Optional[str] = None
+    year: Optional[str] = None
+
+
+class StudentDirectoryListResponse(BaseModel):
+    total: int
+    students: List[StudentDirectoryStudentResponse]
+
+
+# ===== EVENT WORKFORCE SCHEMAS =====
+
+class EventWorkforceCreate(BaseModel):
+    user_id: int
+    role: Literal["CLUB_MEMBER", "VOLUNTEER"]
+
+
+class EventWorkforceMemberResponse(BaseModel):
+    id: int
+    event_id: int
+    user_id: int
+    role: Literal["CLUB_MEMBER", "VOLUNTEER"]
+    created_at: Optional[datetime] = None
+    name: Optional[str] = None
+    email: Optional[str] = None
+    picture: Optional[str] = None
+    department: Optional[str] = None
+    degree: Optional[str] = None
+    batch: Optional[str] = None
+    register_number: Optional[str] = None
+
+
+class EventWorkforceListResponse(BaseModel):
+    event_id: int
+    club_id: int
+    member_count: int
+    volunteer_count: int
+    workers: List[EventWorkforceMemberResponse]

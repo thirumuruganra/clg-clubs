@@ -17,8 +17,10 @@ from dotenv import load_dotenv
 from app.models.user import User
 from app.models.club import Club
 from app.models.event import Event
+from app.models.event_worker import EventWorker
 from app.models.rsvp import RSVP
 from app.models.follow import Follow
+from app.models.club_member import ClubMember
 
 load_dotenv()
 
