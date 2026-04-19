@@ -95,7 +95,7 @@ const StudentSidebar = ({ mobileMenuOpen, onClose, children }) => {
           <div
             className="size-10 rounded-full flex items-center justify-center text-white font-bold"
             style={{
-              background: 'linear-gradient(135deg, #137fec 0%, #0d5bab 100%)',
+              background: '#137fec',
               display: user?.picture && user.picture.trim() !== '' ? 'none' : 'flex',
             }}
           >

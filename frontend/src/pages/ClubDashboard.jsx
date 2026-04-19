@@ -5,9 +5,13 @@ import DatePicker from 'react-datepicker';
 import imageCompression from 'browser-image-compression';
 import 'react-datepicker/dist/react-datepicker.css';
 import { QRCodeSVG } from 'qrcode.react';
-import wavcIcon from '../assets/WAVC-edit.png';
 import ClubCalendar from './ClubCalendar';
 import { cn, getClubIconUrl, getClubInitial } from '../lib/utils';
+import ClubDashboardSidebar from '../components/club-dashboard/ClubDashboardSidebar';
+import ClubDashboardTopBar from '../components/club-dashboard/ClubDashboardTopBar';
+import FollowersTab from '../components/club-dashboard/FollowersTab';
+import CreateEventTab from '../components/club-dashboard/CreateEventTab';
+import EventManagementTab from '../components/club-dashboard/EventManagementTab';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1116,10 +1120,10 @@ const ClubDashboard = () => {
   const attendanceRate = totalRSVPs > 0 ? Math.round((totalAttended / totalRSVPs) * 100) : 0;
 
   const sideNavItems = [
-    { label: 'Dashboard', icon: 'dashboard', tab: 'dashboard' },
+    { label: 'Overview', icon: 'dashboard', tab: 'dashboard' },
     { label: 'Followers', icon: 'groups', tab: 'followers' },
     { label: 'Event Management', icon: 'event', tab: 'events' },
-    { label: 'Create New Event', icon: 'add_circle', tab: 'create-event' },
+    { label: 'Create Event', icon: 'add_circle', tab: 'create-event' },
   ];
 
   const clubIconUrl = getClubIconUrl(club);
@@ -1132,97 +1136,27 @@ const ClubDashboard = () => {
         <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setMobileMenuOpen(false)}></div>
       )}
 
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 w-64 shrink-0 border-r border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] flex flex-col overflow-hidden transition-transform duration-300 ease-in-out`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="p-4 sm:p-6 border-b border-[#e5e7eb] dark:border-[#233648]">
-          <div className="flex items-center gap-3 mb-1">
-            {clubIconUrl ? (
-              <div className="size-10 rounded-full overflow-hidden shrink-0 border border-primary/20 bg-primary/5 flex items-center justify-center">
-                <img src={clubIconUrl} alt={club?.name || 'Club'} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              </div>
-            ) : (
-              <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
-            )}
-            <div className="flex-1 min-w-0">
-              <span className="text-lg font-bold truncate block" title={club?.name || 'WAVC'}>
-                {club?.name || 'WAVC'}
-              </span>
-              <p className="text-xs text-[#637588] dark:text-[#92adc9]">Club Admin Portal</p>
-            </div>
-          </div>
-        </div>
-
-        <nav className="flex-1 min-h-0 overflow-y-auto no-scrollbar p-3 sm:p-4 space-y-1">
-          {sideNavItems.map(item => (
-            <button
-              key={item.tab}
-              onClick={() => setActiveTab(item.tab)}
-              className={cn(
-                'touch-target flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium transition-all',
-                activeTab === item.tab
-                  ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                  : 'text-[#637588] dark:text-[#92adc9] hover:bg-[#f0f2f4] dark:hover:bg-[#233648]',
-              )}
-            >
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        {/* User info at bottom */}
-        <div className="mt-auto shrink-0 border-t border-[#233648] bg-white dark:bg-[#111a22] p-3 sm:p-4" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => navigate('/club/profile')}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                navigate('/club/profile');
-              }
-            }}
-            className="w-full text-left flex items-center gap-3 rounded-xl p-2 hover:bg-[#233648] transition-colors cursor-pointer"
-          >
-            {clubIconUrl ? (
-              <img
-                src={clubIconUrl}
-                alt={club?.name || 'Club'}
-                className="size-10 rounded-full object-cover"
-                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                referrerPolicy="no-referrer"
-              />
-            ) : null}
-            <div className="size-10 rounded-full flex items-center justify-center text-white font-bold" style={{ background: 'linear-gradient(135deg, #137fec 0%, #0d5bab 100%)', display: clubIconUrl ? 'none' : 'flex' }}>
-              {clubInitial}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.name}</p>
-              <p className="text-xs text-[#637588] dark:text-[#92adc9]">Head Administrator</p>
-            </div>
-            <button onClick={(event) => { event.stopPropagation(); logout(); }} aria-label="Sign out" className="touch-target w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors">
-              <span className="material-symbols-outlined text-[20px] text-[#637588]">logout</span>
-            </button>
-          </div>
-        </div>
-      </aside>
+      <ClubDashboardSidebar
+        mobileMenuOpen={mobileMenuOpen}
+        sideNavItems={sideNavItems}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        club={club}
+        clubIconUrl={clubIconUrl}
+        clubInitial={clubInitial}
+        user={user}
+        navigate={navigate}
+        logout={logout}
+      />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden w-full">
-        {/* Top bar */}
-        <div className={`items-center justify-between px-4 lg:px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22] ${activeTab === 'events' ? 'flex lg:hidden' : 'flex'}`}>
-          <div className="flex items-center gap-2 flex-1">
-            <button aria-label="Open sidebar" className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
-              <span className="material-symbols-outlined text-[24px]">menu</span>
-            </button>
-            {activeTab === 'dashboard' && (
-              <label className="flex items-stretch rounded-xl h-10 bg-[#f0f2f4] dark:bg-[#233648] md:min-w-75 w-full max-w-md">
-                <div className="flex items-center justify-center pl-4"><span className="material-symbols-outlined text-[20px] text-[#637588]">search</span></div>
-                <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-transparent border-none text-sm px-3 focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1 w-full" placeholder="Search events..." />
-              </label>
-            )}
-          </div>
-        </div>
+        <ClubDashboardTopBar
+          activeTab={activeTab}
+          setMobileMenuOpen={setMobileMenuOpen}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
 
         {user && user.has_google_calendar_access === false && (
           <div className="mx-4 lg:mx-8 mt-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
@@ -1268,345 +1202,55 @@ const ClubDashboard = () => {
             />
           </div>
         ) : activeTab === 'followers' ? (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold">Followers</h1>
-                <p className="text-[#637588] dark:text-[#92adc9] mt-1">Students who follow your club.</p>
-              </div>
-              <div className="rounded-xl border border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#1a2632] px-4 py-3">
-                <p className="text-xs uppercase tracking-wide text-[#637588] dark:text-[#92adc9]">Total Followers</p>
-                <p className="text-2xl font-bold mt-1">{followers.length}</p>
-              </div>
-            </div>
-
-            {followersError && (
-              <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{followersError}</p>
-            )}
-
-            <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] overflow-hidden table-scroll">
-              {followersLoading ? (
-                <div className="px-4 py-10 text-sm text-[#637588] dark:text-[#92adc9]">Loading followers...</div>
-              ) : followers.length === 0 ? (
-                <div className="px-4 py-10 text-sm text-[#637588] dark:text-[#92adc9]">No followers yet. Share your events and club page to grow your audience.</div>
-              ) : (
-                <table className="w-full min-w-180">
-                  <thead>
-                    <tr className="border-b border-[#e5e7eb] dark:border-[#233648]">
-                      {['Student', 'Email', 'Department', 'Year', 'Register No'].map((header) => (
-                        <th key={header} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9]">{header}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {followers.map((follower) => {
-                      const followerInitial = (follower.name || follower.email || '?').charAt(0).toUpperCase();
-
-                      return (
-                        <tr key={follower.id} className="border-b border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f9fafb] dark:hover:bg-[#233648]/50 transition-colors">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              {follower.picture ? (
-                                <img src={follower.picture} alt={follower.name || 'Follower'} className="w-9 h-9 rounded-full object-cover" referrerPolicy="no-referrer" />
-                              ) : (
-                                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{followerInitial}</div>
-                              )}
-                              <span className="text-sm font-semibold">{follower.name || 'Unnamed student'}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-[#637588] dark:text-[#92adc9]">{follower.email || '-'}</td>
-                          <td className="px-4 py-3 text-sm">{follower.department || '-'}</td>
-                          <td className="px-4 py-3 text-sm">{calculateYear(follower.batch, follower.degree, follower.register_number)}</td>
-                          <td className="px-4 py-3 text-sm">{follower.register_number || '-'}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
+          <FollowersTab
+            followers={followers}
+            followersLoading={followersLoading}
+            followersError={followersError}
+            calculateYear={calculateYear}
+          />
         ) : activeTab === 'create-event' ? (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-            <div className="mx-auto max-w-4xl">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold">Create New Event</h1>
-                  <p className="text-[#637588] dark:text-[#92adc9] mt-1">Publish a new club event with schedule, details, and poster.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('dashboard')}
-                  className="touch-target inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#1a2632] text-sm font-bold hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-                  Back to Dashboard
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateEvent} className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] p-5 sm:p-6 space-y-4">
-                {createError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{createError}</p>}
-                <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Title</label>
-                  <input type="text" required value={newEvent.title} onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
-                    placeholder="e.g. Winter Coding Bootcamp"
-                    className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Short Description (max 100 words)</label>
-                  <textarea value={newEvent.description} onChange={e => setNewEvent(p => ({ ...p, description: e.target.value }))}
-                    placeholder="Describe the event..."
-                    rows={3}
-                    className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] resize-none" />
-                  <p className={`mt-1 text-xs ${isDescriptionTooLong(newEvent.description) ? 'text-red-500' : 'text-[#637588] dark:text-[#92adc9]'}`}>
-                    {countWords(newEvent.description)}/{DESCRIPTION_WORD_LIMIT} words
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Keywords (comma separated)</label>
-                  <input type="text" value={newEvent.keywords} onChange={e => setNewEvent(p => ({ ...p, keywords: e.target.value }))}
-                    placeholder="e.g. workshop, python, machine learning"
-                    className="w-full px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648] border-none text-sm focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Date & Start</label>
-                    <DatePicker
-                      selected={newEvent.start_time}
-                      onChange={(date) => setNewEvent((p) => ({ ...p, start_time: date }))}
-                      showTimeInput
-                      dateFormat="dd MMM yyyy, h:mm aa"
-                      placeholderText="Select start date and time"
-                      className="modern-datetime-input w-full"
-                      calendarClassName="modern-datepicker-calendar"
-                      popperClassName="modern-datepicker-popper"
-                      popperPlacement="bottom-start"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">End Time</label>
-                    <DatePicker
-                      selected={newEvent.end_time}
-                      onChange={(date) => setNewEvent((p) => ({ ...p, end_time: date }))}
-                      showTimeInput
-                      dateFormat="dd MMM yyyy, h:mm aa"
-                      placeholderText="Select end date and time"
-                      minDate={newEvent.start_time || undefined}
-                      className="modern-datetime-input w-full"
-                      calendarClassName="modern-datepicker-calendar"
-                      popperClassName="modern-datepicker-popper"
-                      popperPlacement="bottom-start"
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-2 block">Category Tag</label>
-                  <div className="flex gap-3">
-                    {[{ label: 'Tech', value: 'TECH', icon: 'computer' }, { label: 'Non-Tech', value: 'NON_TECH', icon: 'palette' }].map(tag => (
-                      <button key={tag.value} type="button" onClick={() => setNewEvent(p => ({ ...p, tag: tag.value }))}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium border transition-all ${
-                          newEvent.tag === tag.value
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-[#233648] text-[#92adc9] hover:border-[#34485c]'
-                        }`}>
-                        <span className="material-symbols-outlined text-[18px]">{tag.icon}</span>
-                        {tag.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-2 block">Location</label>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
-                    <span className="material-symbols-outlined text-[18px] text-[#637588]">location_on</span>
-                    <input type="text" value={newEvent.location} onChange={e => setNewEvent(p => ({ ...p, location: e.target.value }))}
-                      placeholder="Add location"
-                      className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Event Poster (JPEG/PNG/WebP, up to 2 MB after compression)</label>
-                  <div
-                    className={`rounded-xl border-2 border-dashed p-4 transition-colors ${
-                      isCreatePosterDragActive
-                        ? 'border-primary bg-primary/5'
-                        : 'border-[#e5e7eb] dark:border-[#233648] bg-[#f8fafc] dark:bg-[#0f1720]/40'
-                    }`}
-                    onDragEnter={(event) => handlePosterDragEnter(event, setIsCreatePosterDragActive, createPosterDragCounterRef)}
-                    onDragOver={handlePosterDragOver}
-                    onDragLeave={(event) => handlePosterDragLeave(event, setIsCreatePosterDragActive, createPosterDragCounterRef)}
-                    onDrop={(event) => handlePosterDrop(event, setIsCreatePosterDragActive, createPosterDragCounterRef, setNewPosterFile, setNewPosterPreview, setCreateError)}
-                  >
-                    <input
-                      ref={newPosterInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(event) => {
-                        const selectedFile = event.target.files?.[0] || null;
-                        setPosterSelection(selectedFile, setNewPosterFile, setNewPosterPreview, setCreateError);
-                        event.target.value = '';
-                      }}
-                      className="hidden"
-                    />
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={openCreatePosterPicker}
-                        className="touch-target inline-flex items-center gap-2 rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium cursor-pointer hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">upload</span>
-                        Choose Poster
-                      </button>
-                      <span className="text-xs text-[#637588] dark:text-[#92adc9] truncate max-w-64">{newPosterFile ? newPosterFile.name : 'No file selected'}</span>
-                    </div>
-                    <p className="text-xs text-[#637588] dark:text-[#92adc9] mt-2">or drag and drop an image here</p>
-                  </div>
-                  {newPosterPreview && (
-                    <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-[#e5e7eb] dark:border-[#233648] overflow-hidden bg-[#0f1720]">
-                      <img src={newPosterPreview} alt="Poster preview" className="h-full w-full object-cover" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mb-2">
-                  <input type="checkbox" id="is_paid" checked={newEvent.is_paid || false} onChange={e => setNewEvent(p => ({ ...p, is_paid: e.target.checked }))} className="w-4 h-4 text-blue-500 bg-gray-100 dark:bg-[#1a2632] border-gray-300 dark:border-[#34485c] rounded-full focus:ring-blue-500 focus:ring-2 cursor-pointer" />
-                  <label htmlFor="is_paid" className="text-sm font-medium text-[#111418] dark:text-white">Is this a paid event?</label>
-                </div>
-
-                {newEvent.is_paid && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Registration Fees</label>
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
-                        <span className="material-symbols-outlined text-[18px] text-[#637588]">payments</span>
-                        <input type="text" value={newEvent.registration_fees || ""} onChange={e => setNewEvent(p => ({ ...p, registration_fees: e.target.value }))}
-                          placeholder="e.g. ₹500"
-                          className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-[#637588] dark:text-[#92adc9] mb-1 block">Payment Link (Optional)</label>
-                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#f0f2f4] dark:bg-[#233648]">
-                        <span className="material-symbols-outlined text-[18px] text-[#637588]">link</span>
-                        <input type="url" value={newEvent.payment_link || ""} onChange={e => setNewEvent(p => ({ ...p, payment_link: e.target.value }))}
-                          placeholder="e.g. https://rzp.io/l/..."
-                          className="bg-transparent border-none text-sm focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <button type="submit" disabled={creating || creatingPoster}
-                  className="w-full py-3 rounded-xl bg-primary text-white font-bold text-sm border border-primary hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
-                  {creating ? 'Publishing...' : creatingPoster ? 'Uploading poster...' : 'Publish Event'}
-                  {!(creating || creatingPoster) && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
-                </button>
-              </form>
-            </div>
-          </div>
+          <CreateEventTab
+            createError={createError}
+            newEvent={newEvent}
+            setNewEvent={setNewEvent}
+            handleCreateEvent={handleCreateEvent}
+            creating={creating}
+            creatingPoster={creatingPoster}
+            DESCRIPTION_WORD_LIMIT={DESCRIPTION_WORD_LIMIT}
+            countWords={countWords}
+            isDescriptionTooLong={isDescriptionTooLong}
+            setActiveTab={setActiveTab}
+            isCreatePosterDragActive={isCreatePosterDragActive}
+            handlePosterDragEnter={handlePosterDragEnter}
+            handlePosterDragOver={handlePosterDragOver}
+            handlePosterDragLeave={handlePosterDragLeave}
+            handlePosterDrop={handlePosterDrop}
+            createPosterDragCounterRef={createPosterDragCounterRef}
+            setIsCreatePosterDragActive={setIsCreatePosterDragActive}
+            setNewPosterFile={setNewPosterFile}
+            setNewPosterPreview={setNewPosterPreview}
+            setCreateError={setCreateError}
+            newPosterInputRef={newPosterInputRef}
+            setPosterSelection={setPosterSelection}
+            openCreatePosterPicker={openCreatePosterPicker}
+            newPosterFile={newPosterFile}
+            newPosterPreview={newPosterPreview}
+          />
         ) : (
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {/* Header */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">Event Management</h1>
-              <p className="text-[#637588] dark:text-[#92adc9] mt-1">Create, edit, and track participation for club activities.</p>
-            </div>
-            <div className="flex gap-3 w-full sm:w-auto">
-              <button onClick={() => setActiveTab('create-event')} className="touch-target flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
-                <span className="material-symbols-outlined text-[18px]">add</span> Create New Event
-              </button>
-            </div>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-8">
-            {[
-              { label: 'Total Upcoming Events', value: totalEvents, icon: 'event_available', badge: `+${Math.min(totalEvents, 2)} this week`, color: 'primary' },
-              { label: 'Total Active Registrations', value: totalRSVPs, icon: 'group', badge: '+15%', color: 'primary' },
-              { label: 'Avg. Attendance Rate', value: `${attendanceRate}%`, icon: 'trending_up', badge: '+5%', color: 'primary' },
-            ].map((stat, i) => (
-              <div key={i} className="bg-white dark:bg-[#1a2632] rounded-xl p-4 sm:p-6 border border-[#e5e7eb] dark:border-[#233648]">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-2 rounded-lg bg-primary/10"><span className="material-symbols-outlined text-primary text-[24px]">{stat.icon}</span></div>
-                  <span className="text-xs font-medium text-green-400 bg-green-400/10 px-2 py-1 rounded-full flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">trending_up</span>{stat.badge}
-                  </span>
-                </div>
-                <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-1">{stat.label}</p>
-                <p className="text-2xl sm:text-3xl font-bold">{stat.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 lg:gap-8">
-            {/* Events Table */}
-            <div className="col-span-1">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">Upcoming Event Registration Tracker</h2>
-              </div>
-              {tableError && <p className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{tableError}</p>}
-              <div className="bg-white dark:bg-[#1a2632] rounded-xl border border-[#e5e7eb] dark:border-[#233648] overflow-hidden table-scroll">
-                <table className="w-full min-w-180">
-                  <thead>
-                    <tr className="border-b border-[#e5e7eb] dark:border-[#233648]">
-                      {['Event Name', 'Category', 'Date', 'Registered', 'Actions'].map(h => (
-                        <th key={h} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wider text-[#637588] dark:text-[#92adc9]">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {events.length === 0 && (
-                      <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[#637588] italic">No events yet. Create your first event!</td></tr>
-                    )}
-                    {events.filter(e => eventMatchesSearch(e, searchQuery)).map(event => (
-                      <tr key={event.id} className="border-b border-[#e5e7eb] dark:border-[#233648] hover:bg-[#f9fafb] dark:hover:bg-[#233648]/50 transition-colors">
-                        <td className="px-4 py-3 cursor-pointer group" onClick={() => openRsvpModal(event)}>
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-12.5 rounded-lg bg-[#0f1720] shrink-0 overflow-hidden">
-                              {event.image_url ? <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" /> : null}
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold group-hover:text-primary transition-colors">{event.title}</p>
-                              <p className="text-xs text-[#637588] dark:text-[#92adc9]">{event.location || 'No location'}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${event.tag === 'TECH' ? 'bg-primary/10 text-primary' : 'bg-orange-500/10 text-orange-400'}`}>
-                            {event.tag || 'General'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm">{event.start_time ? new Date(event.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold">{event.rsvp_count || 0}</span>
-                            <div className="w-16 h-1.5 rounded-full bg-[#233648] overflow-hidden">
-                              <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${Math.min(100, (event.rsvp_count || 0) / 2)}%` }}></div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-2">
-                            <button
-                              aria-label={`Attendance QR for ${event.title}`}
-                              onClick={() => openQrModal(event)}
-                              className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${event.attendance_qr_open ? 'bg-green-500/15 hover:bg-green-500/25' : 'hover:bg-[#233648]'}`}
-                            >
-                              <span className={`material-symbols-outlined text-[18px] ${event.attendance_qr_open ? 'text-green-500' : 'text-[#637588]'}`}>qr_code_2</span>
-                            </button>
-                            <button aria-label={`Edit ${event.title}`} onClick={() => openEditModal(event)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#233648] transition-colors"><span className="material-symbols-outlined text-[18px] text-[#637588]">edit</span></button>
-                            <button aria-label={`Delete ${event.title}`} onClick={() => setDeleteTarget(event)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-500/10 transition-colors"><span className="material-symbols-outlined text-[18px] text-red-400">delete</span></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
+          <EventManagementTab
+            setActiveTab={setActiveTab}
+            totalEvents={totalEvents}
+            totalRSVPs={totalRSVPs}
+            attendanceRate={attendanceRate}
+            tableError={tableError}
+            events={events}
+            searchQuery={searchQuery}
+            eventMatchesSearch={eventMatchesSearch}
+            openRsvpModal={openRsvpModal}
+            openQrModal={openQrModal}
+            openEditModal={openEditModal}
+            setDeleteTarget={setDeleteTarget}
+          />
         )}
       </main>
       {/* Edit Event Modal */}
