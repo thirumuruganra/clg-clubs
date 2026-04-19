@@ -7,6 +7,7 @@ import AppShell from '../components/layout/AppShell';
 import AppTopBar from '../components/layout/AppTopBar';
 import { Button } from '../components/ui/button';
 import { EmptyState } from '../components/ui/empty-state';
+import { EventPosterFallback } from '../components/ui/event-poster-fallback';
 import { IconButton } from '../components/ui/icon-button';
 import { Skeleton } from '../components/ui/skeleton';
 
@@ -416,7 +417,9 @@ const Calendar = () => {
               <div className="relative min-h-44 w-full overflow-hidden bg-[#0f1720] sm:min-h-52 md:min-h-88 md:w-2/5">
                 {selectedEvent.image_url ? (
                   <img src={selectedEvent.image_url} alt={selectedEvent.title} loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                ) : null}
+                ) : (
+                  <EventPosterFallback title={selectedEvent.title} />
+                )}
               </div>
 
               <div className="flex w-full flex-col p-6 md:w-3/5">

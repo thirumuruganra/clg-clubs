@@ -7,6 +7,7 @@ import AppTopBar from '../components/layout/AppTopBar';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { EmptyState } from '../components/ui/empty-state';
+import { EventPosterFallback } from '../components/ui/event-poster-fallback';
 import { Skeleton } from '../components/ui/skeleton';
 import { StatusBadge } from '../components/ui/status-badge';
 import { Toast } from '../components/ui/toast';
@@ -210,7 +211,9 @@ const StudentDashboard = () => {
               decoding="async"
               className="h-full w-full object-cover"
             />
-          ) : null}
+          ) : (
+            <EventPosterFallback title={event.title} />
+          )}
           <div className="absolute right-3 top-3 rounded-lg bg-white/90 px-2 py-1 text-center shadow-sm dark:bg-surface-panel/90">
             <p className="text-xs font-bold uppercase text-primary">{month}</p>
             <p className="text-lg font-bold text-text-primary dark:text-white">{day}</p>
@@ -282,7 +285,9 @@ const StudentDashboard = () => {
               decoding="async"
               className="h-full w-full object-cover"
             />
-          ) : null}
+          ) : (
+            <EventPosterFallback title={event.title} size="compact" />
+          )}
         </div>
         <div className="flex w-full flex-col justify-between gap-3 p-4 sm:w-2/3">
           <div>

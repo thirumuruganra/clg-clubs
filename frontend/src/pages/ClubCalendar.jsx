@@ -3,6 +3,7 @@ import { useAuth } from '../auth-context';
 import { warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
 import { Button } from '../components/ui/button';
 import { EmptyState } from '../components/ui/empty-state';
+import { EventPosterFallback } from '../components/ui/event-poster-fallback';
 import { IconButton } from '../components/ui/icon-button';
 import { Skeleton } from '../components/ui/skeleton';
 
@@ -214,7 +215,9 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
               <div className="w-full md:w-2/5 min-h-44 sm:min-h-52 md:min-h-87.5 bg-[#0f1720] relative overflow-hidden">
                 {selectedEvent.image_url ? (
                   <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-cover" />
-                ) : null}
+                ) : (
+                  <EventPosterFallback title={selectedEvent.title} />
+                )}
               </div>
 
               <div className="w-full md:w-3/5 p-6 flex flex-col">

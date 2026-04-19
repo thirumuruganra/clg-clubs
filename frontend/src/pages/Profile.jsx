@@ -278,9 +278,9 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Joined Clubs Section */}
+            {/* Clubs you're a part of section */}
             <div className="space-y-2">
-              <Label htmlFor="profile-club-search">Joined Clubs</Label>
+              <Label htmlFor="profile-club-search">Clubs you&apos;re a part of</Label>
 
               {/* Club chips */}
               <div className="flex flex-wrap gap-2 min-h-9">
@@ -306,7 +306,7 @@ const Profile = () => {
                   </span>
                 ))}
                 {formData.joined_clubs.length === 0 && (
-                  <span className="text-sm text-text-secondary dark:text-text-dark-secondary italic py-1.5">No clubs joined yet</span>
+                  <span className="text-sm text-text-secondary dark:text-text-dark-secondary italic py-1.5">No clubs yet</span>
                 )}
               </div>
 

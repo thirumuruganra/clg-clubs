@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import wavcIcon from '../assets/WAVC-edit.png';
+import heroImage from '../assets/Vamasundari-Park.jpg';
 
 const LandingPage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -93,8 +94,8 @@ const LandingPage = () => {
           <div className="layout-content-container mx-auto flex max-w-240 flex-col gap-8">
             <div className="relative overflow-hidden rounded-3xl border border-border-subtle dark:border-border-strong bg-[#111a22] p-6 sm:p-10 lg:p-14">
               <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFz8Sp13s0cFzmpOBbUsIuW1qaQx3sSlvaM3FW-fQJiV76a1OWm0mD0yJq2vPUFIV1b6_c6S7eWTWpwcmqdkDAKpNds1aGanbjWDSRASLUs94a6YLzd7IATej5VQD5_WsT3g5kiHvXY1uzJfBdVeFvhdsLoqh9KsvKHQP4x7buVQXRecw_nabFOI_btwgWck6ndH4rLnEd80EZ8Xk_xhU0I81W8MUU-BYZeQncPOr7sgG6gd_WQj-JPyOe0spjfQMQKEM4Jx3AW4c"
-                alt="Students collaborating at a campus event"
+                src={heroImage}
+                alt="Tree-lined campus road"
                 className="absolute inset-0 h-full w-full object-cover opacity-25"
               />
               <div className="absolute inset-0 bg-black/45" aria-hidden="true"></div>
