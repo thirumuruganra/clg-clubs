@@ -65,37 +65,33 @@ The frontend application will start, usually at `http://localhost:5173`.
 - Review `./prd.md` for specific product requirements and architecture details.
 - Review `backend/app/` for the core API logic, routing, and database setup.
 
-## Heroku Deployment (Single App)
+## Heroku Deployment (Single App, Frontend Built on Deploy)
 
-This repository can be deployed to Heroku as a single app by serving the built frontend from FastAPI.
+This repository can be deployed to Heroku as a single app by serving the built frontend from FastAPI. Heroku will build the frontend during deployment and copy the build output into `backend/app/static` automatically.
 
 ### 1. Prerequisites
 
 - Heroku CLI installed and authenticated.
 - Google OAuth credentials configured in Google Cloud Console.
-- Python version is defined in `backend/.python-version` (Heroku recommended format).
+- Python version is defined in `.python-version` at repository root.
 
-### 2. Build Frontend and Copy into Backend
+### 2. Create Heroku App and Database
 
 From repository root:
 
 ```bash
-cd frontend
-npm install
-npm run build
-cd ..
-
-rm -rf backend/app/static
-mkdir -p backend/app/static
-cp -r frontend/dist/* backend/app/static/
-```
-
-### 3. Create Heroku App and Database
-
-```bash
-cd backend
 heroku create your-app-name
 heroku addons:create heroku-postgresql:essential-0 -a your-app-name
+```
+
+### 3. Configure Buildpacks (Node.js + Python)
+
+From repository root:
+
+```bash
+heroku buildpacks:clear -a your-app-name
+heroku buildpacks:add --index 1 heroku/nodejs -a your-app-name
+heroku buildpacks:add --index 2 heroku/python -a your-app-name
 ```
 
 ### 4. Configure Environment Variables
@@ -139,13 +135,19 @@ In Google Cloud Console OAuth client settings:
 - Authorized JavaScript origin: `https://your-app-name.herokuapp.com`
 - Authorized redirect URI: `https://your-app-name.herokuapp.com/api/auth/callback`
 
-### 6. Deploy Backend Folder
+### 6. Deploy From Repository Root
 
 From repository root:
 
 ```bash
-git subtree push --prefix backend heroku HEAD:main
+git push heroku main
 ```
+
+Heroku build process will:
+
+- Install frontend dependencies.
+- Build the frontend with Vite.
+- Copy `frontend/dist` into `backend/app/static`.
 
 ### 7. Verify
 
