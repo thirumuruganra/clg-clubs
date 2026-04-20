@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { SearchBar } from '../ui/search-bar';
 
 const FollowersTab = ({ followers, followersLoading, followersError, calculateYear }) => {
   const [query, setQuery] = useState('');
@@ -17,7 +18,7 @@ const FollowersTab = ({ followers, followersLoading, followersError, calculateYe
 
   return (
     <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-7 xl:p-8">
-      <div className="dashboard-hero enter-rise mb-6 p-4 sm:mb-8 sm:p-6 lg:p-7">
+      <div className="dashboard-hero enter-rise-settle mb-6 p-4 sm:mb-8 sm:p-6 lg:p-7">
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <span className="kicker-label border-white/28 bg-white/10 text-white">Community Pulse</span>
@@ -37,18 +38,12 @@ const FollowersTab = ({ followers, followersLoading, followersError, calculateYe
         </div>
       </div>
 
-      <div className="feature-card mb-4 p-3 sm:p-4">
-        <label className="flex h-10 items-stretch rounded-xl border border-border-subtle bg-surface-muted/65 dark:border-border-strong dark:bg-border-strong/40">
-          <div className="flex items-center justify-center pl-3">
-            <span className="material-symbols-outlined text-[18px] text-text-secondary">search</span>
-          </div>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search followers"
-            className="w-full flex-1 border-none bg-transparent px-2 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none dark:text-white"
-          />
-        </label>
+      <div className="mb-4">
+        <SearchBar
+          value={query}
+          onChange={setQuery}
+          placeholder="Search followers"
+        />
       </div>
 
       {followersError && (

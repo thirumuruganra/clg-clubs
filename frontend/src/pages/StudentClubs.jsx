@@ -136,13 +136,18 @@ const StudentClubs = () => {
           showSearch
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          searchPlaceholder="Search clubs..."
+          searchPlaceholder="Search clubs"
         />
       )}
       mobileMenuOpen={mobileMenuOpen}
       onCloseMenu={() => setMobileMenuOpen(false)}
     >
-      <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 font-body sm:px-6 lg:px-10">
+      <div className="relative flex h-full w-full flex-col overflow-hidden font-body text-text-primary dark:text-white">
+        <div className="pointer-events-none absolute inset-0 opacity-55">
+          <div className="atmosphere-grid"></div>
+        </div>
+
+        <section className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
         <header className="space-y-2">
           <h2 className="section-title text-text-primary">Discover clubs</h2>
           <p className="type-body text-text-secondary">
@@ -267,7 +272,9 @@ const StudentClubs = () => {
             })}
           </div>
         ) : null}
-      </section>
+
+        </section>
+      </div>
     </AppShell>
   );
 };

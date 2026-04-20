@@ -13,7 +13,7 @@ export default function AppShell({ sidebar, topbar, mobileMenuOpen = false, onCl
   }, [mobileMenuOpen]);
 
   return (
-    <div className="min-h-dvh bg-surface-canvas text-text-primary">
+    <div className="h-dvh overflow-hidden bg-surface-canvas text-text-primary">
       <a
         href="#main-content"
         className="sr-only z-100 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
@@ -28,11 +28,11 @@ export default function AppShell({ sidebar, topbar, mobileMenuOpen = false, onCl
           onClick={onCloseMenu}
         />
       ) : null}
-      <div className="flex min-h-dvh">
+      <div className="flex h-full min-h-0">
         {sidebar}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           {topbar}
-          <main id="main-content" className="min-h-0 flex-1">
+          <main id="main-content" className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
             {children}
           </main>
         </div>

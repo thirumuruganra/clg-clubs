@@ -20,9 +20,9 @@ const API = '';
 const FILTER_OPTIONS = [
   { value: 'all', label: 'All' },
   { value: 'TECH', label: 'Tech' },
-  { value: 'NON_TECH', label: 'Non-Tech' },
+  { value: 'NON_TECH', label: 'Non-tech' },
   { value: 'paid', label: 'Paid' },
-  { value: 'week', label: 'This Week' },
+  { value: 'week', label: 'This week' },
 ];
 
 const SORT_OPTIONS = [
@@ -241,9 +241,14 @@ const StudentDashboard = () => {
 
   return (
     <AppShell sidebar={sidebarNode} topbar={topbarNode} mobileMenuOpen={mobileMenuOpen} onCloseMenu={() => setMobileMenuOpen(false)}>
-      <div className="layout-container flex h-full min-w-0 flex-1 grow flex-col font-body text-text-primary dark:text-white">
-        <div className="flex flex-1 justify-center overflow-x-hidden px-4 py-6 md:px-10 md:py-8 lg:px-16">
-          <div className="layout-content-container flex w-full max-w-240 min-w-0 flex-1 flex-col">
+      <div className="relative flex h-full w-full flex-col overflow-hidden font-body text-text-primary dark:text-white">
+        <div className="pointer-events-none absolute inset-0 opacity-55">
+          <div className="atmosphere-grid"></div>
+        </div>
+
+        <div className="layout-container relative z-10 flex h-full min-w-0 flex-1 grow flex-col">
+          <div className="flex flex-1 justify-center overflow-x-hidden px-4 py-6 md:px-10 md:py-8 lg:px-16">
+            <div className="layout-content-container flex w-full max-w-240 min-w-0 flex-1 flex-col">
 
             <div className="min-w-0 px-4 pb-3 pt-6">
               <Reveal className="dashboard-hero p-5 sm:p-7" distance={18}>
@@ -256,15 +261,15 @@ const StudentDashboard = () => {
                   <div className="grid grid-cols-3 gap-2 text-white sm:gap-3">
                     <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
                       <p className="type-metric text-white">{forYouEvents.length}</p>
-                      <p className="type-label mt-1 text-white/75">Matches</p>
+                      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-white/75">Matches</p>
                     </div>
                     <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
                       <p className="type-metric text-white">{upcomingWeekCount}</p>
-                      <p className="type-label mt-1 text-white/75">This Week</p>
+                      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-white/75">This Week</p>
                     </div>
                     <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
                       <p className="type-metric text-white">{registeredCount}</p>
-                      <p className="type-label mt-1 text-white/75">Registered</p>
+                      <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-white/75">Registered</p>
                     </div>
                   </div>
                 </div>
@@ -283,7 +288,7 @@ const StudentDashboard = () => {
                     onClick={() => setActiveFilter(option.value)}
                     variant={activeFilter === option.value ? 'primary' : 'secondary'}
                     size="sm"
-                    className="type-label h-8 rounded-full border border-transparent px-3"
+                    className="h-8 rounded-full border border-transparent px-3 text-xs font-semibold tracking-[0.08em] titlecase"
                     aria-pressed={activeFilter === option.value}
                     aria-label={`Filter events: ${option.label}`}
                   >
@@ -436,6 +441,7 @@ const StudentDashboard = () => {
               activities={activities}
               onBrowseEvents={() => navigate('/student/calendar')}
             />
+            </div>
           </div>
         </div>
       </div>

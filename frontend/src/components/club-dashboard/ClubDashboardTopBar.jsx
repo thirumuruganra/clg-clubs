@@ -19,7 +19,7 @@ const ClubDashboardTopBar = ({ activeTab, setMobileMenuOpen, searchQuery, setSea
       showSearch={showSearch}
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
-      searchPlaceholder="Search events, followers, or members..."
+      searchPlaceholder="Search events"
     />
   );
 };

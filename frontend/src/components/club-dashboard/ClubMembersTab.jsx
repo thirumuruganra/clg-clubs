@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { SearchBar } from '../ui/search-bar';
 
 const ClubMembersTab = ({
   members,
@@ -41,7 +42,7 @@ const ClubMembersTab = ({
 
   return (
     <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-7 xl:p-8">
-      <div className="dashboard-hero enter-rise mb-6 p-4 sm:mb-8 sm:p-6 lg:p-7">
+      <div className="dashboard-hero enter-rise-settle mb-6 p-4 sm:mb-8 sm:p-6 lg:p-7">
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <span className="kicker-label border-white/28 bg-white/10 text-white">Club Workforce</span>
@@ -70,18 +71,12 @@ const ClubMembersTab = ({
         </button>
       </div>
 
-      <div className="feature-card mb-4 p-3 sm:p-4">
-        <label className="flex h-10 items-stretch rounded-xl border border-border-subtle bg-surface-muted/65 dark:border-border-strong dark:bg-border-strong/40">
-          <div className="flex items-center justify-center pl-3">
-            <span className="material-symbols-outlined text-[18px] text-text-secondary">search</span>
-          </div>
-          <input
-            value={memberQuery}
-            onChange={(event) => setMemberQuery(event.target.value)}
-            placeholder="Search members"
-            className="w-full flex-1 border-none bg-transparent px-2 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none dark:text-white"
-          />
-        </label>
+      <div className="mb-4">
+        <SearchBar
+          value={memberQuery}
+          onChange={setMemberQuery}
+          placeholder="Search members"
+        />
       </div>
 
       {membersError && (
@@ -206,9 +201,9 @@ const ClubMembersTab = ({
       </div>
 
       {addMemberOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm sm:p-4" onClick={onCloseAddMember}>
+        <div className="fixed inset-0 z-1100 flex items-center justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:p-5" onClick={onCloseAddMember}>
           <div
-            className="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-border-subtle bg-surface-panel shadow-soft-xl dark:border-border-strong dark:bg-surface-elevated"
+            className="flex w-[min(96vw,76rem)] max-h-[92dvh] flex-col overflow-hidden rounded-2xl border border-border-subtle bg-surface-panel shadow-soft-xl dark:border-border-strong dark:bg-surface-elevated"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-border-subtle px-4 py-4 sm:px-5 dark:border-border-strong">
@@ -228,15 +223,14 @@ const ClubMembersTab = ({
 
             <div className="space-y-4 border-b border-border-subtle px-4 py-4 sm:px-5 dark:border-border-strong">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <label className="flex h-10 items-center rounded-xl bg-surface-muted dark:bg-border-strong">
-                  <span className="material-symbols-outlined px-3 text-[18px] text-text-secondary">search</span>
-                  <input
-                    value={memberSearch}
-                    onChange={(event) => setMemberSearch(event.target.value)}
-                    placeholder="Search by name, email, register no"
-                    className="w-full border-none bg-transparent pr-3 text-sm focus:outline-none dark:text-white"
-                  />
-                </label>
+                <SearchBar
+                  value={memberSearch}
+                  onChange={setMemberSearch}
+                  placeholder="Search by name, email, register no"
+                  className="h-10 rounded-xl bg-surface-muted dark:bg-border-strong"
+                  inputClassName="px-2"
+                  iconClassName="bg-transparent p-0 text-[18px]"
+                />
 
                 <select
                   value={memberDepartmentFilter}
@@ -266,7 +260,7 @@ const ClubMembersTab = ({
               )}
             </div>
 
-            <div className="max-h-[54vh] overflow-auto px-4 py-4 sm:px-5">
+            <div className="min-h-0 flex-1 overflow-auto px-4 py-4 sm:px-5">
               {studentsLoading ? (
                 <div className="py-10 text-center text-sm text-text-secondary dark:text-text-dark-secondary">Loading registered students...</div>
               ) : studentResults.length === 0 ? (

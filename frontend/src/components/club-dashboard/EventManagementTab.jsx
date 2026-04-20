@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
+import { Dropdown } from '../ui/dropdown';
 import { EmptyState } from '../ui/empty-state';
+import { SearchBar } from '../ui/search-bar';
 import { StatusBadge } from '../ui/status-badge';
 import { Toast } from '../ui/toast';
 
@@ -44,6 +46,7 @@ const EventManagementTab = ({
   tableError,
   events,
   searchQuery,
+  setSearchQuery,
   eventMatchesSearch,
   openRsvpModal,
   openOdSheet,
@@ -52,6 +55,7 @@ const EventManagementTab = ({
   setDeleteTarget,
 }) => {
   const [tagFilter, setTagFilter] = useState('all');
+  const [sortMode, setSortMode] = useState('soonest');
 
   const actionIconBaseClass = 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-transparent bg-transparent transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 hover:-translate-y-0.5';
   const actionIconNeutralClass = `${actionIconBaseClass} text-text-secondary hover:border-border-subtle hover:bg-surface-muted hover:text-primary dark:text-text-dark-secondary dark:hover:border-border-strong dark:hover:bg-border-strong/60`;
@@ -60,12 +64,33 @@ const EventManagementTab = ({
   const actionIconDangerClass = `${actionIconBaseClass} text-red-400 hover:border-red-500/35 hover:bg-red-500/12 hover:text-red-300`;
 
   const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
+    const filtered = events.filter((event) => {
       const matchesQuery = eventMatchesSearch(event, searchQuery);
       const matchesTag = tagFilter === 'all' || event.tag === tagFilter;
       return matchesQuery && matchesTag;
     });
-  }, [events, eventMatchesSearch, searchQuery, tagFilter]);
+
+    if (sortMode === 'latest') {
+      filtered.sort((a, b) => {
+        const aTime = a.start_time ? new Date(a.start_time).getTime() : Number.MIN_SAFE_INTEGER;
+        const bTime = b.start_time ? new Date(b.start_time).getTime() : Number.MIN_SAFE_INTEGER;
+        return bTime - aTime;
+      });
+      return filtered;
+    }
+
+    if (sortMode === 'most-registered') {
+      filtered.sort((a, b) => (b.rsvp_count || 0) - (a.rsvp_count || 0));
+      return filtered;
+    }
+
+    filtered.sort((a, b) => {
+      const aTime = a.start_time ? new Date(a.start_time).getTime() : Number.MAX_SAFE_INTEGER;
+      const bTime = b.start_time ? new Date(b.start_time).getTime() : Number.MAX_SAFE_INTEGER;
+      return aTime - bTime;
+    });
+    return filtered;
+  }, [events, eventMatchesSearch, searchQuery, sortMode, tagFilter]);
 
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
@@ -102,6 +127,34 @@ const EventManagementTab = ({
             <p className="font-display text-3xl font-bold sm:text-4xl">{stat.value}</p>
           </Card>
         ))}
+      </div>
+
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search events"
+          className="h-11 w-full lg:max-w-2xl"
+        />
+        <div className="flex items-center gap-2">
+          <label htmlFor="event-management-sort" className="text-xs font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary">
+            Sort
+          </label>
+          <Dropdown
+            id="event-management-sort"
+            ariaLabel="Sort events"
+            value={sortMode}
+            onChange={setSortMode}
+            options={[
+              { value: 'soonest', label: 'Soonest' },
+              { value: 'latest', label: 'Latest' },
+              { value: 'most-registered', label: 'Most Registered' },
+            ]}
+            className="w-48"
+            buttonClassName="h-11 rounded-full"
+            menuClassName="w-52"
+          />
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">

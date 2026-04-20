@@ -439,6 +439,10 @@
     animation: rise-in var(--motion-page) var(--ease-out) both;
   }
 
+  .enter-rise-settle {
+    animation: rise-settle var(--motion-page) var(--ease-out-quart) both;
+  }
+
   .enter-delay-1 {
     animation-delay: 90ms;
   }
@@ -519,6 +523,23 @@
   }
 
   to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes rise-settle {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.986);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1);
+  }
+
+  100% {
     opacity: 1;
     transform: translateY(0) scale(1);
   }

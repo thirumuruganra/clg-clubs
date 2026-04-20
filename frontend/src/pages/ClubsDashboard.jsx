@@ -8,7 +8,6 @@ import { QRCodeSVG } from 'qrcode.react';
 import ClubsCalendarTab from '../components/club-dashboard/ClubsCalendarTab';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
 import ClubDashboardSidebar from '../components/club-dashboard/ClubDashboardSidebar';
-import ClubDashboardTopBar from '../components/club-dashboard/ClubDashboardTopBar';
 import AppShell from '../components/layout/AppShell';
 import FollowersTab from '../components/club-dashboard/FollowersTab';
 import ClubMembersTab from '../components/club-dashboard/ClubMembersTab';
@@ -36,6 +35,7 @@ import { Skeleton } from '../components/ui/skeleton';
 import { StatusBadge } from '../components/ui/status-badge';
 import { Textarea } from '../components/ui/textarea';
 import { Toast } from '../components/ui/toast';
+import { SearchBar } from '../components/ui/search-bar';
 
 const API = '';
 const DESCRIPTION_WORD_LIMIT = 100;
@@ -1540,6 +1540,7 @@ const ClubsDashboard = () => {
     { label: 'Event Calendar', icon: 'event', tab: 'events' },
     { label: 'Create Event', icon: 'add_circle', tab: 'create-event' },
   ];
+  const activeTabLabel = sideNavItems.find((item) => item.tab === activeTab)?.label || 'Club Dashboard';
 
   const clubIconUrl = getClubIconUrl(club);
   const clubInitial = getClubInitial(club);
@@ -1560,21 +1561,19 @@ const ClubsDashboard = () => {
     />
   );
 
-  const topBarNode = (
-    <ClubDashboardTopBar
-      activeTab={activeTab}
-      setMobileMenuOpen={setMobileMenuOpen}
-      searchQuery={searchQuery}
-      setSearchQuery={setSearchQuery}
-    />
-  );
-
   return (
-    <AppShell sidebar={sidebarNode} topbar={topBarNode} mobileMenuOpen={mobileMenuOpen} onCloseMenu={() => setMobileMenuOpen(false)}>
+    <AppShell sidebar={sidebarNode} mobileMenuOpen={mobileMenuOpen} onCloseMenu={() => setMobileMenuOpen(false)}>
       <div className="relative flex h-full w-full flex-col overflow-hidden font-body text-text-primary dark:text-white">
         <div className="pointer-events-none absolute inset-0 opacity-55">
           <div className="atmosphere-grid"></div>
         </div>
+
+        <header className="relative z-30 flex items-center gap-2 border-b border-border-subtle bg-surface-panel px-3 py-3 dark:border-border-strong dark:bg-surface-elevated lg:hidden">
+          <IconButton ariaLabel="Open sidebar" onClick={() => setMobileMenuOpen(true)}>
+            <span className="material-symbols-outlined text-[24px]" aria-hidden="true">menu</span>
+          </IconButton>
+          <h1 className="truncate text-base font-semibold">{activeTabLabel}</h1>
+        </header>
 
         {user && user.has_google_calendar_access === false && (
           <div className="relative mx-4 mt-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-amber-900 shadow-soft-sm dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200 lg:mx-8">
@@ -1601,7 +1600,8 @@ const ClubsDashboard = () => {
           <div className="flex-1 overflow-hidden p-0">
             <ClubsCalendarTab
               club={club} 
-              searchQuery={searchQuery} 
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
               onOpenEditModal={openEditModal} 
               onOpenCreateModal={(date) => { 
                 setNewEvent({ ...EMPTY_EVENT_FORM, start_time: date, end_time: new Date(date.getTime() + 60*60*1000) }); 
@@ -1690,6 +1690,7 @@ const ClubsDashboard = () => {
             tableError={tableError}
             events={events}
             searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
             eventMatchesSearch={eventMatchesSearch}
             openRsvpModal={openRsvpModal}
             openOdSheet={openOdSheet}
@@ -2065,11 +2066,13 @@ const ClubsDashboard = () => {
 
                       <div className="rounded-xl border border-border-subtle dark:border-border-strong p-4 space-y-3">
                         <p className="text-sm font-semibold">Assign Volunteer</p>
-                        <input
+                        <SearchBar
                           value={workforceVolunteerQuery}
-                          onChange={(event) => setWorkforceVolunteerQuery(event.target.value)}
+                          onChange={setWorkforceVolunteerQuery}
                           placeholder="Search student by name, email, register number"
-                          className="h-10 w-full rounded-xl border border-border-subtle bg-white px-3 text-sm focus:border-primary focus:outline-none dark:border-border-strong dark:bg-[#111a22] dark:text-white"
+                          className="h-10 rounded-xl"
+                          inputClassName="px-2"
+                          iconClassName="bg-transparent p-0 text-[18px]"
                         />
                         {workforceVolunteerLoading ? (
                           <p className="text-xs text-text-secondary dark:text-text-dark-secondary">Searching students...</p>

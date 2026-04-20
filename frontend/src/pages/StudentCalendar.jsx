@@ -333,14 +333,19 @@ const StudentCalendar = () => {
           showSearch
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          searchPlaceholder="Search events..."
+          searchPlaceholder="Search events"
           actions={topbarActions}
         />
       )}
       mobileMenuOpen={mobileMenuOpen}
       onCloseMenu={() => setMobileMenuOpen(false)}
     >
-      <section className="flex h-full min-h-0 flex-col p-3 sm:p-4 md:p-6">
+      <div className="relative flex h-full w-full flex-col overflow-hidden font-body text-text-primary dark:text-white">
+        <div className="pointer-events-none absolute inset-0 opacity-55">
+          <div className="atmosphere-grid"></div>
+        </div>
+
+        <section className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3 sm:p-4 md:p-6">
         <div className="mb-2 grid grid-cols-7">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
             <div key={day} className="py-2 text-center text-xs font-medium text-text-secondary">{day}</div>
@@ -405,9 +410,9 @@ const StudentCalendar = () => {
             />
           </div>
         ) : null}
-      </section>
+        </section>
 
-      {selectedEvent ? (
+        {selectedEvent ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm safe-area-y" onClick={() => setSelectedEvent(null)}>
           <div
             className="modal-panel w-full max-w-2xl overflow-y-auto rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632]"
@@ -455,16 +460,16 @@ const StudentCalendar = () => {
                 ) : null}
 
                 {selectedEvent.is_paid ? (
-                  <div className="mb-4 rounded-xl border border-orange-100 bg-orange-50 p-3 dark:border-orange-500/20 dark:bg-orange-500/5">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-sm font-bold text-orange-600 dark:text-orange-400">
+                  <div className="mb-4 rounded-xl border border-orange-100 bg-orange-50 px-4 py-2.5 dark:border-orange-500/20 dark:bg-orange-500/5">
+                    <div className="flex min-h-8 items-center justify-between gap-3">
+                      <span className="flex items-center gap-1.5 text-sm font-bold leading-none text-orange-600 dark:text-orange-400">
                         <span className="material-symbols-outlined text-[18px]" aria-hidden="true">payments</span>
                         Registration Fee
                       </span>
-                      <span className="text-sm font-bold text-text-primary dark:text-white">{selectedEvent.registration_fees || 'TBA'}</span>
+                      <span className="shrink-0 text-sm font-bold leading-none tabular-nums text-text-primary dark:text-white">{selectedEvent.registration_fees || 'TBA'}</span>
                     </div>
                     {selectedEvent.payment_link ? (
-                      <a href={selectedEvent.payment_link} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-1.5 text-sm font-bold text-primary hover:underline">
+                      <a href={selectedEvent.payment_link} target="_blank" rel="noopener noreferrer" className="group mt-1.5 flex items-center gap-1.5 text-sm font-bold text-primary hover:underline">
                         <span className="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-0.5" aria-hidden="true">open_in_new</span>
                         Pay via link
                       </a>
@@ -524,9 +529,9 @@ const StudentCalendar = () => {
             </div>
           </div>
         </div>
-      ) : null}
+        ) : null}
 
-      {dayEventsModal.open ? (
+        {dayEventsModal.open ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm safe-area-y" onClick={() => setDayEventsModal({ open: false, day: null, events: [] })}>
           <div
             className="w-full max-w-md rounded-2xl border border-border-subtle bg-white p-4 shadow-2xl dark:border-border-strong dark:bg-[#1a2632]"
@@ -558,7 +563,8 @@ const StudentCalendar = () => {
             </div>
           </div>
         </div>
-      ) : null}
+        ) : null}
+      </div>
     </AppShell>
   );
 };

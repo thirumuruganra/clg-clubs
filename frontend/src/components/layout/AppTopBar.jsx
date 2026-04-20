@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { IconButton } from '../ui/icon-button';
+import { SearchBar } from '../ui/search-bar';
 
 export default function AppTopBar({
   title,
@@ -54,37 +55,17 @@ export default function AppTopBar({
         <div className="ml-3 flex min-w-0 flex-1 items-center justify-end gap-3">
           {showSearch ? (
             <>
-              <label
-                htmlFor={desktopSearchId}
-                className="ml-3 hidden h-12 w-full max-w-xl items-stretch rounded-2xl border border-border-subtle bg-surface-muted shadow-soft-sm transition-colors hover:border-border-strong focus-within:border-border-strong focus-within:shadow-soft-md md:flex"
-              >
-                <div className="flex items-center justify-center pl-3.5">
-                  <span className="material-symbols-outlined rounded-full bg-surface-panel p-1 text-[18px] text-text-secondary" aria-hidden="true">search</span>
-                </div>
-                <input
+              <div className="hidden md:flex md:w-full md:max-w-xl md:ml-3">
+                <SearchBar
                   id={desktopSearchId}
-                  aria-label={searchPlaceholder}
                   value={searchQuery}
-                  onChange={(event) => onSearchChange?.(event.target.value)}
+                  onChange={onSearchChange}
                   onKeyDown={(event) => onSearchKeyDown(event, false)}
-                  className="w-full flex-1 appearance-none border-none bg-transparent px-3 text-sm font-medium text-text-primary placeholder:font-medium placeholder:text-text-secondary focus:border-none focus:outline-none focus:ring-0 focus:shadow-none focus-visible:border-none focus-visible:outline-none focus-visible:ring-0"
                   placeholder={searchPlaceholder}
+                  showEscHint
+                  escHintClassName="hidden lg:inline"
                 />
-                <div className="mr-2 flex min-w-10 items-center justify-center self-center">
-                  {hasSearchValue ? (
-                    <button
-                      type="button"
-                      onClick={clearSearch}
-                      className="interactive-press inline-flex h-8 w-8 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-panel hover:text-text-primary"
-                      aria-label="Clear search"
-                    >
-                      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
-                    </button>
-                  ) : (
-                    <span className="hidden rounded-md bg-surface-panel px-1.5 py-0.5 text-[11px] font-semibold leading-none tracking-[0.06em] text-text-tertiary lg:inline">ESC</span>
-                  )}
-                </div>
-              </label>
+              </div>
 
               <IconButton
                 ariaLabel="Open search"
@@ -111,34 +92,15 @@ export default function AppTopBar({
             aria-label="Close search panel"
           />
           <div className="relative border-b border-border-subtle bg-surface-panel px-4 pb-4 pt-4 shadow-soft-lg">
-            <label
-              htmlFor={mobileSearchId}
-              className="flex h-12 w-full items-stretch rounded-xl border border-border-subtle bg-surface-muted shadow-soft-sm transition-colors focus-within:border-border-strong"
-            >
-              <div className="flex items-center justify-center pl-3.5">
-                <span className="material-symbols-outlined text-[19px] text-text-secondary" aria-hidden="true">search</span>
-              </div>
-              <input
-                ref={mobileSearchInputRef}
-                id={mobileSearchId}
-                aria-label={searchPlaceholder}
-                value={searchQuery}
-                onChange={(event) => onSearchChange?.(event.target.value)}
-                onKeyDown={(event) => onSearchKeyDown(event, true)}
-                className="w-full flex-1 appearance-none border-none bg-transparent px-2.5 text-sm font-medium text-text-primary placeholder:font-medium placeholder:text-text-secondary focus:border-none focus:outline-none focus:ring-0"
-                placeholder={searchPlaceholder}
-              />
-              {hasSearchValue ? (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  className="interactive-press mr-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-panel hover:text-text-primary"
-                  aria-label="Clear search"
-                >
-                  <span className="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
-                </button>
-              ) : null}
-            </label>
+            <SearchBar
+              inputRef={mobileSearchInputRef}
+              id={mobileSearchId}
+              value={searchQuery}
+              onChange={onSearchChange}
+              onKeyDown={(event) => onSearchKeyDown(event, true)}
+              placeholder={searchPlaceholder}
+              className="rounded-xl"
+            />
           </div>
         </div>
       ) : null}

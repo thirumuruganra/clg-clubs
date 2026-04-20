@@ -38,7 +38,7 @@ const CreateEventTab = ({
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-4xl">
-        <div className="dashboard-hero enter-rise mb-8 p-5 sm:p-7">
+        <div className="dashboard-hero enter-rise-settle mb-8 p-5 sm:p-7">
           <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <span className="kicker-label border-white/30 bg-white/10 text-white">Publishing Console</span>

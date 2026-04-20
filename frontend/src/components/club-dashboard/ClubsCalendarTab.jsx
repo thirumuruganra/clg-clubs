@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { EmptyState } from '../ui/empty-state';
 import { EventPosterFallback } from '../ui/event-poster-fallback';
 import { IconButton } from '../ui/icon-button';
+import { SearchBar } from '../ui/search-bar';
 import { Skeleton } from '../ui/skeleton';
 
 const API = '';
@@ -20,6 +21,7 @@ const eventMatchesSearch = (event, rawQuery) => {
 const ClubsCalendarTab = ({
   club = null,
   searchQuery = '',
+  setSearchQuery = () => {},
   onOpenEditModal = () => {},
   onOpenCreateModal = () => {},
 }) => {
@@ -104,17 +106,39 @@ const ClubsCalendarTab = ({
     });
   };
 
+  const calendarDays = [];
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  for (let i = firstDayOfWeek - 1; i >= 0; i -= 1) calendarDays.push({ day: prevMonthDays - i, current: false });
+  for (let day = 1; day <= daysInMonth; day += 1) calendarDays.push({ day, current: true });
+  const remaining = 42 - calendarDays.length;
+  for (let day = 1; day <= remaining; day += 1) calendarDays.push({ day, current: false });
+
+  const isToday = (day) => today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-surface-panel">
-      <div className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-border-subtle dark:border-border-strong bg-white dark:bg-surface-panel">
-        <div className="flex items-center gap-2 md:gap-3">
-          <IconButton ariaLabel="Previous month" variant="soft" size="sm" onClick={prevMonth}>
-            <span className="material-symbols-outlined text-[24px]">chevron_left</span>
-          </IconButton>
-          <h1 className="text-xl md:text-2xl font-bold leading-none">{monthName}</h1>
-          <IconButton ariaLabel="Next month" variant="soft" size="sm" onClick={nextMonth}>
-            <span className="material-symbols-outlined text-[24px]">chevron_right</span>
-          </IconButton>
+      <div className="flex items-center justify-between border-b border-border-subtle bg-surface-panel px-4 py-4 lg:px-8">
+        <h1 className="truncate text-balance text-xl font-semibold text-text-primary">{monthName}</h1>
+
+        <div className="ml-3 flex min-w-0 flex-1 items-center justify-end gap-3">
+          <div className="w-full max-w-xl">
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search events"
+              showEscHint
+              escHintClassName="hidden lg:inline"
+            />
+          </div>
+
+          <div className="hidden items-center gap-2 md:flex">
+            <IconButton ariaLabel="Previous month" variant="soft" size="sm" onClick={prevMonth}>
+              <span className="material-symbols-outlined text-subheading" aria-hidden="true">chevron_left</span>
+            </IconButton>
+            <IconButton ariaLabel="Next month" variant="soft" size="sm" onClick={nextMonth}>
+              <span className="material-symbols-outlined text-subheading" aria-hidden="true">chevron_right</span>
+            </IconButton>
+          </div>
         </div>
       </div>
 
@@ -124,35 +148,39 @@ const ClubsCalendarTab = ({
           <Skeleton className="h-28 w-72 max-w-full" />
         </div>
       ) : (
-        <div className="flex-1 flex flex-col overflow-y-auto px-3 sm:px-4 md:px-6 pt-4 pb-6 bg-surface-muted dark:bg-background-dark">
-          <div className="grid grid-cols-7 mb-2 border-b border-transparent">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
-              <div key={i} className="text-center font-medium text-xs text-text-secondary dark:text-text-dark-secondary py-2">{d}</div>
+        <section className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3 sm:p-4 md:p-6">
+          <div className="mb-2 grid grid-cols-7">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+              <div key={day} className="py-2 text-center text-xs font-medium text-text-secondary">{day}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7 flex-1 border-t border-l border-border-subtle dark:border-border-strong bg-surface-muted dark:bg-surface-panel">
-            {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-              <div key={`empty-${i}`} className="border-r border-b border-border-subtle dark:border-border-strong bg-surface-muted dark:bg-background-dark p-1.5" />
-            ))}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const dayNum = i + 1;
-              const isToday = dayNum === today.getDate() && month === today.getMonth() && year === today.getFullYear();
-              const dayEvents = eventsByDate[dayNum] || [];
-              
+
+          <div className="grid flex-1 grid-cols-7 border-l border-t border-border-subtle">
+            {calendarDays.map((dayItem, index) => {
+              const dayEvents = dayItem.current ? (eventsByDate[dayItem.day] || []) : [];
+
               return (
-                <div 
-                  key={dayNum} 
-                  onClick={() => handleDayClick(dayNum)}
-                  className={`border-r border-b border-border-subtle dark:border-border-strong min-h-20 sm:min-h-24 md:min-h-25 p-1 flex flex-col cursor-pointer transition-colors hover:bg-black/5 dark:hover:bg-white/5 
-                  bg-white dark:bg-surface-panel group`}
+                <div
+                  key={`${dayItem.day}-${index}`}
+                  onClick={() => {
+                    if (dayItem.current) handleDayClick(dayItem.day);
+                  }}
+                  className={`min-h-20 border-b border-r border-border-subtle p-1 sm:min-h-24 md:min-h-28 ${
+                    !dayItem.current ? 'bg-[#f9fafb] dark:bg-[#0c1218]' : 'bg-white dark:bg-[#111a22]'
+                  } ${dayItem.current ? 'cursor-pointer' : ''}`}
                 >
-                  <div className="flex justify-between items-start mb-1">
-                    <span className={`text-xs w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-primary text-white font-bold' : 'text-text-primary dark:text-white'}`}>
-                      {dayNum}
-                    </span>
-                    <span className="material-symbols-outlined text-[14px] text-transparent group-hover:text-text-secondary transition-colors">add</span>
+                  <div className={`mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs ${
+                    isToday(dayItem.day) && dayItem.current
+                      ? 'bg-primary font-bold text-white'
+                      : dayItem.current
+                        ? 'text-text-primary dark:text-white'
+                        : 'text-text-secondary/40'
+                  }`}
+                  >
+                    {dayItem.day}
                   </div>
-                  <div className="flex-1 overflow-y-auto space-y-0.5 custom-scrollbar">
+
+                  <div className="flex-1 overflow-y-auto space-y-0.5">
                     {dayEvents.slice(0, 2).map(e => {
                         const isOwnClub = e.club_id === club?.id;
                         return (
@@ -162,7 +190,7 @@ const ClubsCalendarTab = ({
                           ev.stopPropagation(); // so it doesn't click the day
                           void openEventDetail(e.id, isOwnClub);
                         }}
-                        className={`w-full text-left truncate px-1.5 py-0.5 rounded text-[10px] font-medium mb-0.5 transition-colors
+                        className={`mb-0.5 w-full truncate rounded px-1.5 py-0.5 text-left text-xs font-medium transition-colors
                           ${!isOwnClub ? 'bg-gray-500/10 text-gray-500 hover:bg-gray-500/20 cursor-pointer' : 
                             e.tag === 'TECH' ? 'bg-primary/20 text-primary hover:bg-primary/30 cursor-pointer' : 
                             'bg-green-500/20 text-green-400 hover:bg-green-500/30 cursor-pointer'}`}
@@ -176,9 +204,9 @@ const ClubsCalendarTab = ({
                         type="button"
                         onClick={(ev) => {
                           ev.stopPropagation();
-                          openDayEventsModal(dayNum, dayEvents);
+                          openDayEventsModal(dayItem.day, dayEvents);
                         }}
-                        className="w-full truncate px-1 text-left text-[10px] font-medium text-primary underline-offset-2 hover:underline"
+                        className="px-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
                       >
                         +{dayEvents.length - 2} more
                       </button>
@@ -188,7 +216,7 @@ const ClubsCalendarTab = ({
               );
             })}
           </div>
-        </div>
+        </section>
       )}
 
       {!loadingEvents && filteredEvents.length === 0 ? (
@@ -263,20 +291,20 @@ const ClubsCalendarTab = ({
                 )}
 
                 {selectedEvent.is_paid && (
-                  <div className="mb-4 p-3 rounded-xl bg-orange-50 dark:bg-orange-500/5 border border-orange-100 dark:border-orange-500/20">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1.5">
+                  <div className="mb-4 rounded-xl border border-orange-100 bg-orange-50 px-4 py-2.5 dark:border-orange-500/20 dark:bg-orange-500/5">
+                    <div className="flex min-h-8 items-center justify-between gap-3">
+                      <span className="flex items-center gap-1.5 text-sm font-bold leading-none text-orange-600 dark:text-orange-400">
                         <span className="material-symbols-outlined text-[18px]">payments</span>
                         Registration Fee
                       </span>
-                      <span className="text-sm font-bold text-text-primary dark:text-white">{selectedEvent.registration_fees || 'TBA'}</span>
+                      <span className="shrink-0 text-sm font-bold leading-none tabular-nums text-text-primary dark:text-white">{selectedEvent.registration_fees || 'TBA'}</span>
                     </div>
                     {selectedEvent.payment_link && (
                       <a
                         href={selectedEvent.payment_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-sm font-bold text-primary hover:underline group"
+                        className="group mt-1.5 flex items-center gap-1.5 text-sm font-bold text-primary hover:underline"
                       >
                         <span className="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">open_in_new</span>
                         Payment Link

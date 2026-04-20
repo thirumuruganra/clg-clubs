@@ -59,12 +59,12 @@ const StudentDashboardEventCard = ({ event, pendingRsvpId, onToggleRsvp }) => {
         {event.is_paid && (
           <div className="mb-3 flex flex-col gap-1 rounded-lg border border-border-subtle bg-background-light p-2 text-xs dark:border-border-strong dark:bg-surface-panel">
             <div className="flex items-center gap-1 font-medium text-text-secondary dark:text-text-dark-secondary">
-              <span className="material-symbols-outlined text-[14px]">payments</span>
+              <span className="material-symbols-outlined text-secondary">payments</span>
               <span>Registration Fee: {event.registration_fees || 'TBA'}</span>
             </div>
             {event.payment_link && (
               <a href={event.payment_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline" onClick={(eventObj) => eventObj.stopPropagation()}>
-                <span className="material-symbols-outlined text-[14px]">link</span>
+                <span className="material-symbols-outlined text-secondary">link</span>
                 <span>Payment Link</span>
               </a>
             )}
@@ -74,7 +74,7 @@ const StudentDashboardEventCard = ({ event, pendingRsvpId, onToggleRsvp }) => {
         <CardFooter className="mt-auto items-center justify-between px-0 pb-0">
           <div className="inline-flex items-center gap-1.5 text-text-secondary dark:text-text-dark-secondary">
             <span className="inline-flex size-4 items-center justify-center">
-              <span className="material-symbols-outlined text-[14px] leading-none">group</span>
+              <span className="material-symbols-outlined text-secondary leading-none">group</span>
             </span>
             <span className="text-xs font-semibold leading-none tracking-[0.01em]">{event.rsvp_count || 0} registered</span>
           </div>
