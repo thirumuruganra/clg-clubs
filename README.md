@@ -141,20 +141,20 @@ From repository root:
 
 ```bash
 # Switch to the branch you want to deploy
-git checkout heroku-deploy-setup
+git checkout main
 
 # Sync with Heroku main (prevents non-fast-forward push rejection)
 git fetch heroku
 git rebase heroku/main
 
 # Deploy current branch to Heroku main
-git push heroku HEAD:main
+git push heroku main:main
 ```
 
 If you intentionally need to replace Heroku `main` history, use:
 
 ```bash
-git push --force-with-lease heroku HEAD:main
+git push --force-with-lease heroku main:main
 ```
 
 Heroku build process will:

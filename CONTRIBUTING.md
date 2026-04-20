@@ -28,7 +28,6 @@ This project is built for students, especially from SSN and SNUC, and contributi
 5. Wait for review and approval before merge.
 
 Do not push directly to `main`.
-Do not make changes on `heroku-deploy-setup`, and do not pull from `heroku-deploy-setup` to start your work.
 
 ## Local Setup
 
@@ -65,7 +64,6 @@ git checkout -b yourname/short-description
 - Keep each commit focused on one logical change.
 - Push only your branch and open a PR to merge into `main`.
 - Never commit or push directly to `main`.
-- Do not commit to `heroku-deploy-setup`, and do not branch from or pull from `heroku-deploy-setup` for contributions.
 
 ## Code Quality Checklist
 

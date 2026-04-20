@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import wavcIcon from '../assets/WAVC-edit.png';
 import heroImage from '../assets/Vamasundari-Park.jpg';
 import { Reveal } from '../components/ui/reveal';
 
 const LandingPage = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navItems = [
     { label: 'How it works', href: '#how-it-works' },
   ];
@@ -17,7 +16,6 @@ const LandingPage = () => {
     if (target) {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -34,9 +32,8 @@ const LandingPage = () => {
           <h2 className="font-display text-2xl font-bold leading-tight tracking-tight">WAVC</h2>
         </div>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex flex-1 justify-end gap-8 items-center">
-          <nav className="flex items-center gap-9">
+        <div className="flex items-center gap-3 md:flex-1 md:justify-end md:gap-8">
+          <nav className="hidden items-center gap-9 md:flex">
             {navItems.map((item) => (
               <a
                 key={item.label}
@@ -50,60 +47,12 @@ const LandingPage = () => {
           </nav>
           <button
             onClick={() => window.location.href = '/login'}
-            className="interactive-press flex h-10 min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-primary px-4 text-sm font-bold leading-normal text-white shadow-soft-md hover:shadow-soft-lg"
+            className="interactive-press flex h-10 min-w-20 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-primary px-4 text-sm font-bold leading-normal text-white shadow-soft-md hover:shadow-soft-lg"
           >
             <span className="truncate">Login</span>
           </button>
         </div>
-
-        {/* Mobile Menu Button */}
-        <div className="md:hidden flex items-center">
-          <button
-            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-            className="interactive-press rounded-xl p-2 text-text-secondary transition-colors hover:text-primary focus:outline-none"
-          >
-            {isMobileMenuOpen ? (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-8 w-8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-8 w-8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-              </svg>
-            )}
-          </button>
-        </div>
       </header>
-
-      {/* Mobile Navigation Dropdown */}
-      <div
-        aria-hidden={!isMobileMenuOpen}
-        className={`fixed inset-x-0 bottom-0 z-40 bg-surface-panel/95 backdrop-blur-xl transition-[opacity,transform] duration-300 ease-out md:hidden ${isMobileMenuOpen ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none -translate-y-2 opacity-0'}`}
-        style={{
-          top: 'calc(4rem + env(safe-area-inset-top))',
-          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
-        }}
-      >
-        <nav className="flex h-full flex-col items-center justify-center gap-8 p-8">
-          {navItems.map((item) => (
-            <a
-              key={item.label}
-              className="interactive-press rounded-xl px-4 py-2 text-2xl font-bold text-text-primary transition-colors hover:text-primary"
-              href={item.href}
-              onClick={(event) => handleSectionNav(event, item.href)}
-            >
-              {item.label}
-            </a>
-          ))}
-          <button
-            onClick={() => window.location.href = '/login'}
-            className="interactive-press mt-4 h-14 w-full max-w-50 rounded-xl bg-primary text-lg font-bold text-white shadow-soft-lg"
-          >
-            Login
-          </button>
-        </nav>
-      </div>
 
       <main className="relative z-10 grow flex flex-col">
         <section className="px-4 pb-8 pt-10 md:px-8 lg:px-16 lg:pt-14">
