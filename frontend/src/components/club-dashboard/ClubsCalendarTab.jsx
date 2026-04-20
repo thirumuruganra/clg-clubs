@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../auth-context';
-import { warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
+import { useAuth } from '../../auth-context';
+import { warmPosterCacheForEvents, warmPosterImageCache } from '../../lib/utils';
 import { Button } from '../components/ui/button';
 import { EmptyState } from '../components/ui/empty-state';
 import { EventPosterFallback } from '../components/ui/event-poster-fallback';
@@ -10,14 +10,19 @@ import { Skeleton } from '../components/ui/skeleton';
 const API = '';
 
 const eventMatchesSearch = (event, rawQuery) => {
-  const query = rawQuery.trim().toLowerCase();
+  const query = String(rawQuery || '').trim().toLowerCase();
   if (!query) return true;
   return [event.title, event.description, event.tag]
     .filter(Boolean)
     .some((field) => field.toLowerCase().includes(query));
 };
 
-const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal }) => {
+const ClubsCalendarTab = ({
+  club = null,
+  searchQuery = '',
+  onOpenEditModal = () => {},
+  onOpenCreateModal = () => {},
+}) => {
   const { user } = useAuth();
   const [allEvents, setAllEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -27,7 +32,7 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
   const [dayEventsModal, setDayEventsModal] = useState({ open: false, day: null, events: [] });
 
   useEffect(() => {
-    if (user && club) {
+    if (user) {
       fetchAllEvents();
     }
   }, [user, club]);
@@ -374,4 +379,4 @@ const ClubCalendar = ({ club, searchQuery, onOpenEditModal, onOpenCreateModal })
   );
 };
 
-export default ClubCalendar;
+export default ClubsCalendarTab;

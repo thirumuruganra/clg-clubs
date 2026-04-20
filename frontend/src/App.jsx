@@ -5,14 +5,14 @@ import { AuthProvider, useAuth } from './auth-context';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
-const Profile = lazy(() => import('./pages/Profile'));
-const Calendar = lazy(() => import('./pages/Calendar'));
-const ClubDashboard = lazy(() => import('./pages/ClubDashboard'));
-const ClubSetup = lazy(() => import('./pages/ClubSetup'));
-const Clubs = lazy(() => import('./pages/Clubs'));
-const ClubProfile = lazy(() => import('./pages/ClubProfile'));
-const AttendanceCheckin = lazy(() => import('./pages/AttendanceCheckin'));
-const ClubCalendar = lazy(() => import('./pages/ClubCalendar'));
+const StudentProfile = lazy(() => import('./pages/StudentProfile'));
+const StudentCalendar = lazy(() => import('./pages/StudentCalendar'));
+const StudentClubs = lazy(() => import('./pages/StudentClubs'));
+const StudentAttendanceCheckin = lazy(() => import('./pages/StudentAttendanceCheckin'));
+const ClubsDashboard = lazy(() => import('./pages/ClubsDashboard'));
+const ClubsSetup = lazy(() => import('./pages/ClubsSetup'));
+const ClubsProfile = lazy(() => import('./pages/ClubsProfile'));
+const ClubsCalendar = lazy(() => import('./pages/ClubsCalendar'));
 
 const ROUTE_TITLES = {
   '/': 'WAVC - Stay in the loop',
@@ -149,7 +149,7 @@ function App() {
                 path="/student/profile"
                 element={(
                   <ProtectedRoute allowRoles={['STUDENT']}>
-                    <Profile />
+                    <StudentProfile />
                   </ProtectedRoute>
                 )}
               />
@@ -157,7 +157,7 @@ function App() {
                 path="/student/calendar"
                 element={(
                   <ProtectedRoute allowRoles={['STUDENT']}>
-                    <Calendar />
+                    <StudentCalendar />
                   </ProtectedRoute>
                 )}
               />
@@ -165,7 +165,7 @@ function App() {
                 path="/student/clubs"
                 element={(
                   <ProtectedRoute allowRoles={['STUDENT']}>
-                    <Clubs />
+                    <StudentClubs />
                   </ProtectedRoute>
                 )}
               />
@@ -173,7 +173,7 @@ function App() {
                 path="/student/attendance-checkin"
                 element={(
                   <ProtectedRoute allowRoles={['STUDENT']}>
-                    <AttendanceCheckin />
+                    <StudentAttendanceCheckin />
                   </ProtectedRoute>
                 )}
               />
@@ -181,7 +181,7 @@ function App() {
                 path="/club/dashboard"
                 element={(
                   <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
-                    <ClubDashboard />
+                    <ClubsDashboard />
                   </ProtectedRoute>
                 )}
               />
@@ -189,7 +189,7 @@ function App() {
                 path="/club/setup"
                 element={(
                   <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
-                    <ClubSetup />
+                    <ClubsSetup />
                   </ProtectedRoute>
                 )}
               />
@@ -197,7 +197,7 @@ function App() {
                 path="/club/profile"
                 element={(
                   <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
-                    <ClubProfile />
+                    <ClubsProfile />
                   </ProtectedRoute>
                 )}
               />
@@ -205,7 +205,7 @@ function App() {
                 path="/club/calendar"
                 element={(
                   <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
-                    <ClubCalendar />
+                    <ClubsCalendar />
                   </ProtectedRoute>
                 )}
               />

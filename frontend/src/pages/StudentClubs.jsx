@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
-import StudentSidebar from '../components/StudentSidebar';
+import StudentSidebar from '../components/student-dashboard/StudentSidebar';
 import AppShell from '../components/layout/AppShell';
 import AppTopBar from '../components/layout/AppTopBar';
 import { Button } from '../components/ui/button';
@@ -20,7 +20,7 @@ const categoryFilters = [
   { label: 'Non-Tech', value: 'nontech' },
 ];
 
-const Clubs = () => {
+const StudentClubs = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [clubs, setClubs] = useState([]);
@@ -272,4 +272,4 @@ const Clubs = () => {
   );
 };
 
-export default Clubs;
+export default StudentClubs;

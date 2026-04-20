@@ -1,9 +1,9 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth-context';
-import wavcIcon from '../assets/WAVC-edit.png';
-import SideNavShell from './layout/SideNavShell';
-import { IconButton } from './ui/icon-button';
+import { useAuth } from '../../auth-context';
+import wavcIcon from '../../assets/WAVC-edit.png';
+import SideNavShell from '../layout/SideNavShell';
+import { IconButton } from '../ui/icon-button';
 
 const sideNavItems = [
   { label: 'Event', icon: 'event', path: '/student/calendar' },

@@ -4,7 +4,7 @@ import { useAuth } from '../auth-context';
 
 const API = '';
 
-const AttendanceCheckin = () => {
+const StudentAttendanceCheckin = () => {
   const { user, loading } = useAuth();
   const [params] = useSearchParams();
   const eventId = params.get('event_id');
@@ -174,4 +174,4 @@ const AttendanceCheckin = () => {
   );
 };
 
-export default AttendanceCheckin;
+export default StudentAttendanceCheckin;

@@ -53,6 +53,12 @@ const EventManagementTab = ({
 }) => {
   const [tagFilter, setTagFilter] = useState('all');
 
+  const actionIconBaseClass = 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-transparent bg-transparent transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 hover:-translate-y-0.5';
+  const actionIconNeutralClass = `${actionIconBaseClass} text-text-secondary hover:border-border-subtle hover:bg-surface-muted hover:text-primary dark:text-text-dark-secondary dark:hover:border-border-strong dark:hover:bg-border-strong/60`;
+  const actionIconActiveClass = `${actionIconBaseClass} border-primary/45 bg-primary/18 text-primary shadow-soft-sm hover:border-primary/70 hover:bg-primary/26`;
+  const actionIconCsvClass = `${actionIconBaseClass} border-success/35 bg-success/14 text-success shadow-soft-sm hover:border-success/60 hover:bg-success/24`;
+  const actionIconDangerClass = `${actionIconBaseClass} text-red-400 hover:border-red-500/35 hover:bg-red-500/12 hover:text-red-300`;
+
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
       const matchesQuery = eventMatchesSearch(event, searchQuery);
@@ -173,22 +179,22 @@ const EventManagementTab = ({
                     <button
                       aria-label={`Attendance QR for ${event.title}`}
                       onClick={() => openQrModal(event)}
-                      className={`h-8 w-8 rounded-full transition-colors ${event.attendance_qr_open ? 'bg-primary/20 hover:bg-primary/30' : 'hover:bg-surface-muted dark:hover:bg-border-strong'}`}
+                      className={event.attendance_qr_open ? actionIconActiveClass : actionIconNeutralClass}
                     >
-                      <span className={`material-symbols-outlined text-[18px] ${event.attendance_qr_open ? 'text-primary' : 'text-text-secondary'}`}>qr_code_2</span>
+                      <span className="material-symbols-outlined text-[18px] leading-none">qr_code_2</span>
                     </button>
                     <button
                       aria-label={`Open OD sheet for ${event.title}`}
                       onClick={() => openOdSheet(event)}
-                      className="h-8 w-8 rounded-full transition-colors hover:bg-surface-muted dark:hover:bg-border-strong"
+                      className={actionIconCsvClass}
                     >
-                      <span className="material-symbols-outlined text-[18px] text-text-secondary">table_view</span>
+                      <span className="material-symbols-outlined text-[18px] leading-none">table_view</span>
                     </button>
-                    <button aria-label={`Edit ${event.title}`} onClick={() => openEditModal(event)} className="h-8 w-8 rounded-full transition-colors hover:bg-surface-muted dark:hover:bg-border-strong">
-                      <span className="material-symbols-outlined text-[18px] text-text-secondary">edit</span>
+                    <button aria-label={`Edit ${event.title}`} onClick={() => openEditModal(event)} className={actionIconNeutralClass}>
+                      <span className="material-symbols-outlined text-[18px] leading-none">edit</span>
                     </button>
-                    <button aria-label={`Delete ${event.title}`} onClick={() => setDeleteTarget(event)} className="h-8 w-8 rounded-full transition-colors hover:bg-red-500/10">
-                      <span className="material-symbols-outlined text-[18px] text-red-400">delete</span>
+                    <button aria-label={`Delete ${event.title}`} onClick={() => setDeleteTarget(event)} className={actionIconDangerClass}>
+                      <span className="material-symbols-outlined text-[18px] leading-none">delete</span>
                     </button>
                   </div>
                 </td>

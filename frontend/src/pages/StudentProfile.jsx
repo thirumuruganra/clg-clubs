@@ -52,7 +52,7 @@ const DEGREE_OPTIONS = [
   'M.Tech',
 ];
 
-const Profile = () => {
+const StudentProfile = () => {
   const { user, loading, logout, refetchUser } = useAuth();
   const navigate = useNavigate();
 
@@ -474,4 +474,4 @@ const Profile = () => {
   );
 };
 
-export default Profile;
+export default StudentProfile;

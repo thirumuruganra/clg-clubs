@@ -1,16 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
-import StudentSidebar from '../components/StudentSidebar';
+import StudentSidebar from '../components/student-dashboard/StudentSidebar';
 import AppShell from '../components/layout/AppShell';
 import AppTopBar from '../components/layout/AppTopBar';
 import { Button } from '../components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { EmptyState } from '../components/ui/empty-state';
-import { EventPosterFallback } from '../components/ui/event-poster-fallback';
 import { Skeleton } from '../components/ui/skeleton';
-import { StatusBadge } from '../components/ui/status-badge';
 import { Toast } from '../components/ui/toast';
+import StudentDashboardActivityTracker from '../components/student-dashboard/StudentDashboardActivityTracker';
+import StudentDashboardDiscoverItem from '../components/student-dashboard/StudentDashboardDiscoverItem';
+import StudentDashboardEventCard from '../components/student-dashboard/StudentDashboardEventCard';
+import StudentDashboardEventCardSkeleton from '../components/student-dashboard/StudentDashboardEventCardSkeleton';
 import { warmPosterCacheForEvents } from '../lib/utils';
 
 const API = '';
@@ -69,16 +70,6 @@ const sortEvents = (events, sortMode) => {
     return cloned;
   }
   return cloned;
-};
-
-const formatEventDate = (iso) => {
-  if (!iso) return { month: '', day: '' };
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return { month: '', day: '' };
-  return {
-    month: date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
-    day: date.getDate(),
-  };
 };
 
 const StudentDashboard = () => {
@@ -225,136 +216,6 @@ const StudentDashboard = () => {
   const registeredCount = forYouEvents.filter((event) => event.is_rsvped).length;
   const selectedSortLabel = SORT_OPTIONS.find((option) => option.value === sortMode)?.label || 'Recommended';
 
-  const EventCard = ({ event }) => {
-    const { month, day } = formatEventDate(event.start_time);
-    const isPending = pendingRsvpId === event.id;
-
-    return (
-      <Card interactive className="flex flex-col overflow-hidden border-border-subtle/90 bg-surface-panel/95 p-0">
-        <div className="relative h-36 overflow-hidden bg-background-dark sm:h-40">
-          {event.image_url ? (
-            <img
-              src={event.image_url}
-              alt={`${event.title} poster`}
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <EventPosterFallback title={event.title} />
-          )}
-          <div className="absolute right-3 top-3 rounded-lg border border-white/15 bg-black/34 px-2 py-1 text-center backdrop-blur-sm">
-            <p className="text-xs font-bold uppercase text-primary">{month}</p>
-            <p className="text-lg font-bold text-white">{day}</p>
-          </div>
-          <div className="absolute bottom-3 left-3">
-            <StatusBadge tone="info">{event.club_name || 'Club'}</StatusBadge>
-          </div>
-        </div>
-        <CardContent className="flex flex-1 flex-col p-4">
-          <CardHeader className="mb-2 block space-y-1">
-            <CardTitle className="mb-0 text-base">{event.title}</CardTitle>
-            <p className="line-clamp-2 text-sm text-text-secondary">{event.description}</p>
-          </CardHeader>
-
-          {event.keywords && (
-            <div className="mb-2 flex flex-wrap gap-1">
-              {event.keywords.split(',').slice(0, 4).map((keyword, index) => (
-                <span key={`${event.id}-${index}`} className="rounded-full border border-border-subtle/80 bg-surface-muted px-2 py-0.5 text-[10px] font-semibold text-text-secondary">
-                  {keyword.trim()}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {event.is_paid && (
-            <div className="mb-3 flex flex-col gap-1 rounded-lg border border-border-subtle bg-background-light p-2 text-xs dark:border-border-strong dark:bg-surface-panel">
-              <div className="flex items-center gap-1 font-medium text-text-secondary dark:text-text-dark-secondary">
-                <span className="material-symbols-outlined text-[14px]">payments</span>
-                <span>Registration Fee: {event.registration_fees || 'TBA'}</span>
-              </div>
-              {event.payment_link && (
-                <a href={event.payment_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline" onClick={(eventObj) => eventObj.stopPropagation()}>
-                  <span className="material-symbols-outlined text-[14px]">link</span>
-                  <span>Payment Link</span>
-                </a>
-              )}
-            </div>
-          )}
-
-          <CardFooter className="mt-auto items-center justify-between px-0 pb-0">
-            <div className="inline-flex items-center gap-1.5 text-text-secondary dark:text-text-dark-secondary">
-              <span className="inline-flex size-4 items-center justify-center">
-                <span className="material-symbols-outlined text-[14px] leading-none">group</span>
-              </span>
-              <span className="text-xs font-semibold leading-none tracking-[0.01em]">{event.rsvp_count || 0} registered</span>
-            </div>
-            <Button
-              onClick={() => handleRSVP(event.id, event.is_rsvped)}
-              disabled={isPending}
-              size="sm"
-              variant={event.is_rsvped ? 'danger' : 'primary'}
-            >
-              {isPending ? 'Updating...' : event.is_rsvped ? 'Unregister' : 'Register'}
-            </Button>
-          </CardFooter>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  const DiscoverItem = ({ event }) => {
-    const { month, day } = formatEventDate(event.start_time);
-    return (
-      <Card interactive className="flex min-h-40 flex-col overflow-hidden border-border-subtle/90 bg-surface-panel/95 p-0 sm:flex-row">
-        <div className="h-32 w-full overflow-hidden bg-background-dark sm:h-auto sm:w-1/3">
-          {event.image_url ? (
-            <img
-              src={event.image_url}
-              alt={`${event.title} poster`}
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <EventPosterFallback title={event.title} size="compact" />
-          )}
-        </div>
-        <div className="flex w-full flex-col justify-between gap-3 p-4 sm:w-2/3">
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <span className="mb-1 text-xs font-bold uppercase tracking-wider text-primary">{event.club_name || 'Club'}</span>
-              <span className="rounded bg-surface-muted px-2 py-0.5 text-xs font-semibold text-text-secondary dark:bg-border-strong dark:text-text-dark-secondary">{month} {day}</span>
-            </div>
-            <h3 className="text-lg font-bold leading-tight text-text-primary dark:text-white">{event.title}</h3>
-            {event.location && (
-              <div className="mt-2 flex items-center gap-1 text-text-secondary dark:text-text-dark-secondary">
-                <span className="material-symbols-outlined text-[16px]">location_on</span>
-                <span className="text-xs">{event.location}</span>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center justify-end">
-            <Button onClick={() => navigate('/student/calendar')} variant="secondary" size="sm" className="h-9">
-              More Info
-            </Button>
-          </div>
-        </div>
-      </Card>
-    );
-  };
-
-  const EventCardSkeleton = () => (
-    <div className="overflow-hidden rounded-xl border border-border-subtle bg-surface-panel">
-      <Skeleton className="h-36" />
-      <div className="space-y-2 p-4">
-        <Skeleton className="h-4 w-2/3" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-5/6" />
-      </div>
-    </div>
-  );
-
   const sidebarNode = <StudentSidebar mobileMenuOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />;
 
   const topbarActions = user?.role === 'CLUB_ADMIN'
@@ -367,7 +228,7 @@ const StudentDashboard = () => {
 
   const topbarNode = (
     <AppTopBar
-      title="WAVC"
+      title="Student Dashboard"
       onOpenMenu={() => setMobileMenuOpen(true)}
       showSearch
       searchQuery={searchQuery}
@@ -517,7 +378,7 @@ const StudentDashboard = () => {
                 <Button onClick={() => navigate('/student/calendar')} variant="ghost" size="sm" className="h-8 px-2 text-sm font-bold text-primary">View All</Button>
               </div>
               <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2 lg:grid-cols-3">
-                {loadingEvents && Array.from({ length: 3 }).map((_, index) => <EventCardSkeleton key={`for-you-skeleton-${index}`} />)}
+                {loadingEvents && Array.from({ length: 3 }).map((_, index) => <StudentDashboardEventCardSkeleton key={`for-you-skeleton-${index}`} />)}
                 {!loadingEvents && filteredForYouEvents.length === 0 && (
                   <div className="col-span-3">
                     <EmptyState
@@ -529,7 +390,14 @@ const StudentDashboard = () => {
                     />
                   </div>
                 )}
-                {!loadingEvents && filteredForYouEvents.slice(0, 3).map((event) => <EventCard key={event.id} event={event} />)}
+                {!loadingEvents && filteredForYouEvents.slice(0, 3).map((event) => (
+                  <StudentDashboardEventCard
+                    key={event.id}
+                    event={event}
+                    pendingRsvpId={pendingRsvpId}
+                    onToggleRsvp={handleRSVP}
+                  />
+                ))}
               </div>
             </section>
 
@@ -541,7 +409,7 @@ const StudentDashboard = () => {
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2">
-                {loadingEvents && Array.from({ length: 2 }).map((_, index) => <EventCardSkeleton key={`discover-skeleton-${index}`} />)}
+                {loadingEvents && Array.from({ length: 2 }).map((_, index) => <StudentDashboardEventCardSkeleton key={`discover-skeleton-${index}`} />)}
                 {!loadingEvents && filteredDiscoverEvents.length === 0 && (
                   <div className="col-span-2">
                     <EmptyState
@@ -553,84 +421,20 @@ const StudentDashboard = () => {
                     />
                   </div>
                 )}
-                {!loadingEvents && filteredDiscoverEvents.slice(0, 4).map((event) => <DiscoverItem key={event.id} event={event} />)}
-              </div>
-            </section>
-
-            <section className="mb-8 mt-10 enter-rise enter-delay-3">
-              <div className="px-4 pb-4">
-                <h2 className="section-title text-[22px]">Student Activity Tracker</h2>
-                <p className="mt-1 text-sm text-text-secondary dark:text-text-dark-secondary">Events you have attended.</p>
-              </div>
-              <div className="px-4">
-                {loadingActivities ? (
-                  <div className="space-y-3">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                  </div>
-                ) : activities.length === 0 ? (
-                  <EmptyState
-                    icon="timeline"
-                    title="No attended events yet"
-                    description="Participate in events to build activity history and points."
-                    actionLabel="Browse Events"
-                    onAction={() => navigate('/student/calendar')}
+                {!loadingEvents && filteredDiscoverEvents.slice(0, 4).map((event) => (
+                  <StudentDashboardDiscoverItem
+                    key={event.id}
+                    event={event}
+                    onMoreInfo={() => navigate('/student/calendar')}
                   />
-                ) : (
-                  <>
-                    <div className="space-y-3 md:hidden">
-                      {activities.map((activity, index) => {
-                        const startDate = new Date(activity.start_time);
-                        const endDate = new Date(activity.end_time);
-                        const dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                        const timeText = `${startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - ${endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
-                        return (
-                          <article key={`${activity.event_name}-${index}`} className="rounded-xl border border-border-subtle bg-surface-panel p-4 shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">
-                            <h3 className="text-sm font-bold text-text-primary dark:text-white">{activity.event_name}</h3>
-                            <p className="mt-1 text-xs text-text-secondary dark:text-text-dark-secondary">{activity.club_name}</p>
-                            <p className="mt-2 text-xs text-text-secondary dark:text-text-dark-secondary">{dateText}</p>
-                            <p className="text-xs text-text-secondary dark:text-text-dark-secondary">{timeText}</p>
-                          </article>
-                        );
-                      })}
-                    </div>
-
-                    <div className="hidden overflow-x-auto rounded-xl border border-border-subtle bg-surface-panel shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated md:block">
-                      <table className="w-full min-w-160 text-left text-sm text-text-primary dark:text-white">
-                        <thead className="bg-surface-muted text-xs uppercase text-text-secondary dark:bg-border-strong dark:text-text-dark-secondary">
-                          <tr>
-                            <th className="whitespace-nowrap px-3 py-3 md:px-6">Event Name</th>
-                            <th className="whitespace-nowrap px-3 py-3 md:px-6">Club Name</th>
-                            <th className="whitespace-nowrap px-3 py-3 md:px-6">Date</th>
-                            <th className="whitespace-nowrap px-3 py-3 md:px-6">Start Time</th>
-                            <th className="whitespace-nowrap px-3 py-3 md:px-6">End Time</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border-subtle border-t border-border-subtle dark:divide-border-strong dark:border-border-strong">
-                          {activities.map((activity, index) => {
-                            const startDate = new Date(activity.start_time);
-                            const endDate = new Date(activity.end_time);
-                            const dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                            const startText = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                            const endText = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                            return (
-                              <tr key={`${activity.event_name}-${index}`} className="transition-colors hover:bg-surface-muted dark:hover:bg-surface-panel">
-                                <td className="px-3 py-4 font-medium md:px-6">{activity.event_name}</td>
-                                <td className="px-3 py-4 md:px-6">{activity.club_name}</td>
-                                <td className="px-3 py-4 md:px-6">{dateText}</td>
-                                <td className="px-3 py-4 md:px-6">{startText}</td>
-                                <td className="px-3 py-4 md:px-6">{endText}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                )}
+                ))}
               </div>
             </section>
+            <StudentDashboardActivityTracker
+              loadingActivities={loadingActivities}
+              activities={activities}
+              onBrowseEvents={() => navigate('/student/calendar')}
+            />
           </div>
         </div>
       </div>

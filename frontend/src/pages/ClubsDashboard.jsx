@@ -5,7 +5,7 @@ import DatePicker from 'react-datepicker';
 import imageCompression from 'browser-image-compression';
 import 'react-datepicker/dist/react-datepicker.css';
 import { QRCodeSVG } from 'qrcode.react';
-import ClubCalendar from './ClubCalendar';
+import ClubsCalendarTab from '../components/club-dashboard/ClubsCalendarTab';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
 import ClubDashboardSidebar from '../components/club-dashboard/ClubDashboardSidebar';
 import ClubDashboardTopBar from '../components/club-dashboard/ClubDashboardTopBar';
@@ -28,6 +28,7 @@ import { Button } from '../components/ui/button';
 import { EmptyState } from '../components/ui/empty-state';
 import { EventPosterFallback } from '../components/ui/event-poster-fallback';
 import { FieldMessage } from '../components/ui/field-message';
+import { Dropdown } from '../components/ui/dropdown';
 import { IconButton } from '../components/ui/icon-button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -305,7 +306,7 @@ const evaluatePaymentMatch = (user, payment, calculatedYear) => {
   };
 };
 
-const ClubDashboard = () => {
+const ClubsDashboard = () => {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -817,18 +818,7 @@ const ClubDashboard = () => {
           }
         }
 
-        setEditError('');
-        setEditEvent(null);
-        setEditPosterFile(null);
-        editPosterDragCounterRef.current = 0;
-        setIsEditPosterDragActive(false);
-        if (editPosterInputRef.current) {
-          editPosterInputRef.current.value = '';
-        }
-        setEditPosterPreview((previous) => {
-          if (previous) URL.revokeObjectURL(previous);
-          return '';
-        });
+        closeEditModal();
         if (posterUploadError) {
           setTableError(`Event updated, but poster upload failed: ${posterUploadError}`);
         }
@@ -851,6 +841,7 @@ const ClubDashboard = () => {
     loading: false,
     workforceLoading: false,
     tab: 'team',
+    availableTabs: ['team', 'attendance'],
   });
   const [workforceActionError, setWorkforceActionError] = useState('');
   const [workforceActionSuccess, setWorkforceActionSuccess] = useState('');
@@ -943,6 +934,7 @@ const ClubDashboard = () => {
       loading: false,
       workforceLoading: false,
       tab: 'team',
+      availableTabs: ['team', 'attendance'],
     });
     setWorkforceActionError('');
     setWorkforceActionSuccess('');
@@ -966,7 +958,12 @@ const ClubDashboard = () => {
     });
   };
 
-  const openRsvpModal = async (eventObj, initialTab = 'team') => {
+  const openRsvpModal = async (eventObj, initialTab = 'team', viewMode = 'full') => {
+    const availableTabs = viewMode === 'od-only'
+      ? ['attendance', ...(eventObj?.is_paid ? ['payment'] : [])]
+      : ['team', 'attendance', ...(eventObj?.is_paid ? ['payment'] : [])];
+    const safeInitialTab = availableTabs.includes(initialTab) ? initialTab : availableTabs[0] || 'attendance';
+
     setRsvpError('');
     setPaymentFeedback(null);
     setWorkforceActionError('');
@@ -982,7 +979,8 @@ const ClubDashboard = () => {
       workforce: [],
       loading: true,
       workforceLoading: true,
-      tab: initialTab,
+      tab: safeInitialTab,
+      availableTabs,
     });
 
     try {
@@ -1007,7 +1005,53 @@ const ClubDashboard = () => {
   };
 
   const openOdSheet = (eventObj) => {
-    void openRsvpModal(eventObj, 'attendance');
+    void openRsvpModal(eventObj, 'attendance', 'od-only');
+  };
+
+  const closeEditModal = () => {
+    setEditError('');
+    setEditEvent(null);
+    setEditPosterFile(null);
+    editPosterDragCounterRef.current = 0;
+    setIsEditPosterDragActive(false);
+    if (editPosterInputRef.current) {
+      editPosterInputRef.current.value = '';
+    }
+    setEditPosterPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return '';
+    });
+  };
+
+  const isTextAreaTarget = (event) => {
+    const tagName = String(event?.target?.tagName || '').toLowerCase();
+    return tagName === 'textarea';
+  };
+
+  const handleCreateFormKeyDown = (event) => {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+
+    const tagName = String(event?.target?.tagName || '').toLowerCase();
+    if (tagName === 'textarea' || tagName === 'button') return;
+
+    event.preventDefault();
+    event.currentTarget.requestSubmit();
+  };
+
+  const handleEditFormKeyDown = (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeEditModal();
+      return;
+    }
+
+    if (event.key !== 'Enter' || event.shiftKey || isTextAreaTarget(event)) return;
+
+    const tagName = String(event?.target?.tagName || '').toLowerCase();
+    if (tagName === 'button') return;
+
+    event.preventDefault();
+    event.currentTarget.requestSubmit();
   };
 
   const handleAddEventWorker = async (userId, role) => {
@@ -1555,7 +1599,7 @@ const ClubDashboard = () => {
         {/* Content Area */}
         {activeTab === 'events' ? (
           <div className="flex-1 overflow-hidden p-0">
-            <ClubCalendar 
+            <ClubsCalendarTab
               club={club} 
               searchQuery={searchQuery} 
               onOpenEditModal={openEditModal} 
@@ -1614,6 +1658,7 @@ const ClubDashboard = () => {
             newEvent={newEvent}
             setNewEvent={setNewEvent}
             handleCreateEvent={handleCreateEvent}
+            handleCreateFormKeyDown={handleCreateFormKeyDown}
             creating={creating}
             creatingPoster={creatingPoster}
             DESCRIPTION_WORD_LIMIT={DESCRIPTION_WORD_LIMIT}
@@ -1656,15 +1701,15 @@ const ClubDashboard = () => {
 
       {/* Edit Event Modal */}
       {editEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setEditEvent(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={closeEditModal}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-border-subtle dark:border-border-strong overflow-y-auto modal-panel" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-border-subtle dark:border-border-strong">
               <h2 className="text-xl font-bold">Edit Event</h2>
-              <IconButton ariaLabel="Close edit event dialog" onClick={() => setEditEvent(null)} size="sm">
+              <IconButton ariaLabel="Close edit event dialog" onClick={closeEditModal} size="sm">
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </IconButton>
             </div>
-            <form onSubmit={handleUpdateEvent} className="p-6 space-y-4">
+            <form onSubmit={handleUpdateEvent} onKeyDown={handleEditFormKeyDown} className="p-6 space-y-4">
               {editError ? <Toast tone="error" title="Could not save event" description={editError} /> : null}
               <div>
                 <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary" htmlFor="edit_event_title" required>Event Title</Label>
@@ -1827,7 +1872,7 @@ const ClubDashboard = () => {
                 )}
               </div>
               <div className="flex gap-3 pt-2">
-                <Button type="button" variant="secondary" className="flex-1" onClick={() => setEditEvent(null)}>
+                <Button type="button" variant="secondary" className="flex-1" onClick={closeEditModal}>
                   Cancel
                 </Button>
                 <Button type="submit" className="flex-1" disabled={editing || editingPoster}>
@@ -1923,9 +1968,9 @@ const ClubDashboard = () => {
       {rsvpModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={closeRsvpModal}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-4xl border border-border-subtle dark:border-border-strong flex flex-col modal-panel" onClick={e => e.stopPropagation()}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border-subtle dark:border-border-strong p-6 gap-4">
-              <div>
-                <h2 className="text-xl font-bold">{rsvpModal.event?.title || 'Event'} - Event Team & OD</h2>
+            <div className="flex flex-col gap-4 border-b border-border-subtle p-6 dark:border-border-strong lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold wrap-break-word">{rsvpModal.event?.title || 'Event'}</h2>
                 <p className="mt-1 text-xs text-text-secondary dark:text-text-dark-secondary">
                   {rsvpModal.tab === 'team'
                     ? `${rsvpModal.workforce.length} Assigned Workers`
@@ -1933,42 +1978,52 @@ const ClubDashboard = () => {
                 </p>
               </div>
 
-              <div className="flex bg-surface-muted dark:bg-border-strong p-1 rounded-xl w-full sm:w-auto">
-                <Button
-                  onClick={() => setRsvpModal(p => ({ ...p, tab: 'team' }))}
-                  variant={rsvpModal.tab === 'team' ? 'primary' : 'ghost'}
-                  size="sm"
-                  className="flex-1 sm:flex-none"
-                >
-                  Event Team
-                </Button>
-                <Button
-                  onClick={() => setRsvpModal(p => ({ ...p, tab: 'attendance' }))}
-                  variant={rsvpModal.tab === 'attendance' ? 'primary' : 'ghost'}
-                  size="sm"
-                  className="flex-1 sm:flex-none"
-                >
-                  Student OD
-                </Button>
-                {rsvpModal.event?.is_paid && (
+              <div className="flex w-full flex-wrap items-center gap-3 md:flex-nowrap lg:w-auto lg:justify-end">
+                <div className="flex w-full rounded-xl bg-surface-muted p-1 dark:bg-border-strong md:w-auto">
+                  {rsvpModal.availableTabs.includes('team') && (
                     <Button
-                      onClick={() => setRsvpModal(p => ({ ...p, tab: 'payment' }))}
+                      onClick={() => setRsvpModal((previous) => ({ ...previous, tab: 'team' }))}
+                      variant={rsvpModal.tab === 'team' ? 'primary' : 'ghost'}
+                      size="sm"
+                      className="min-w-0 flex-1 px-3 enabled:hover:translate-y-0 md:min-w-26 md:flex-none md:whitespace-nowrap"
+                    >
+                      Event Team
+                    </Button>
+                  )}
+                  {rsvpModal.availableTabs.includes('attendance') && (
+                    <Button
+                      onClick={() => setRsvpModal((previous) => ({ ...previous, tab: 'attendance' }))}
+                      variant={rsvpModal.tab === 'attendance' ? 'primary' : 'ghost'}
+                      size="sm"
+                      className="min-w-0 flex-1 px-3 enabled:hover:translate-y-0 md:min-w-26 md:flex-none md:whitespace-nowrap"
+                    >
+                      Student OD
+                    </Button>
+                  )}
+                  {rsvpModal.availableTabs.includes('payment') && (
+                    <Button
+                      onClick={() => setRsvpModal((previous) => ({ ...previous, tab: 'payment' }))}
                       variant={rsvpModal.tab === 'payment' ? 'primary' : 'ghost'}
                       size="sm"
-                      className="flex-1 sm:flex-none"
+                      className="min-w-0 flex-1 px-3 enabled:hover:translate-y-0 md:min-w-26 md:flex-none md:whitespace-nowrap"
                     >
                       Payments
                     </Button>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <div className="flex items-center gap-3">
                 {rsvpModal.tab !== 'team' && (
-                  <Button onClick={exportAttendanceCSV} disabled={rsvpModal.loading || rsvpModal.rsvps.length === 0} variant="secondary" className="text-green-600 hover:bg-green-600/20 dark:text-green-400">
-                    <span className="material-symbols-outlined text-[18px]">download</span> Export CSV
+                  <Button
+                    onClick={exportAttendanceCSV}
+                    disabled={rsvpModal.loading || rsvpModal.rsvps.length === 0}
+                    variant="secondary"
+                    className="shrink-0 whitespace-nowrap text-green-600 hover:bg-green-600/20 dark:text-green-400 enabled:hover:translate-y-0"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">download</span>
+                    Export CSV
                   </Button>
                 )}
-                <IconButton ariaLabel="Close attendees dialog" onClick={closeRsvpModal} size="sm">
+                <IconButton ariaLabel="Close attendees dialog" onClick={closeRsvpModal} size="sm" className="shrink-0">
                   <span className="material-symbols-outlined text-[20px]">close</span>
                 </IconButton>
               </div>
@@ -1983,18 +2038,20 @@ const ClubDashboard = () => {
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                       <div className="rounded-xl border border-border-subtle dark:border-border-strong p-4 space-y-3">
                         <p className="text-sm font-semibold">Assign Club Member</p>
-                        <select
+                        <Dropdown
+                          id="event-team-member-select"
+                          ariaLabel="Select club member"
                           value={workforceMemberUserId}
-                          onChange={(event) => setWorkforceMemberUserId(event.target.value)}
-                          className="h-10 w-full rounded-xl border border-border-subtle bg-white px-3 text-sm focus:border-primary focus:outline-none dark:border-border-strong dark:bg-[#111a22] dark:text-white"
-                        >
-                          <option value="">Select member</option>
-                          {availableClubMembersForEvent.map((member) => (
-                            <option key={member.user_id} value={member.user_id}>
-                              {(member.name || member.email || 'Student')} {member.register_number ? `(${member.register_number})` : ''}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={setWorkforceMemberUserId}
+                          placeholder="Select member"
+                          options={[
+                            { value: '', label: 'Select member' },
+                            ...availableClubMembersForEvent.map((member) => ({
+                              value: String(member.user_id),
+                              label: `${member.name || member.email || 'Student'}${member.register_number ? ` (${member.register_number})` : ''}`,
+                            })),
+                          ]}
+                        />
                         <Button
                           type="button"
                           onClick={() => handleAddEventWorker(workforceMemberUserId, 'CLUB_MEMBER')}
@@ -2051,7 +2108,7 @@ const ClubDashboard = () => {
                     {rsvpModal.workforce.length === 0 ? (
                       <EmptyState
                         icon="group_off"
-                        title="No workers assigned"
+                        title="No students assigned"
                         description="Add club members and volunteers who will work for this event."
                       />
                     ) : (
@@ -2109,12 +2166,15 @@ const ClubDashboard = () => {
               ) : (
                 <div className="flex flex-col gap-4">
                   {rsvpModal.tab === 'payment' && rsvpModal.event?.is_paid && (
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-2">
-                      <div className="text-sm text-text-secondary">Upload payment CSV to auto-match captured/success rows using name, email, register no, year and department.</div>
-                        <label className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-surface-muted px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-surface-muted/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
-                            <span className="material-symbols-outlined text-[18px]">upload_file</span> Upload CSV
-                            <input type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
-                        </label>
+                    <div className="flex items-center justify-between gap-3 pb-2">
+                      <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-text-secondary dark:text-text-dark-secondary">
+                        Upload payment CSV to auto-match captured or success rows by name, email, register no, year, and department.
+                      </div>
+                      <label className="inline-flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap rounded-xl bg-surface-muted px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-surface-muted/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
+                        <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                        Upload CSV
+                        <input type="file" accept=".csv" className="hidden" onChange={handleCsvUpload} />
+                      </label>
                     </div>
                   )}
                   {paymentFeedback && (
@@ -2207,4 +2267,4 @@ const ClubDashboard = () => {
   );
 };
 
-export default ClubDashboard;
+export default ClubsDashboard;

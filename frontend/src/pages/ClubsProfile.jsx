@@ -11,7 +11,7 @@ const API = '';
 const CLUB_LOGO_MAX_SIZE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-const ClubProfile = () => {
+const ClubsProfile = () => {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -442,4 +442,4 @@ const ClubProfile = () => {
   );
 };
 
-export default ClubProfile;
+export default ClubsProfile;

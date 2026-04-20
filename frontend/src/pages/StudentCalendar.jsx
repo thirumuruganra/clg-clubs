@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial, warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
-import StudentSidebar from '../components/StudentSidebar';
+import StudentSidebar from '../components/student-dashboard/StudentSidebar';
 import AppShell from '../components/layout/AppShell';
 import AppTopBar from '../components/layout/AppTopBar';
 import { Button } from '../components/ui/button';
@@ -22,7 +22,7 @@ const eventMatchesSearch = (event, rawQuery) => {
     .some((field) => field.toLowerCase().includes(query));
 };
 
-const Calendar = () => {
+const StudentCalendar = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
@@ -563,4 +563,4 @@ const Calendar = () => {
   );
 };
 
-export default Calendar;
+export default StudentCalendar;

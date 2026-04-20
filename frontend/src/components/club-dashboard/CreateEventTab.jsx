@@ -12,6 +12,7 @@ const CreateEventTab = ({
   newEvent,
   setNewEvent,
   handleCreateEvent,
+  handleCreateFormKeyDown,
   creating,
   creatingPoster,
   DESCRIPTION_WORD_LIMIT,
@@ -56,7 +57,7 @@ const CreateEventTab = ({
           </div>
         </div>
 
-        <form onSubmit={handleCreateEvent} className="space-y-5">
+        <form onSubmit={handleCreateEvent} onKeyDown={handleCreateFormKeyDown} className="space-y-5">
           {createError ? <Toast tone="error" title="Unable to create event" description={createError} /> : null}
 
           <section className="feature-card space-y-4 p-5 sm:p-6">
