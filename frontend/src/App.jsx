@@ -63,9 +63,9 @@ function PublicRoute({ children }) {
 function NotFound() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface-canvas px-6 text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">404</p>
-      <h1 className="text-balance text-2xl font-bold text-text-primary">Page not found</h1>
-      <p className="max-w-md text-pretty text-sm text-text-secondary">
+      <p className="type-label text-text-secondary">404</p>
+      <h1 className="type-page-title text-balance text-text-primary sm:text-4xl">Page not found</h1>
+      <p className="type-body max-w-md text-pretty text-text-secondary">
         Route missing. Use dashboard navigation to continue.
       </p>
     </main>
@@ -90,9 +90,9 @@ class AppErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface-canvas px-6 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-text-secondary">Application error</p>
-          <h1 className="text-balance text-2xl font-bold text-text-primary">Something broke on this page</h1>
-          <p className="max-w-md text-pretty text-sm text-text-secondary">
+          <p className="type-label text-text-secondary">Application error</p>
+          <h1 className="type-page-title text-balance text-text-primary sm:text-4xl">Something broke on this page</h1>
+          <p className="type-body max-w-md text-pretty text-text-secondary">
             Retry by refreshing. If this continues, contact maintainers.
           </p>
           <button

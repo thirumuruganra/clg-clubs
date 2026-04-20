@@ -182,7 +182,7 @@ const StudentProfile = () => {
     .slice(0, 8);
 
   return (
-    <div className="min-h-dvh bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white">
+    <div className="min-h-dvh bg-background-light font-body text-slate-900 dark:bg-background-dark dark:text-white">
       <header className="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-border-subtle dark:border-border-strong bg-white dark:bg-[#111a22]">
         <div className="flex items-center gap-3">
           <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
@@ -207,8 +207,8 @@ const StudentProfile = () => {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-2">{isIncomplete ? 'Set up your student profile' : 'Edit your student profile'}</h1>
-        <p className="text-text-secondary dark:text-text-dark-secondary mb-10 text-lg">
+        <h1 className="type-page-title mb-2 sm:text-4xl">{isIncomplete ? 'Set up your student profile' : 'Edit your student profile'}</h1>
+        <p className="type-lead mb-10 text-text-secondary dark:text-text-dark-secondary">
           Keep your details up to date for better recommendations, easier registrations, and relevant club activity.
         </p>
 
@@ -234,8 +234,8 @@ const StudentProfile = () => {
                 )}
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold mb-1">Student Profile Picture</h3>
-                <p className="text-sm text-text-secondary dark:text-text-dark-secondary">
+                <h3 className="text-xl font-semibold mb-1">Student Profile Picture</h3>
+                <p className="type-body text-text-secondary dark:text-text-dark-secondary">
                   Your Google profile picture is used automatically. It updates when your Google account photo changes.
                 </p>
               </div>

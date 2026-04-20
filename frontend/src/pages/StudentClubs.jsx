@@ -142,10 +142,10 @@ const StudentClubs = () => {
       mobileMenuOpen={mobileMenuOpen}
       onCloseMenu={() => setMobileMenuOpen(false)}
     >
-      <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 font-body sm:px-6 lg:px-10">
         <header className="space-y-2">
-          <h2 className="text-3xl font-bold text-text-primary">Discover clubs</h2>
-          <p className="text-sm text-text-secondary">
+          <h2 className="section-title text-text-primary">Discover clubs</h2>
+          <p className="type-body text-text-secondary">
             Follow clubs for personalized event feeds. Open Instagram for latest posts.
           </p>
         </header>
@@ -160,9 +160,9 @@ const StudentClubs = () => {
             <Card key={stat.label} className="p-3 sm:p-4">
               <div className="mb-2 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px] text-primary" aria-hidden="true">{stat.icon}</span>
-                <span className="text-xs font-medium text-text-secondary">{stat.label}</span>
+                <span className="type-label text-text-secondary">{stat.label}</span>
               </div>
-              <p className="text-xl font-bold text-text-primary sm:text-2xl">{stat.value}</p>
+              <p className="type-metric text-text-primary sm:text-2xl">{stat.value}</p>
             </Card>
           ))}
         </div>
@@ -233,8 +233,8 @@ const StudentClubs = () => {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-sm font-bold text-text-primary">{club.name}</h3>
-                      <p className="text-xs text-text-secondary">
+                      <h3 className="truncate text-base font-semibold text-text-primary">{club.name}</h3>
+                      <p className="text-sm text-text-secondary">
                         {club.follower_count} follower{club.follower_count !== 1 ? 's' : ''} · {club.category === 'TECH' ? 'Tech' : 'Non-Tech'}
                       </p>
                     </div>

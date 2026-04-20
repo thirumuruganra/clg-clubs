@@ -159,11 +159,11 @@ const StudentAttendanceCheckin = () => {
   };
 
   return (
-    <div className="min-h-dvh bg-background-light dark:bg-background-dark px-4 py-10 flex items-center justify-center">
+    <div className="min-h-dvh bg-background-light px-4 py-10 font-body dark:bg-background-dark flex items-center justify-center">
       <div className="w-full max-w-lg rounded-2xl border border-border-subtle bg-white p-6 shadow-lg space-y-4 dark:border-border-strong dark:bg-[#1a2632]">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Event Attendance Check-In</h1>
-          <p className="mt-1 text-sm text-text-secondary dark:text-text-dark-secondary">
+          <h1 className="type-page-title text-slate-900 dark:text-white sm:text-4xl">Event Attendance Check-In</h1>
+          <p className="type-body mt-1 text-text-secondary dark:text-text-dark-secondary">
             Scan-based attendance for WAVC events.
           </p>
         </div>

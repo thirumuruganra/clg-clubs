@@ -248,7 +248,7 @@ const ClubsProfile = () => {
   }
 
   return (
-    <div className="min-h-dvh bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white">
+    <div className="min-h-dvh bg-background-light font-body text-slate-900 dark:bg-background-dark dark:text-white">
       <header className="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-border-subtle dark:border-border-strong bg-white dark:bg-surface-panel">
         <div className="flex items-center gap-3">
           <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
@@ -277,8 +277,8 @@ const ClubsProfile = () => {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-2">Club Profile</h1>
-        <p className="text-text-secondary dark:text-text-dark-secondary mb-10 text-lg">
+        <h1 className="type-page-title mb-2 sm:text-4xl">Club Profile</h1>
+        <p className="type-lead mb-10 text-text-secondary dark:text-text-dark-secondary">
           Update club details shown to students across clubs, calendar, and profile suggestions.
         </p>
 
@@ -318,8 +318,8 @@ const ClubsProfile = () => {
               )}
             </button>
             <div className="flex-1">
-              <h3 className="text-lg font-bold mb-1">Club Profile Picture</h3>
-              <p className="text-sm text-text-secondary dark:text-text-dark-secondary mb-3">
+              <h3 className="text-xl font-semibold mb-1">Club Profile Picture</h3>
+              <p className="type-body text-text-secondary dark:text-text-dark-secondary mb-3">
                 If no custom image is set, your Google profile picture will be used automatically.
               </p>
               <input

@@ -11,7 +11,7 @@ const LandingPage = () => {
   ];
 
   return (
-    <div className="relative flex min-h-dvh w-full flex-col overflow-x-hidden bg-surface-canvas text-text-primary">
+    <div className="relative flex min-h-dvh w-full flex-col overflow-x-hidden bg-surface-canvas font-body text-text-primary">
       <div className="pointer-events-none absolute inset-0">
         <div className="atmosphere-grid"></div>
       </div>
@@ -21,7 +21,7 @@ const LandingPage = () => {
           <div className="size-10 overflow-hidden rounded-xl bg-primary/18 p-1.5 shadow-soft-sm">
             <img src={wavcIcon} alt="WAVC Logo" className="h-full w-full object-contain" />
           </div>
-          <h2 className="font-display text-xl font-bold leading-tight tracking-tight">WAVC</h2>
+          <h2 className="font-display text-2xl font-bold leading-tight tracking-tight">WAVC</h2>
         </div>
 
         {/* Desktop Navigation */}
@@ -110,7 +110,7 @@ const LandingPage = () => {
                 <h1 className="headline-display mt-5 max-w-2xl text-white">
                   Stay in the loop. Run your campus story.
                 </h1>
-                <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/88 md:text-lg">
+                <p className="type-lead mt-5 text-white/88">
                   Discover events, join communities, and manage club momentum from one home built for student life.
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -144,8 +144,8 @@ const LandingPage = () => {
                     key={stat.label}
                     className={`rounded-2xl border border-white/18 bg-black/25 p-4 text-white backdrop-blur-sm enter-rise ${index === 0 ? 'enter-delay-1' : index === 1 ? 'enter-delay-2' : 'enter-delay-3'}`}
                   >
-                    <p className="text-3xl font-display font-bold leading-none">{stat.value}</p>
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/76">{stat.label}</p>
+                    <p className="type-metric text-white">{stat.value}</p>
+                    <p className="type-label mt-2 text-white/76">{stat.label}</p>
                   </div>
                 ))}
               </div>
@@ -161,8 +161,8 @@ const LandingPage = () => {
                   key={item.title}
                   className="feature-card p-5"
                 >
-                  <h2 className="text-lg font-bold text-text-primary dark:text-white">{item.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-text-secondary dark:text-text-dark-secondary">{item.body}</p>
+                  <h2 className="text-xl font-bold text-text-primary dark:text-white">{item.title}</h2>
+                  <p className="type-body mt-2 text-text-secondary dark:text-text-dark-secondary">{item.body}</p>
                 </article>
               ))}
             </div>
@@ -173,8 +173,8 @@ const LandingPage = () => {
           <div className="layout-content-container mx-auto grid max-w-240 items-stretch gap-6 rounded-3xl border border-border-subtle bg-surface-panel p-6 shadow-soft-md lg:grid-cols-[1.1fr_1fr] lg:p-10">
             <div className="flex h-full flex-col justify-center gap-4 lg:pr-4">
               <span className="kicker-label w-fit">Built for campus communities</span>
-              <h2 className="text-3xl font-display font-bold text-text-primary dark:text-white">Every club moment in one shared flow.</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary dark:text-text-dark-secondary">
+              <h2 className="section-title text-text-primary dark:text-white">Every club moment in one shared flow.</h2>
+              <p className="type-body mt-2 text-text-secondary dark:text-text-dark-secondary">
                 WAVC lets students discover what matters now and gives club admins a faster way to organize events, followers, and attendance.
               </p>
             </div>
@@ -185,8 +185,8 @@ const LandingPage = () => {
                 { title: 'Participate', body: 'Attend events and grow your campus involvement.' },
               ].map((step) => (
                 <div key={step.title} className="h-full rounded-xl border border-border-subtle bg-surface-muted p-4 dark:border-border-strong dark:bg-surface-canvas">
-                  <h3 className="text-sm font-bold text-text-primary dark:text-white">{step.title}</h3>
-                  <p className="mt-1 text-xs leading-5 text-text-secondary dark:text-text-dark-secondary">{step.body}</p>
+                  <h3 className="text-base font-semibold text-text-primary dark:text-white">{step.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-text-secondary dark:text-text-dark-secondary">{step.body}</p>
                 </div>
               ))}
             </div>

@@ -202,7 +202,7 @@ const StudentCalendar = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-0 text-center text-[11px] sm:text-xs">
+        <div className="grid grid-cols-7 gap-0 text-center text-xs">
           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) => (
             <div key={day} className="py-1 font-medium text-text-secondary">{day}</div>
           ))}
@@ -228,7 +228,7 @@ const StudentCalendar = () => {
       </section>
 
       <section className="mb-8">
-        <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-secondary">My Schedule</h3>
+        <h3 className="type-label mb-3 text-text-secondary">My Schedule</h3>
         <div className="flex items-center gap-3 px-3 py-2 text-sm text-text-secondary">
           <span className="material-symbols-outlined text-[20px]" aria-hidden="true">event_available</span>
           {myScheduleCount} events this week
@@ -236,7 +236,7 @@ const StudentCalendar = () => {
       </section>
 
       <section className="mb-8">
-        <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-secondary">Club Categories</h3>
+        <h3 className="type-label mb-3 text-text-secondary">Club Categories</h3>
         <div className="space-y-1">
           {categoryLegend.map((category) => (
             <button
@@ -256,7 +256,7 @@ const StudentCalendar = () => {
       </section>
 
       <section className="mb-8">
-        <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-secondary">Clubs</h3>
+        <h3 className="type-label mb-3 text-text-secondary">Clubs</h3>
         <div className="max-h-48 space-y-1 overflow-y-auto pr-1">
           <button
             type="button"
@@ -267,7 +267,7 @@ const StudentCalendar = () => {
             }`}
           >
             <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
-              <span className="material-symbols-outlined text-[10px] leading-none" aria-hidden="true">groups</span>
+              <span className="material-symbols-outlined text-xs leading-none" aria-hidden="true">groups</span>
             </div>
             <span className="flex-1 truncate">All Clubs</span>
           </button>
@@ -370,7 +370,7 @@ const StudentCalendar = () => {
                     key={event.id}
                     type="button"
                     onClick={() => openEventDetail(event.id)}
-                    className={`mb-0.5 w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium transition-colors ${getEventPillClass(event.tag)}`}
+                    className={`mb-0.5 w-full truncate rounded px-1.5 py-0.5 text-left text-xs font-medium transition-colors ${getEventPillClass(event.tag)}`}
                   >
                     {event.title}
                   </button>
@@ -380,7 +380,7 @@ const StudentCalendar = () => {
                   <button
                     type="button"
                     onClick={() => openDayEventsModal(dayItem.day, dayEvents)}
-                    className="px-1 text-[10px] font-medium text-primary underline-offset-2 hover:underline"
+                    className="px-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
                   >
                     +{dayEvents.length - 2} more
                   </button>
@@ -533,7 +533,7 @@ const StudentCalendar = () => {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-base font-bold">Events on {new Date(year, month, dayEventsModal.day).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</h3>
+              <h3 className="text-lg font-semibold">Events on {new Date(year, month, dayEventsModal.day).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</h3>
               <IconButton ariaLabel="Close day events" variant="soft" size="sm" onClick={() => setDayEventsModal({ open: false, day: null, events: [] })}>
                 <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
               </IconButton>

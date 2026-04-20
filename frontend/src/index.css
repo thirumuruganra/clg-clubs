@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/container-queries";
@@ -29,21 +29,38 @@
   --color-background-light: oklch(0.976 0.008 247);
   --color-background-dark: oklch(0.168 0.026 252);
 
-  --font-heading: "Sora", "Manrope", sans-serif;
-  --font-body: "Manrope", sans-serif;
-  --font-display: "Sora", "Manrope", sans-serif;
+  --font-heading: "Bricolage Grotesque", "Public Sans", sans-serif;
+  --font-body: "Public Sans", "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque", "Public Sans", sans-serif;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
   --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.875rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.6875rem;
+  --text-3xl: 2.0625rem;
 
+  --text-caption: var(--text-xs);
+  --text-secondary: var(--text-sm);
+  --text-body: var(--text-base);
+  --text-subheading: var(--text-xl);
+  --text-heading: var(--text-2xl);
+  --text-display: var(--text-3xl);
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  --leading-display: 1.08;
   --leading-tight: 1.2;
   --leading-normal: 1.5;
   --leading-relaxed: 1.65;
+
+  --tracking-tight: -0.02em;
+  --tracking-label: 0.11em;
 
   --radius: 0.5rem;
   --radius-sm: 0.375rem;
@@ -110,11 +127,17 @@
 }
 
 @layer base {
+  html {
+    font-kerning: normal;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     background: var(--color-surface-canvas);
     color: var(--color-text-primary);
     font-family: var(--font-body);
-    line-height: 1.5;
+    font-size: var(--text-body);
+    line-height: var(--leading-normal);
   }
 
   h1,
@@ -124,14 +147,41 @@
   h5,
   h6 {
     font-family: var(--font-heading);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-tight);
     text-wrap: balance;
+  }
+
+  h1 {
+    font-size: var(--text-display);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-display);
+  }
+
+  h2 {
+    font-size: var(--text-heading);
+  }
+
+  h3 {
+    font-size: var(--text-subheading);
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-size: var(--text-lg);
   }
 
   p,
   li,
   span,
   label {
+    line-height: var(--leading-relaxed);
     text-wrap: pretty;
+  }
+
+  p {
+    max-width: 68ch;
   }
 
   :focus-visible {
@@ -214,19 +264,57 @@
 
   .section-title {
     font-family: var(--font-heading);
-    font-size: var(--text-xl);
-    font-weight: 700;
+    font-size: var(--text-heading);
+    font-weight: var(--weight-bold);
     line-height: var(--leading-tight);
+    letter-spacing: -0.01em;
     color: var(--color-text-primary);
     text-wrap: balance;
+  }
+
+  .type-body {
+    font-size: var(--text-body);
+    line-height: var(--leading-relaxed);
+  }
+
+  .type-lead {
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+    font-weight: var(--weight-medium);
+    max-width: 62ch;
+  }
+
+  .type-page-title {
+    font-family: var(--font-display);
+    font-size: var(--text-display);
+    font-weight: var(--weight-extrabold);
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .type-label {
+    font-size: var(--text-caption);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-label);
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .type-metric {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
   }
 
   .headline-display {
     font-family: var(--font-display);
     font-size: clamp(2rem, 5vw, 4.4rem);
-    font-weight: 800;
-    line-height: 1.04;
-    letter-spacing: -0.03em;
+    font-weight: var(--weight-extrabold);
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-tight);
     text-wrap: balance;
   }
 
@@ -237,9 +325,10 @@
     border-radius: var(--radius-full);
     background: color-mix(in oklab, var(--color-primary) 14%, transparent);
     color: color-mix(in oklab, var(--color-text-primary) 82%, var(--color-primary));
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-size: var(--text-caption);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-label);
+    line-height: 1;
     padding: 0.4rem 0.8rem;
     text-transform: uppercase;
   }
@@ -389,8 +478,8 @@
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  font-size: var(--text-secondary);
+  line-height: var(--leading-normal);
   outline: none;
   padding: 0.5rem 0.75rem;
 }
@@ -439,7 +528,7 @@
   border-radius: var(--radius-lg) !important;
   box-shadow: 0 22px 50px rgba(2, 8, 18, 0.5) !important;
   color: #e8f0fa;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: var(--font-body);
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__header {
@@ -525,6 +614,7 @@
 .react-datepicker.modern-datepicker-calendar .react-datepicker__time-list-item,
 .react-datepicker.modern-datepicker-calendar .react-datepicker__navigation-icon::before {
   color: #e8f0fa;
+  font-variant-numeric: tabular-nums;
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__day-name,

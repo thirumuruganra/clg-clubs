@@ -18,15 +18,15 @@ const Login = () => {
   };
 
   return (
-    <div className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-slate-50 dark:bg-surface-panel">
+    <div className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-slate-50 font-body dark:bg-surface-panel">
       <div className="relative z-10 w-full max-w-md p-5 sm:p-6">
         <Card elevated className="flex flex-col items-center rounded-2xl border-white/20 bg-white/75 p-6 text-center shadow-soft-xl backdrop-blur-xl dark:bg-surface-elevated/75 sm:p-8">
           <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <img src={wavcIcon} alt="WAVC Logo" className="h-10 w-10 object-contain" />
           </div>
 
-          <h1 className="mb-2 text-balance text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">Welcome Back</h1>
-          <p className="mb-8 max-w-xs text-slate-500 dark:text-slate-400">
+          <h1 className="type-page-title mb-2 text-balance text-slate-900 dark:text-white sm:text-4xl">Welcome Back</h1>
+          <p className="type-body mb-8 max-w-xs text-slate-500 dark:text-slate-400">
             Sign in to access your clubs, events, and community dashboard.
           </p>
 
@@ -51,7 +51,7 @@ const Login = () => {
           </Button>
 
           <div className="mt-8 w-full border-t border-slate-200 pt-6 dark:border-slate-700">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <p className="type-label text-slate-400 dark:text-slate-500">
               Institutional Access Only
             </p>
           </div>

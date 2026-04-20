@@ -249,21 +249,21 @@ const StudentDashboard = () => {
                 <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                   <div className="min-w-0">
                     <span className="kicker-label">Student Dashboard</span>
-                    <h1 className="wrap-break-word mt-4 font-display text-3xl font-bold leading-tight text-white sm:text-[38px]">Welcome back, {name}!</h1>
-                    <p className="mt-3 max-w-2xl text-base text-white/84">Track campus buzz, pick your next event, and keep your momentum visible.</p>
+                    <h1 className="wrap-break-word type-page-title mt-4 text-white sm:text-4xl">Welcome back, {name}!</h1>
+                    <p className="type-lead mt-3 text-white/84">Track campus buzz, pick your next event, and keep your momentum visible.</p>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-white sm:gap-3">
                     <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
-                      <p className="font-display text-xl font-bold leading-none">{forYouEvents.length}</p>
-                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-white/75">Matches</p>
+                      <p className="type-metric text-white">{forYouEvents.length}</p>
+                      <p className="type-label mt-1 text-white/75">Matches</p>
                     </div>
                     <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
-                      <p className="font-display text-xl font-bold leading-none">{upcomingWeekCount}</p>
-                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-white/75">This Week</p>
+                      <p className="type-metric text-white">{upcomingWeekCount}</p>
+                      <p className="type-label mt-1 text-white/75">This Week</p>
                     </div>
                     <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
-                      <p className="font-display text-xl font-bold leading-none">{registeredCount}</p>
-                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-white/75">Registered</p>
+                      <p className="type-metric text-white">{registeredCount}</p>
+                      <p className="type-label mt-1 text-white/75">Registered</p>
                     </div>
                   </div>
                 </div>
@@ -282,7 +282,7 @@ const StudentDashboard = () => {
                     onClick={() => setActiveFilter(option.value)}
                     variant={activeFilter === option.value ? 'primary' : 'secondary'}
                     size="sm"
-                    className="h-8 rounded-full border border-transparent px-3 text-xs font-semibold"
+                    className="type-label h-8 rounded-full border border-transparent px-3"
                     aria-pressed={activeFilter === option.value}
                     aria-label={`Filter events: ${option.label}`}
                   >
@@ -290,7 +290,7 @@ const StudentDashboard = () => {
                   </Button>
                 ))}
                 <div className="ml-auto flex items-center gap-2">
-                  <label htmlFor="event-sort" className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary">
+                  <label htmlFor="event-sort" className="type-label text-text-secondary dark:text-text-dark-secondary">
                     Sort
                   </label>
                   <div className="relative">
@@ -362,7 +362,7 @@ const StudentDashboard = () => {
                     <span className="material-symbols-outlined rounded-full border border-white/20 bg-black/24 p-3 text-2xl text-white">calendar_month</span>
                   </div>
                   <div className="text-left">
-                    <h3 className="mb-2 font-display text-2xl font-bold text-white sm:text-3xl">Event Calendar</h3>
+                    <h3 className="section-title mb-2 text-white sm:text-3xl">Event Calendar</h3>
                     <p className="line-clamp-2 max-w-2xl text-base text-white/82">Check scheduled activities, compare overlaps, and plan your semester rhythm.</p>
                   </div>
                 </div>
@@ -372,7 +372,7 @@ const StudentDashboard = () => {
             <section className="mt-8 enter-rise enter-delay-1">
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-4">
                 <div>
-                  <h2 className="section-title text-[22px]">For You</h2>
+                  <h2 className="section-title">For You</h2>
                   <p className="mt-1 text-sm text-text-secondary dark:text-text-dark-secondary">Interest-matched events ranked for you.</p>
                 </div>
                 <Button onClick={() => navigate('/student/calendar')} variant="ghost" size="sm" className="h-8 px-2 text-sm font-bold text-primary">View All</Button>
@@ -404,7 +404,7 @@ const StudentDashboard = () => {
             <section className="mb-8 mt-10 enter-rise enter-delay-2">
               <div className="flex items-center justify-between px-4 pb-4">
                 <div>
-                  <h2 className="section-title text-[22px]">Explore Beyond Your Clubs</h2>
+                  <h2 className="section-title">Explore Beyond Your Clubs</h2>
                   <p className="mt-1 text-sm text-text-secondary dark:text-text-dark-secondary">Recommended events from clubs you do not follow yet.</p>
                 </div>
               </div>
