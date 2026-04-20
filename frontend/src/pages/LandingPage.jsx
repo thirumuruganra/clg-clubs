@@ -6,14 +6,23 @@ import { Reveal } from '../components/ui/reveal';
 const LandingPage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navItems = [
-    { label: 'About', href: '#about' },
     { label: 'How it works', href: '#how-it-works' },
-    { label: 'Contact', href: '#contact' },
   ];
+
+  const handleSectionNav = (event, href) => {
+    if (!href.startsWith('#')) return;
+
+    event.preventDefault();
+    const target = document.querySelector(href);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <div className="relative flex min-h-dvh w-full flex-col overflow-x-hidden bg-surface-canvas font-body text-text-primary">
-      <div className="pointer-events-none absolute inset-0">
+      <div className="pointer-events-none absolute inset-0 z-0">
         <div className="atmosphere-grid"></div>
       </div>
 
@@ -33,6 +42,7 @@ const LandingPage = () => {
                 key={item.label}
                 className="interactive-press rounded-lg px-2 py-1 text-sm font-semibold leading-normal text-text-secondary transition-colors hover:text-primary"
                 href={item.href}
+                onClick={(event) => handleSectionNav(event, item.href)}
               >
                 {item.label}
               </a>
@@ -50,7 +60,7 @@ const LandingPage = () => {
         <div className="md:hidden flex items-center">
           <button
             aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             className="interactive-press rounded-xl p-2 text-text-secondary transition-colors hover:text-primary focus:outline-none"
           >
             {isMobileMenuOpen ? (
@@ -81,7 +91,7 @@ const LandingPage = () => {
               key={item.label}
               className="interactive-press rounded-xl px-4 py-2 text-2xl font-bold text-text-primary transition-colors hover:text-primary"
               href={item.href}
-              onClick={() => setIsMobileMenuOpen(false)}
+              onClick={(event) => handleSectionNav(event, item.href)}
             >
               {item.label}
             </a>
@@ -95,7 +105,7 @@ const LandingPage = () => {
         </nav>
       </div>
 
-      <main className="grow flex flex-col">
+      <main className="relative z-10 grow flex flex-col">
         <section className="px-4 pb-8 pt-10 md:px-8 lg:px-16 lg:pt-14">
           <div className="layout-content-container mx-auto flex max-w-240 flex-col gap-8">
             <Reveal className="aura-panel grid gap-8 rounded-3xl border border-border-subtle bg-surface-panel p-6 shadow-soft-lg md:grid-cols-12 md:p-10" distance={20}>
@@ -169,7 +179,7 @@ const LandingPage = () => {
           </div>
         </section>
 
-        <section id="about" className="px-4 pb-10 pt-2 md:px-8 lg:px-16 lg:pb-20 lg:pt-4">
+        <section id="about" className="px-4 pb-2 pt-2 md:px-8 lg:px-16 lg:pb-8 lg:pt-4">
           <Reveal className="layout-content-container mx-auto grid max-w-240 items-stretch gap-6 rounded-3xl border border-border-subtle bg-surface-panel p-6 shadow-soft-md lg:grid-cols-[1.1fr_1fr] lg:p-10" delay={80}>
             <div className="flex h-full flex-col justify-center gap-4 lg:pr-4">
               <span className="kicker-label w-fit">Built for campus communities</span>
@@ -178,7 +188,7 @@ const LandingPage = () => {
                 WAVC lets students discover what matters now and gives club admins a faster way to organize events, followers, and attendance.
               </p>
             </div>
-            <div id="how-it-works" className="grid grid-cols-1 content-start gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <div id="how-it-works" className="grid grid-cols-1 content-start gap-3 scroll-mt-28 sm:grid-cols-3 lg:grid-cols-1">
               {[
                 { title: 'Discover', body: 'Browse curated events from followed and new clubs.' },
                 { title: 'Register', body: 'RSVP quickly and keep your activity history organized.' },
@@ -194,27 +204,55 @@ const LandingPage = () => {
         </section>
       </main>
 
-      <footer id="contact" className="mt-auto flex flex-col gap-6 border-t border-border-subtle bg-surface-panel px-5 py-10 text-center dark:border-border-strong dark:bg-surface-canvas">
-        <div className="layout-content-container mx-auto flex flex-col max-w-240 w-full">
-          <div className="flex flex-col items-center justify-center gap-6 mb-8">
-            <div className="mb-2 flex items-center gap-2 text-text-primary dark:text-white">
-              <div className="w-10 h-10 flex items-center justify-center text-primary overflow-hidden">
-                  <img src={wavcIcon} alt="WAVC Logo" className="w-full h-full object-contain" />
-              </div>
-              <span className="font-display text-2xl font-bold">WAVC</span>
+      <footer id="contact" className="relative z-10 mt-5 px-5 py-6 text-center text-text-primary md:mt-6">
+        <div className="layout-content-container relative z-10 mx-auto flex w-full max-w-240 flex-col items-center gap-7">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 overflow-hidden rounded-full bg-primary/12 p-1.5 shadow-soft-sm">
+              <img src={wavcIcon} alt="WAVC Logo" className="h-full w-full object-contain" />
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
-              {['About Us', 'Privacy Policy', 'Terms of Service', 'Support'].map((item) => (
-                <a key={item} className="interactive-press rounded-lg px-1.5 py-1 text-sm font-medium text-text-secondary transition-colors hover:text-primary dark:text-text-dark-secondary" href="#">{item}</a>
-              ))}
+            <span className="font-display text-[2rem] font-bold leading-none text-text-primary dark:text-white">WAVC</span>
+          </div>
+
+          <div className="flex flex-col items-center gap-4">
+            <span className="kicker-label px-5 py-2 text-xs">
+              The Team that made this possible
+            </span>
+            <div className="flex flex-wrap items-center justify-center gap-x-0 gap-y-3 text-base font-semibold text-text-secondary dark:text-text-dark-secondary">
+              <a
+                className="interactive-press px-5 transition-colors hover:text-primary"
+                href="https://www.linkedin.com/in/thirumuruganra/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Thirumurugan RA
+              </a>
+              <span className="hidden h-5 w-px bg-border-subtle dark:bg-border-strong sm:block" aria-hidden="true"></span>
+              <a
+                className="interactive-press px-5 transition-colors hover:text-primary"
+                href="https://www.linkedin.com/in/vishalmuralidharan/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Vishal Muralidharan
+              </a>
             </div>
           </div>
-          <div className="flex flex-wrap justify-center gap-6 mb-6">
-            <a className="interactive-press flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-text-secondary transition-colors hover:text-primary dark:bg-surface-elevated dark:text-text-dark-secondary dark:hover:text-white" href="#">
-              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>public</span>
+
+          <div className="mb-1 flex flex-wrap justify-center gap-4">
+            <a
+              className="interactive-press flex h-13 w-13 items-center justify-center rounded-full border border-border-subtle bg-surface-muted text-text-secondary shadow-soft-sm transition-colors hover:border-primary/40 hover:text-primary dark:border-border-strong dark:bg-surface-elevated dark:text-text-dark-secondary dark:hover:text-white"
+              href="https://github.com/thirumuruganra/clg-clubs"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open clg-clubs GitHub repository"
+              title="GitHub"
+            >
+              <svg viewBox="0 0 24 24" className="h-6 w-6 fill-current" aria-hidden="true">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.38.6.1.82-.26.82-.58v-2.24c-3.34.73-4.04-1.42-4.04-1.42-.55-1.4-1.33-1.77-1.33-1.77-1.08-.74.08-.72.08-.72 1.2.08 1.83 1.23 1.83 1.23 1.06 1.82 2.79 1.3 3.47.99.1-.77.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.9 0-1.3.47-2.36 1.23-3.2-.12-.3-.53-1.52.12-3.17 0 0 1-.32 3.3 1.22a11.43 11.43 0 0 1 6 0c2.3-1.54 3.3-1.22 3.3-1.22.65 1.65.24 2.87.12 3.17.77.84 1.23 1.9 1.23 3.2 0 4.58-2.8 5.6-5.48 5.9.43.38.82 1.1.82 2.22v3.3c0 .32.22.69.83.58A12 12 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
+              </svg>
             </a>
             <a
-              className="interactive-press flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-text-secondary transition-colors hover:text-primary dark:bg-surface-elevated dark:text-text-dark-secondary dark:hover:text-white"
+              className="interactive-press flex h-13 w-13 items-center justify-center rounded-full border border-border-subtle bg-surface-muted text-text-secondary shadow-soft-sm transition-colors hover:border-primary/40 hover:text-primary dark:border-border-strong dark:bg-surface-elevated dark:text-text-dark-secondary dark:hover:text-white"
               href="mailto:wavc.contact@gmail.com"
               aria-label="Email wavc.contact@gmail.com"
               title="wavc.contact@gmail.com"
@@ -222,7 +260,8 @@ const LandingPage = () => {
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>mail</span>
             </a>
           </div>
-          <p className="text-sm font-normal leading-normal text-text-tertiary dark:text-text-dark-secondary/80">© 2026 WAVC. All rights reserved.</p>
+
+          <p className="w-full text-center text-sm font-medium text-text-tertiary dark:text-text-dark-secondary/80">© 2026 WAVC. All rights reserved.</p>
         </div>
       </footer>
     </div>
