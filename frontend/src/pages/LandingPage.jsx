@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import wavcIcon from '../assets/WAVC-edit.png';
 import heroImage from '../assets/Vamasundari-Park.jpg';
+import { Reveal } from '../components/ui/reveal';
 
 const LandingPage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -30,7 +31,7 @@ const LandingPage = () => {
             {navItems.map((item) => (
               <a
                 key={item.label}
-                className="text-sm font-semibold leading-normal text-text-secondary transition-colors hover:text-primary"
+                className="interactive-press rounded-lg px-2 py-1 text-sm font-semibold leading-normal text-text-secondary transition-colors hover:text-primary"
                 href={item.href}
               >
                 {item.label}
@@ -39,7 +40,7 @@ const LandingPage = () => {
           </nav>
           <button
             onClick={() => window.location.href = '/login'}
-            className="flex h-10 min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-primary px-4 text-sm font-bold leading-normal text-white shadow-soft-md transition-all hover:-translate-y-0.5 hover:shadow-soft-lg"
+            className="interactive-press flex h-10 min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-primary px-4 text-sm font-bold leading-normal text-white shadow-soft-md hover:shadow-soft-lg"
           >
             <span className="truncate">Login</span>
           </button>
@@ -50,7 +51,7 @@ const LandingPage = () => {
           <button
             aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="rounded-xl p-2 text-text-secondary transition-colors hover:text-primary focus:outline-none"
+            className="interactive-press rounded-xl p-2 text-text-secondary transition-colors hover:text-primary focus:outline-none"
           >
             {isMobileMenuOpen ? (
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-8 w-8">
@@ -66,39 +67,38 @@ const LandingPage = () => {
       </header>
 
       {/* Mobile Navigation Dropdown */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-x-0 bottom-0 z-40 bg-surface-panel/95 backdrop-blur-xl md:hidden"
-          style={{
-            top: 'calc(4rem + env(safe-area-inset-top))',
-            paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
-          }}
-        >
-          <nav className="flex h-full flex-col items-center justify-center gap-8 p-8">
-            {navItems.map((item) => (
-              <a
-                key={item.label}
-                className="text-2xl font-bold text-text-primary transition-colors hover:text-primary"
-                href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                {item.label}
-              </a>
-            ))}
-            <button
-              onClick={() => window.location.href = '/login'}
-              className="mt-4 h-14 w-full max-w-50 rounded-xl bg-primary text-lg font-bold text-white shadow-soft-lg"
+      <div
+        aria-hidden={!isMobileMenuOpen}
+        className={`fixed inset-x-0 bottom-0 z-40 bg-surface-panel/95 backdrop-blur-xl transition-[opacity,transform] duration-300 ease-out md:hidden ${isMobileMenuOpen ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none -translate-y-2 opacity-0'}`}
+        style={{
+          top: 'calc(4rem + env(safe-area-inset-top))',
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+        }}
+      >
+        <nav className="flex h-full flex-col items-center justify-center gap-8 p-8">
+          {navItems.map((item) => (
+            <a
+              key={item.label}
+              className="interactive-press rounded-xl px-4 py-2 text-2xl font-bold text-text-primary transition-colors hover:text-primary"
+              href={item.href}
+              onClick={() => setIsMobileMenuOpen(false)}
             >
-              Login
-            </button>
-          </nav>
-        </div>
-      )}
+              {item.label}
+            </a>
+          ))}
+          <button
+            onClick={() => window.location.href = '/login'}
+            className="interactive-press mt-4 h-14 w-full max-w-50 rounded-xl bg-primary text-lg font-bold text-white shadow-soft-lg"
+          >
+            Login
+          </button>
+        </nav>
+      </div>
 
       <main className="grow flex flex-col">
         <section className="px-4 pb-8 pt-10 md:px-8 lg:px-16 lg:pt-14">
           <div className="layout-content-container mx-auto flex max-w-240 flex-col gap-8">
-            <div className="aura-panel enter-rise grid gap-8 rounded-3xl border border-border-subtle bg-surface-panel p-6 shadow-soft-lg md:grid-cols-12 md:p-10">
+            <Reveal className="aura-panel grid gap-8 rounded-3xl border border-border-subtle bg-surface-panel p-6 shadow-soft-lg md:grid-cols-12 md:p-10" distance={20}>
               <img
                 src={heroImage}
                 alt="Tree-lined campus road"
@@ -116,7 +116,7 @@ const LandingPage = () => {
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <button
                     onClick={() => window.location.href = '/login'}
-                    className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-white px-6 text-base font-bold text-slate-900 transition-all hover:-translate-y-0.5 hover:bg-slate-100 sm:w-auto"
+                    className="interactive-press inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-white px-6 text-base font-bold text-slate-900 hover:bg-slate-100 sm:w-auto"
                   >
                     <img
                       alt="Google G Logo"
@@ -127,7 +127,7 @@ const LandingPage = () => {
                   </button>
                   <button
                     onClick={() => window.location.href = '/student/clubs'}
-                    className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-white/35 bg-white/10 px-6 text-base font-bold text-white transition-colors hover:bg-white/18 sm:w-auto"
+                    className="interactive-press inline-flex h-12 w-full items-center justify-center rounded-xl border border-white/35 bg-white/10 px-6 text-base font-bold text-white transition-colors hover:bg-white/18 sm:w-auto"
                   >
                     Explore Clubs
                   </button>
@@ -149,9 +149,9 @@ const LandingPage = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </Reveal>
 
-            <div className="enter-rise enter-delay-1 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Reveal className="grid grid-cols-1 gap-4 md:grid-cols-3" delay={120}>
               {[
                 { title: 'Centralized Events', body: 'Find upcoming activities from all clubs in one place.' },
                 { title: 'Personalized Feed', body: 'Get recommendations based on your interests and follows.' },
@@ -165,12 +165,12 @@ const LandingPage = () => {
                   <p className="type-body mt-2 text-text-secondary dark:text-text-dark-secondary">{item.body}</p>
                 </article>
               ))}
-            </div>
+            </Reveal>
           </div>
         </section>
 
         <section id="about" className="px-4 pb-10 pt-2 md:px-8 lg:px-16 lg:pb-20 lg:pt-4">
-          <div className="layout-content-container mx-auto grid max-w-240 items-stretch gap-6 rounded-3xl border border-border-subtle bg-surface-panel p-6 shadow-soft-md lg:grid-cols-[1.1fr_1fr] lg:p-10">
+          <Reveal className="layout-content-container mx-auto grid max-w-240 items-stretch gap-6 rounded-3xl border border-border-subtle bg-surface-panel p-6 shadow-soft-md lg:grid-cols-[1.1fr_1fr] lg:p-10" delay={80}>
             <div className="flex h-full flex-col justify-center gap-4 lg:pr-4">
               <span className="kicker-label w-fit">Built for campus communities</span>
               <h2 className="section-title text-text-primary dark:text-white">Every club moment in one shared flow.</h2>
@@ -184,13 +184,13 @@ const LandingPage = () => {
                 { title: 'Register', body: 'RSVP quickly and keep your activity history organized.' },
                 { title: 'Participate', body: 'Attend events and grow your campus involvement.' },
               ].map((step) => (
-                <div key={step.title} className="h-full rounded-xl border border-border-subtle bg-surface-muted p-4 dark:border-border-strong dark:bg-surface-canvas">
+                <div key={step.title} className="interactive-press h-full rounded-xl border border-border-subtle bg-surface-muted p-4 dark:border-border-strong dark:bg-surface-canvas">
                   <h3 className="text-base font-semibold text-text-primary dark:text-white">{step.title}</h3>
                   <p className="mt-1 text-sm leading-relaxed text-text-secondary dark:text-text-dark-secondary">{step.body}</p>
                 </div>
               ))}
             </div>
-          </div>
+          </Reveal>
         </section>
       </main>
 
@@ -205,16 +205,16 @@ const LandingPage = () => {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
               {['About Us', 'Privacy Policy', 'Terms of Service', 'Support'].map((item) => (
-                <a key={item} className="text-sm font-medium text-text-secondary transition-colors hover:text-primary dark:text-text-dark-secondary" href="#">{item}</a>
+                <a key={item} className="interactive-press rounded-lg px-1.5 py-1 text-sm font-medium text-text-secondary transition-colors hover:text-primary dark:text-text-dark-secondary" href="#">{item}</a>
               ))}
             </div>
           </div>
           <div className="flex flex-wrap justify-center gap-6 mb-6">
-            <a className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-text-secondary transition-colors hover:text-primary dark:bg-surface-elevated dark:text-text-dark-secondary dark:hover:text-white" href="#">
+            <a className="interactive-press flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-text-secondary transition-colors hover:text-primary dark:bg-surface-elevated dark:text-text-dark-secondary dark:hover:text-white" href="#">
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>public</span>
             </a>
             <a
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-text-secondary transition-colors hover:text-primary dark:bg-surface-elevated dark:text-text-dark-secondary dark:hover:text-white"
+              className="interactive-press flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-text-secondary transition-colors hover:text-primary dark:bg-surface-elevated dark:text-text-dark-secondary dark:hover:text-white"
               href="mailto:wavc.contact@gmail.com"
               aria-label="Email wavc.contact@gmail.com"
               title="wavc.contact@gmail.com"

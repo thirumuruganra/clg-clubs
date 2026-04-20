@@ -12,6 +12,7 @@ import StudentDashboardActivityTracker from '../components/student-dashboard/Stu
 import StudentDashboardDiscoverItem from '../components/student-dashboard/StudentDashboardDiscoverItem';
 import StudentDashboardEventCard from '../components/student-dashboard/StudentDashboardEventCard';
 import StudentDashboardEventCardSkeleton from '../components/student-dashboard/StudentDashboardEventCardSkeleton';
+import { Reveal } from '../components/ui/reveal';
 import { warmPosterCacheForEvents } from '../lib/utils';
 
 const API = '';
@@ -245,7 +246,7 @@ const StudentDashboard = () => {
           <div className="layout-content-container flex w-full max-w-240 min-w-0 flex-1 flex-col">
 
             <div className="min-w-0 px-4 pb-3 pt-6">
-              <div className="dashboard-hero enter-rise p-5 sm:p-7">
+              <Reveal className="dashboard-hero p-5 sm:p-7" distance={18}>
                 <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                   <div className="min-w-0">
                     <span className="kicker-label">Student Dashboard</span>
@@ -271,7 +272,7 @@ const StudentDashboard = () => {
                   <span className="material-symbols-outlined text-[20px]">calendar_today</span>
                   <span>{currentDate}</span>
                 </div>
-              </div>
+              </Reveal>
             </div>
 
             <div className="px-4 pb-2">
@@ -302,7 +303,7 @@ const StudentDashboard = () => {
                         aria-expanded={sortOpen}
                         aria-label="Sort events"
                         onClick={() => setSortOpen((previous) => !previous)}
-                        className="inline-flex h-11 min-w-42 items-center justify-between rounded-full border border-primary/45 bg-surface-panel px-4 text-sm font-bold text-text-primary shadow-soft-sm transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:bg-surface-elevated dark:text-white"
+                        className="interactive-press inline-flex h-11 min-w-42 items-center justify-between rounded-full border border-primary/45 bg-surface-panel px-4 text-sm font-bold text-text-primary shadow-soft-sm transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:bg-surface-elevated dark:text-white"
                       >
                         <span>{selectedSortLabel}</span>
                         <span className={`material-symbols-outlined text-[18px] text-text-secondary transition-transform dark:text-text-dark-secondary ${sortOpen ? 'rotate-180' : ''}`}>
@@ -347,7 +348,7 @@ const StudentDashboard = () => {
             )}
 
             <div className="grid grid-cols-1 gap-4 p-4">
-              <button type="button" onClick={() => navigate('/student/calendar')} className="dashboard-hero group relative h-64 transition-all hover:shadow-soft-xl sm:h-72 md:h-80">
+              <button type="button" onClick={() => navigate('/student/calendar')} className="interactive-press dashboard-hero group relative h-64 transition-all hover:shadow-soft-xl sm:h-72 md:h-80">
                 <img
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3zrC2zWTw2D4ivcIDWAb6vufiRs4bu3TgruhnB8zNBUeKci7kXQow7VafPKRga4Lua80PMNk1-QDne8Jz2xL8sVt3D4vk8aly08_J7ECW6ibdVKe9cK___pbaTzgl6Ao0GGmlrhdkYYcHHKC28MFxi-5Mx_ilnkcmxWj5IIVBLlLxQYWXwPOekKPJDW0-W2SFeW-zf9V-A-3yzcHNOiIBjXVzDYVZKSGxx5ZgP8Wqr1aIRU71sDUnwUvmUITWOzvvnhPYUWOcoek"
                   alt="Students attending campus event"
@@ -369,7 +370,7 @@ const StudentDashboard = () => {
               </button>
             </div>
 
-            <section className="mt-8 enter-rise enter-delay-1">
+            <Reveal as="section" className="mt-8" delay={120}>
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-4">
                 <div>
                   <h2 className="section-title">For You</h2>
@@ -399,9 +400,9 @@ const StudentDashboard = () => {
                   />
                 ))}
               </div>
-            </section>
+            </Reveal>
 
-            <section className="mb-8 mt-10 enter-rise enter-delay-2">
+            <Reveal as="section" className="mb-8 mt-10" delay={180}>
               <div className="flex items-center justify-between px-4 pb-4">
                 <div>
                   <h2 className="section-title">Explore Beyond Your Clubs</h2>
@@ -429,7 +430,7 @@ const StudentDashboard = () => {
                   />
                 ))}
               </div>
-            </section>
+            </Reveal>
             <StudentDashboardActivityTracker
               loadingActivities={loadingActivities}
               activities={activities}

@@ -97,9 +97,14 @@
   --motion-base: 200ms;
   --motion-slow: 250ms;
   --motion-page: 350ms;
+  --motion-route-enter: 420ms;
+  --motion-reveal: 520ms;
   --ease-standard: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
@@ -211,7 +216,8 @@
   }
 
   .bento-card-interactive {
-    transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-standard);
+    transition: transform var(--motion-base) var(--ease-out-quart), box-shadow var(--motion-base) var(--ease-out-quart), border-color var(--motion-base) var(--ease-standard);
+    will-change: transform;
   }
 
   .bento-card-interactive:hover,
@@ -219,6 +225,11 @@
     transform: translateY(-2px);
     border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border-subtle));
     box-shadow: var(--shadow-soft-lg);
+  }
+
+  .bento-card-interactive:active {
+    transform: translateY(0) scale(0.99);
+    transition-duration: 120ms;
   }
 
   .surface-muted {
@@ -438,6 +449,66 @@
   .enter-delay-3 {
     animation-delay: 250ms;
   }
+
+  .interactive-press {
+    transform: translateZ(0);
+    transition:
+      transform var(--motion-base) var(--ease-out-quart),
+      box-shadow var(--motion-base) var(--ease-out-quart),
+      background-color var(--motion-base) var(--ease-standard),
+      border-color var(--motion-base) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      opacity var(--motion-fast) var(--ease-standard);
+    will-change: transform;
+  }
+
+  .interactive-press:hover {
+    transform: translateY(-2px);
+  }
+
+  .interactive-press:active {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 120ms;
+  }
+
+  .interactive-press:disabled,
+  .interactive-press[aria-disabled='true'] {
+    transform: none;
+    will-change: auto;
+  }
+
+  .interactive-field {
+    transition:
+      transform var(--motion-base) var(--ease-out-quart),
+      border-color var(--motion-base) var(--ease-standard),
+      box-shadow var(--motion-base) var(--ease-out-quart),
+      background-color var(--motion-base) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  .interactive-field:focus-visible {
+    transform: translateY(-1px);
+  }
+
+  .route-transition {
+    animation: route-enter var(--motion-route-enter) var(--ease-out-quint) both;
+    will-change: opacity, transform;
+  }
+
+  .reveal-block {
+    opacity: 0;
+    transform: translateY(var(--reveal-distance, 16px)) scale(0.988);
+    transition:
+      opacity var(--motion-reveal) var(--ease-out-expo),
+      transform var(--motion-reveal) var(--ease-out-expo);
+    transition-delay: var(--reveal-delay, 0ms);
+    will-change: opacity, transform;
+  }
+
+  .reveal-block.is-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes rise-in {
@@ -449,6 +520,18 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -497,6 +580,11 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .reveal-block {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
@@ -709,17 +797,6 @@ body,
 @media (max-height: 500px) {
   .modal-panel {
     max-height: 82dvh;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
   }
 }
 

@@ -39,7 +39,7 @@ export default function SideNavShell({
               key={item.key}
               onClick={() => onNavSelect(item)}
               className={cn(
-                'touch-target flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+                'interactive-press touch-target flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
                 item.active ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-text-secondary hover:bg-surface-muted',
               )}
             >

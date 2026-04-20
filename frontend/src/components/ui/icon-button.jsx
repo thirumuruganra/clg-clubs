@@ -23,7 +23,7 @@ export const IconButton = React.forwardRef(function IconButton(
       type={type}
       aria-label={ariaLabel}
       className={cn(
-        'touch-target inline-flex items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+        'interactive-press touch-target inline-flex items-center justify-center rounded-full transition-[background-color,color,border-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
         variants[variant],
         sizes[size],
         className,

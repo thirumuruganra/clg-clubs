@@ -120,6 +120,99 @@ function RouteMetadata() {
   return null;
 }
 
+function AppRoutes() {
+  const location = useLocation();
+
+  return (
+    <div key={location.pathname} className="route-transition">
+      <Routes location={location}>
+        <Route path="/" element={<LandingPage />} />
+        <Route
+          path="/login"
+          element={(
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          )}
+        />
+        <Route
+          path="/student/dashboard"
+          element={(
+            <ProtectedRoute allowRoles={['STUDENT']}>
+              <StudentDashboard />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/student/profile"
+          element={(
+            <ProtectedRoute allowRoles={['STUDENT']}>
+              <StudentProfile />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/student/calendar"
+          element={(
+            <ProtectedRoute allowRoles={['STUDENT']}>
+              <StudentCalendar />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/student/clubs"
+          element={(
+            <ProtectedRoute allowRoles={['STUDENT']}>
+              <StudentClubs />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/student/attendance-checkin"
+          element={(
+            <ProtectedRoute allowRoles={['STUDENT']}>
+              <StudentAttendanceCheckin />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/club/dashboard"
+          element={(
+            <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
+              <ClubsDashboard />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/club/setup"
+          element={(
+            <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
+              <ClubsSetup />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/club/profile"
+          element={(
+            <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
+              <ClubsProfile />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/club/calendar"
+          element={(
+            <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
+              <ClubsCalendar />
+            </ProtectedRoute>
+          )}
+        />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </div>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -127,90 +220,7 @@ function App() {
         <RouteMetadata />
         <AppErrorBoundary>
           <Suspense fallback={<LoadingRouteFallback />}>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route
-                path="/login"
-                element={(
-                  <PublicRoute>
-                    <Login />
-                  </PublicRoute>
-                )}
-              />
-              <Route
-                path="/student/dashboard"
-                element={(
-                  <ProtectedRoute allowRoles={['STUDENT']}>
-                    <StudentDashboard />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/student/profile"
-                element={(
-                  <ProtectedRoute allowRoles={['STUDENT']}>
-                    <StudentProfile />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/student/calendar"
-                element={(
-                  <ProtectedRoute allowRoles={['STUDENT']}>
-                    <StudentCalendar />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/student/clubs"
-                element={(
-                  <ProtectedRoute allowRoles={['STUDENT']}>
-                    <StudentClubs />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/student/attendance-checkin"
-                element={(
-                  <ProtectedRoute allowRoles={['STUDENT']}>
-                    <StudentAttendanceCheckin />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/club/dashboard"
-                element={(
-                  <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
-                    <ClubsDashboard />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/club/setup"
-                element={(
-                  <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
-                    <ClubsSetup />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/club/profile"
-                element={(
-                  <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
-                    <ClubsProfile />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route
-                path="/club/calendar"
-                element={(
-                  <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
-                    <ClubsCalendar />
-                  </ProtectedRoute>
-                )}
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppRoutes />
           </Suspense>
         </AppErrorBoundary>
       </Router>

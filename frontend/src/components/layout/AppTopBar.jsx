@@ -15,18 +15,13 @@ export default function AppTopBar({
   const hasSearchValue = Boolean(String(searchQuery || '').trim());
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const mobileSearchInputRef = useRef(null);
+  const isMobileSearchVisible = showSearch && mobileSearchOpen;
 
   useEffect(() => {
-    if (mobileSearchOpen) {
+    if (isMobileSearchVisible) {
       mobileSearchInputRef.current?.focus();
     }
-  }, [mobileSearchOpen]);
-
-  useEffect(() => {
-    if (!showSearch) {
-      setMobileSearchOpen(false);
-    }
-  }, [showSearch]);
+  }, [isMobileSearchVisible]);
 
   const clearSearch = () => {
     onSearchChange?.('');
@@ -80,7 +75,7 @@ export default function AppTopBar({
                     <button
                       type="button"
                       onClick={clearSearch}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-panel hover:text-text-primary"
+                      className="interactive-press inline-flex h-8 w-8 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-panel hover:text-text-primary"
                       aria-label="Clear search"
                     >
                       <span className="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
@@ -96,7 +91,7 @@ export default function AppTopBar({
                 className="md:hidden"
                 onClick={() => setMobileSearchOpen(true)}
               >
-                <span className="material-symbols-outlined text-[22px]" aria-hidden="true">search</span>
+                <span className="material-symbols-outlined text-subheading" aria-hidden="true">search</span>
               </IconButton>
             </>
           ) : (
@@ -107,7 +102,7 @@ export default function AppTopBar({
         </div>
       </header>
 
-      {showSearch && mobileSearchOpen ? (
+      {isMobileSearchVisible ? (
         <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="Search panel">
           <button
             type="button"
@@ -137,7 +132,7 @@ export default function AppTopBar({
                 <button
                   type="button"
                   onClick={clearSearch}
-                  className="mr-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-panel hover:text-text-primary"
+                  className="interactive-press mr-1 inline-flex h-10 w-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-panel hover:text-text-primary"
                   aria-label="Clear search"
                 >
                   <span className="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
