@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button';
 import { FieldMessage } from '../components/ui/field-message';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { SearchBar } from '../components/ui/search-bar';
 import { Select } from '../components/ui/select';
 
 const API = '';
@@ -52,6 +53,10 @@ const DEGREE_OPTIONS = [
   'M.Tech',
 ];
 
+const REGISTER_NUMBER_PATTERN = /^3122\d{9}$/;
+const PASSOUT_YEAR_PATTERN = /^\d{4}$/;
+const PASSOUT_YEAR_MAX_AHEAD = 6;
+
 const StudentProfile = () => {
   const { user, loading, logout, refetchUser } = useAuth();
   const navigate = useNavigate();
@@ -64,6 +69,9 @@ const StudentProfile = () => {
   const [clubSearchOpen, setClubSearchOpen] = useState(false);
   const [interestInput, setInterestInput] = useState('');
   const [saveError, setSaveError] = useState('');
+  const currentYear = new Date().getFullYear();
+  const minPassoutYear = currentYear;
+  const maxPassoutYear = currentYear + PASSOUT_YEAR_MAX_AHEAD;
 
   const isIncomplete = user && (!user.batch || !user.department || !user.degree || !user.register_number || (user.interests || []).length < 3);
 
@@ -92,6 +100,19 @@ const StudentProfile = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === 'register_number') {
+      const digitsOnly = String(value || '').replace(/\D/g, '').slice(0, 13);
+      setFormData((prev) => ({ ...prev, register_number: digitsOnly }));
+      return;
+    }
+
+    if (name === 'batch') {
+      const digitsOnly = String(value || '').replace(/\D/g, '').slice(0, 4);
+      setFormData((prev) => ({ ...prev, batch: digitsOnly }));
+      return;
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -139,6 +160,25 @@ const StudentProfile = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     setSaveError('');
+
+    const registerNumber = String(formData.register_number || '').trim();
+    if (!REGISTER_NUMBER_PATTERN.test(registerNumber)) {
+      setSaveError('Register number must be exactly 13 digits and start with 3122.');
+      return;
+    }
+
+    const passoutYear = String(formData.batch || '').trim();
+    if (!PASSOUT_YEAR_PATTERN.test(passoutYear)) {
+      setSaveError('Passout year must be a 4-digit year (e.g. 2027).');
+      return;
+    }
+
+    const passoutYearValue = Number(passoutYear);
+    if (passoutYearValue < minPassoutYear || passoutYearValue > maxPassoutYear) {
+      setSaveError(`Passout year must be between ${minPassoutYear} and ${maxPassoutYear}.`);
+      return;
+    }
+
     if (formData.interests.length < 3) {
       setSaveError('Please select at least 3 interests.');
       return;
@@ -149,13 +189,27 @@ const StudentProfile = () => {
       const res = await fetch(`${API}/api/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          register_number: registerNumber,
+          batch: passoutYear,
+        })
       });
       if (res.ok) {
         await refetchUser();
         navigate('/student/dashboard');
       } else {
-        setSaveError('Failed to save profile.');
+        const errorPayload = await res.json().catch(() => null);
+        const errorDetail = errorPayload?.detail;
+
+        if (typeof errorDetail === 'string' && errorDetail.trim()) {
+          setSaveError(errorDetail);
+        } else if (Array.isArray(errorDetail) && errorDetail.length > 0) {
+          const firstMessage = errorDetail[0]?.msg;
+          setSaveError(typeof firstMessage === 'string' ? firstMessage : 'Failed to save profile.');
+        } else {
+          setSaveError('Failed to save profile.');
+        }
       }
     } catch {
       setSaveError('An error occurred while saving your profile.');
@@ -252,11 +306,37 @@ const StudentProfile = () => {
               </div>
               <div className="space-y-1 md:col-span-2">
                 <Label htmlFor="profile-register-number" required>Register Number</Label>
-                <Input id="profile-register-number" type="text" name="register_number" value={formData.register_number} onChange={handleChange} required aria-required="true" placeholder="e.g. 3122XXXXXXXX" />
+                <Input
+                  id="profile-register-number"
+                  type="text"
+                  name="register_number"
+                  value={formData.register_number}
+                  onChange={handleChange}
+                  required
+                  aria-required="true"
+                  inputMode="numeric"
+                  pattern="3122\d{9}"
+                  maxLength={13}
+                  placeholder="e.g. 3122012345678"
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="profile-batch" required>Passout Year</Label>
-                <Input id="profile-batch" type="text" name="batch" value={formData.batch} onChange={handleChange} required aria-required="true" placeholder="e.g. 2024" />
+                <Input
+                  id="profile-batch"
+                  type="text"
+                  name="batch"
+                  value={formData.batch}
+                  onChange={handleChange}
+                  required
+                  aria-required="true"
+                  inputMode="numeric"
+                  pattern="\d{4}"
+                  maxLength={4}
+                  min={String(minPassoutYear)}
+                  max={String(maxPassoutYear)}
+                  placeholder="e.g. 2027"
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="profile-department" required>Course</Label>
@@ -312,21 +392,24 @@ const StudentProfile = () => {
 
               {/* Typeahead for adding clubs */}
               <div className="relative">
-                <Input
+                <SearchBar
                   id="profile-club-search"
                   type="text"
-                  aria-label="Search clubs to join"
-                  aria-autocomplete="list"
-                  aria-expanded={clubSearchOpen}
+                  ariaLabel="Search clubs to join"
+                  ariaAutocomplete="list"
+                  ariaExpanded={clubSearchOpen}
                   value={clubSearch}
-                  onChange={(e) => {
-                    setClubSearch(e.target.value);
+                  onChange={(value) => {
+                    setClubSearch(value);
                     setClubSearchOpen(true);
                   }}
                   onFocus={() => setClubSearchOpen(true)}
                   onBlur={() => {
                     setTimeout(() => setClubSearchOpen(false), 120);
                   }}
+                  className="h-10 rounded-xl"
+                  inputClassName="px-2"
+                  iconClassName="bg-transparent p-0 text-[18px]"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && matchedClubs.length > 0) {
                       e.preventDefault();
