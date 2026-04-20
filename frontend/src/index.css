@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap");
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/container-queries";
@@ -5,32 +6,32 @@
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #137fec;
-  --color-accent: #ff6b35;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
+  --color-primary: oklch(0.67 0.165 255);
+  --color-accent: oklch(0.74 0.15 41);
+  --color-success: oklch(0.73 0.14 156);
+  --color-warning: oklch(0.79 0.16 80);
+  --color-danger: oklch(0.65 0.2 24);
 
-  --color-surface-canvas: #f6f7f8;
-  --color-surface-panel: #ffffff;
-  --color-surface-elevated: #ffffff;
-  --color-surface-muted: #f0f2f4;
-  --color-overlay-scrim: rgba(17, 20, 24, 0.55);
-  --color-border-subtle: #e5e7eb;
-  --color-border-strong: #233648;
+  --color-surface-canvas: oklch(0.976 0.008 247);
+  --color-surface-panel: oklch(0.995 0.004 247);
+  --color-surface-elevated: oklch(0.986 0.012 247);
+  --color-surface-muted: oklch(0.944 0.016 247);
+  --color-overlay-scrim: color-mix(in oklab, oklch(0.13 0.028 252) 62%, transparent);
+  --color-border-subtle: oklch(0.88 0.022 247);
+  --color-border-strong: oklch(0.74 0.038 247);
 
-  --color-text-primary: #111418;
-  --color-text-secondary: #637588;
-  --color-text-tertiary: #7e94aa;
-  --color-text-inverse: #ffffff;
-  --color-text-dark-secondary: #92adc9;
+  --color-text-primary: oklch(0.238 0.03 252);
+  --color-text-secondary: oklch(0.495 0.03 247);
+  --color-text-tertiary: oklch(0.61 0.03 247);
+  --color-text-inverse: oklch(0.99 0.003 247);
+  --color-text-dark-secondary: oklch(0.79 0.045 246);
 
-  --color-background-light: #f6f7f8;
-  --color-background-dark: #101922;
+  --color-background-light: oklch(0.976 0.008 247);
+  --color-background-dark: oklch(0.168 0.026 252);
 
-  --font-heading: "Poppins", "Plus Jakarta Sans", sans-serif;
-  --font-body: "Inter", "Plus Jakarta Sans", sans-serif;
-  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-heading: "Sora", "Manrope", sans-serif;
+  --font-body: "Manrope", sans-serif;
+  --font-display: "Sora", "Manrope", sans-serif;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -63,10 +64,10 @@
   --space-12: 3rem;
   --space-16: 4rem;
 
-  --shadow-soft-sm: 0 1px 2px rgba(17, 20, 24, 0.08);
-  --shadow-soft-md: 0 8px 20px rgba(17, 20, 24, 0.08);
-  --shadow-soft-lg: 0 18px 40px rgba(17, 20, 24, 0.12);
-  --shadow-soft-xl: 0 28px 58px rgba(17, 20, 24, 0.14);
+  --shadow-soft-sm: 0 3px 12px color-mix(in oklab, oklch(0.1 0.03 252) 8%, transparent);
+  --shadow-soft-md: 0 14px 34px color-mix(in oklab, oklch(0.1 0.03 252) 12%, transparent);
+  --shadow-soft-lg: 0 24px 52px color-mix(in oklab, oklch(0.1 0.03 252) 18%, transparent);
+  --shadow-soft-xl: 0 34px 74px color-mix(in oklab, oklch(0.1 0.03 252) 24%, transparent);
 
   --z-base: 0;
   --z-sticky: 20;
@@ -90,22 +91,22 @@
 
 .dark {
   color-scheme: dark;
-  --color-surface-canvas: #101922;
-  --color-surface-panel: #111a22;
-  --color-surface-elevated: #1a2632;
-  --color-surface-muted: #233648;
-  --color-overlay-scrim: rgba(2, 8, 18, 0.66);
-  --color-border-subtle: #233648;
-  --color-border-strong: #34485c;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #92adc9;
-  --color-text-tertiary: #7391ad;
-  --color-text-inverse: #111418;
+  --color-surface-canvas: oklch(0.168 0.026 252);
+  --color-surface-panel: oklch(0.206 0.028 252);
+  --color-surface-elevated: oklch(0.254 0.03 252);
+  --color-surface-muted: oklch(0.304 0.03 252);
+  --color-overlay-scrim: color-mix(in oklab, oklch(0.08 0.018 254) 72%, transparent);
+  --color-border-subtle: oklch(0.37 0.032 252);
+  --color-border-strong: oklch(0.5 0.043 252);
+  --color-text-primary: oklch(0.958 0.01 252);
+  --color-text-secondary: oklch(0.79 0.045 246);
+  --color-text-tertiary: oklch(0.68 0.04 246);
+  --color-text-inverse: oklch(0.168 0.026 252);
 
-  --shadow-soft-sm: 0 1px 2px rgba(2, 8, 18, 0.24);
-  --shadow-soft-md: 0 10px 24px rgba(2, 8, 18, 0.32);
-  --shadow-soft-lg: 0 18px 38px rgba(2, 8, 18, 0.38);
-  --shadow-soft-xl: 0 24px 50px rgba(2, 8, 18, 0.45);
+  --shadow-soft-sm: 0 4px 14px color-mix(in oklab, oklch(0.04 0.012 255) 42%, transparent);
+  --shadow-soft-md: 0 16px 36px color-mix(in oklab, oklch(0.04 0.012 255) 52%, transparent);
+  --shadow-soft-lg: 0 28px 56px color-mix(in oklab, oklch(0.04 0.012 255) 62%, transparent);
+  --shadow-soft-xl: 0 40px 80px color-mix(in oklab, oklch(0.04 0.012 255) 72%, transparent);
 }
 
 @layer base {
@@ -219,6 +220,147 @@
     color: var(--color-text-primary);
     text-wrap: balance;
   }
+
+  .headline-display {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 4.4rem);
+    font-weight: 800;
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+
+  .kicker-label {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid color-mix(in oklab, var(--color-primary) 30%, var(--color-border-subtle));
+    border-radius: var(--radius-full);
+    background: color-mix(in oklab, var(--color-primary) 14%, transparent);
+    color: color-mix(in oklab, var(--color-text-primary) 82%, var(--color-primary));
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    padding: 0.4rem 0.8rem;
+    text-transform: uppercase;
+  }
+
+  .atmosphere-grid {
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in oklab, var(--color-border-subtle) 38%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--color-border-subtle) 38%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 38px 38px;
+    background-position: center;
+    mask-image: radial-gradient(circle at center, black 28%, transparent 78%);
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+  }
+
+  .aura-panel {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .aura-panel::before,
+  .aura-panel::after {
+    border-radius: var(--radius-full);
+    content: "";
+    filter: blur(48px);
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .aura-panel::before {
+    background: color-mix(in oklab, var(--color-primary) 32%, transparent);
+    height: 14rem;
+    left: -4.2rem;
+    top: -5.2rem;
+    width: 14rem;
+  }
+
+  .aura-panel::after {
+    background: color-mix(in oklab, var(--color-accent) 28%, transparent);
+    height: 13rem;
+    right: -4.2rem;
+    top: 58%;
+    width: 13rem;
+  }
+
+  .feature-card {
+    background: color-mix(in oklab, var(--color-surface-panel) 86%, var(--color-primary));
+    border: 1px solid color-mix(in oklab, var(--color-border-subtle) 88%, var(--color-primary));
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-soft-sm);
+    transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-standard);
+  }
+
+  .feature-card:hover,
+  .feature-card:focus-within {
+    border-color: color-mix(in oklab, var(--color-primary) 45%, var(--color-border-subtle));
+    box-shadow: var(--shadow-soft-lg);
+    transform: translateY(-4px);
+  }
+
+  .dashboard-hero {
+    background:
+      radial-gradient(circle at 8% 18%, color-mix(in oklab, var(--color-primary) 35%, transparent), transparent 40%),
+      radial-gradient(circle at 89% 10%, color-mix(in oklab, var(--color-accent) 28%, transparent), transparent 36%),
+      linear-gradient(135deg, color-mix(in oklab, var(--color-surface-panel) 92%, black), color-mix(in oklab, var(--color-surface-elevated) 88%, black));
+    border: 1px solid color-mix(in oklab, var(--color-primary) 25%, var(--color-border-subtle));
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-soft-lg);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .dashboard-hero::after {
+    background: linear-gradient(
+      110deg,
+      transparent,
+      color-mix(in oklab, var(--color-text-inverse) 8%, transparent),
+      transparent
+    );
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .enter-rise {
+    animation: rise-in var(--motion-page) var(--ease-out) both;
+  }
+
+  .enter-delay-1 {
+    animation-delay: 90ms;
+  }
+
+  .enter-delay-2 {
+    animation-delay: 170ms;
+  }
+
+  .enter-delay-3 {
+    animation-delay: 250ms;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.986);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Hide scrollbars globally while keeping scroll interaction intact. */
@@ -271,6 +413,20 @@
 
 .modern-datetime-input::placeholder {
   color: var(--color-text-secondary);
+}
+
+.sort-select {
+  background-image: linear-gradient(
+    125deg,
+    color-mix(in oklab, var(--color-primary) 12%, transparent),
+    transparent 54%
+  );
+}
+
+.sort-select option {
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+  font-weight: 600;
 }
 
 .modern-datepicker-popper {

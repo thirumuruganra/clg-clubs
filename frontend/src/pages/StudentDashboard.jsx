@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import StudentSidebar from '../components/StudentSidebar';
@@ -95,6 +95,8 @@ const StudentDashboard = () => {
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [actionError, setActionError] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortMenuRef = useRef(null);
 
   const fetchEvents = useCallback(async () => {
     if (!user?.id) return;
@@ -147,6 +149,30 @@ const StudentDashboard = () => {
     }
   }, [user, loading, navigate, fetchEvents, fetchActivities]);
 
+  useEffect(() => {
+    if (!sortOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(event.target)) {
+        setSortOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setSortOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [sortOpen]);
+
   const handleRSVP = async (eventId, isRegistered) => {
     setActionError('');
     setPendingRsvpId(eventId);
@@ -195,13 +221,16 @@ const StudentDashboard = () => {
 
   const name = user?.name || 'Student';
   const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const upcomingWeekCount = forYouEvents.filter((event) => eventMatchesFilter(event, 'week')).length;
+  const registeredCount = forYouEvents.filter((event) => event.is_rsvped).length;
+  const selectedSortLabel = SORT_OPTIONS.find((option) => option.value === sortMode)?.label || 'Recommended';
 
   const EventCard = ({ event }) => {
     const { month, day } = formatEventDate(event.start_time);
     const isPending = pendingRsvpId === event.id;
 
     return (
-      <Card interactive className="flex flex-col overflow-hidden p-0">
+      <Card interactive className="flex flex-col overflow-hidden border-border-subtle/90 bg-surface-panel/95 p-0">
         <div className="relative h-36 overflow-hidden bg-background-dark sm:h-40">
           {event.image_url ? (
             <img
@@ -214,9 +243,9 @@ const StudentDashboard = () => {
           ) : (
             <EventPosterFallback title={event.title} />
           )}
-          <div className="absolute right-3 top-3 rounded-lg bg-white/90 px-2 py-1 text-center shadow-sm dark:bg-surface-panel/90">
+          <div className="absolute right-3 top-3 rounded-lg border border-white/15 bg-black/34 px-2 py-1 text-center backdrop-blur-sm">
             <p className="text-xs font-bold uppercase text-primary">{month}</p>
-            <p className="text-lg font-bold text-text-primary dark:text-white">{day}</p>
+            <p className="text-lg font-bold text-white">{day}</p>
           </div>
           <div className="absolute bottom-3 left-3">
             <StatusBadge tone="info">{event.club_name || 'Club'}</StatusBadge>
@@ -231,7 +260,7 @@ const StudentDashboard = () => {
           {event.keywords && (
             <div className="mb-2 flex flex-wrap gap-1">
               {event.keywords.split(',').slice(0, 4).map((keyword, index) => (
-                <span key={`${event.id}-${index}`} className="rounded-full border border-border-subtle bg-surface-muted px-2 py-0.5 text-[10px] text-text-secondary">
+                <span key={`${event.id}-${index}`} className="rounded-full border border-border-subtle/80 bg-surface-muted px-2 py-0.5 text-[10px] font-semibold text-text-secondary">
                   {keyword.trim()}
                 </span>
               ))}
@@ -254,9 +283,11 @@ const StudentDashboard = () => {
           )}
 
           <CardFooter className="mt-auto items-center justify-between px-0 pb-0">
-            <div className="flex items-center gap-1 text-text-secondary dark:text-text-dark-secondary">
-              <span className="material-symbols-outlined text-[16px]">group</span>
-              <span className="text-xs font-medium">{event.rsvp_count || 0} registered</span>
+            <div className="inline-flex items-center gap-1.5 text-text-secondary dark:text-text-dark-secondary">
+              <span className="inline-flex size-4 items-center justify-center">
+                <span className="material-symbols-outlined text-[14px] leading-none">group</span>
+              </span>
+              <span className="text-xs font-semibold leading-none tracking-[0.01em]">{event.rsvp_count || 0} registered</span>
             </div>
             <Button
               onClick={() => handleRSVP(event.id, event.is_rsvped)}
@@ -275,7 +306,7 @@ const StudentDashboard = () => {
   const DiscoverItem = ({ event }) => {
     const { month, day } = formatEventDate(event.start_time);
     return (
-      <Card interactive className="flex min-h-40 flex-col overflow-hidden p-0 sm:flex-row">
+      <Card interactive className="flex min-h-40 flex-col overflow-hidden border-border-subtle/90 bg-surface-panel/95 p-0 sm:flex-row">
         <div className="h-32 w-full overflow-hidden bg-background-dark sm:h-auto sm:w-1/3">
           {event.image_url ? (
             <img
@@ -293,7 +324,7 @@ const StudentDashboard = () => {
           <div>
             <div className="flex items-start justify-between gap-2">
               <span className="mb-1 text-xs font-bold uppercase tracking-wider text-primary">{event.club_name || 'Club'}</span>
-              <span className="rounded bg-surface-muted px-2 py-0.5 text-xs font-medium text-text-secondary dark:bg-border-strong dark:text-text-dark-secondary">{month} {day}</span>
+              <span className="rounded bg-surface-muted px-2 py-0.5 text-xs font-semibold text-text-secondary dark:bg-border-strong dark:text-text-dark-secondary">{month} {day}</span>
             </div>
             <h3 className="text-lg font-bold leading-tight text-text-primary dark:text-white">{event.title}</h3>
             {event.location && (
@@ -348,17 +379,34 @@ const StudentDashboard = () => {
 
   return (
     <AppShell sidebar={sidebarNode} topbar={topbarNode} mobileMenuOpen={mobileMenuOpen} onCloseMenu={() => setMobileMenuOpen(false)}>
-      <div className="layout-container flex h-full min-w-0 flex-1 grow flex-col font-display text-slate-900 dark:text-white">
-        <div className="flex flex-1 justify-center overflow-x-hidden px-4 py-6 md:px-10 md:py-8 lg:px-40">
+      <div className="layout-container flex h-full min-w-0 flex-1 grow flex-col font-body text-text-primary dark:text-white">
+        <div className="flex flex-1 justify-center overflow-x-hidden px-4 py-6 md:px-10 md:py-8 lg:px-16">
           <div className="layout-content-container flex w-full max-w-240 min-w-0 flex-1 flex-col">
 
             <div className="min-w-0 px-4 pb-3 pt-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div className="min-w-0">
-                  <h1 className="wrap-break-word text-3xl font-bold leading-tight text-text-primary sm:text-[32px]">Welcome back, {name}!</h1>
-                  <p className="mt-2 text-base text-text-secondary dark:text-text-dark-secondary">Here's what's happening around campus.</p>
+              <div className="dashboard-hero enter-rise p-5 sm:p-7">
+                <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="min-w-0">
+                    <span className="kicker-label">Student Dashboard</span>
+                    <h1 className="wrap-break-word mt-4 font-display text-3xl font-bold leading-tight text-white sm:text-[38px]">Welcome back, {name}!</h1>
+                    <p className="mt-3 max-w-2xl text-base text-white/84">Track campus buzz, pick your next event, and keep your momentum visible.</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-white sm:gap-3">
+                    <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
+                      <p className="font-display text-xl font-bold leading-none">{forYouEvents.length}</p>
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-white/75">Matches</p>
+                    </div>
+                    <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
+                      <p className="font-display text-xl font-bold leading-none">{upcomingWeekCount}</p>
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-white/75">This Week</p>
+                    </div>
+                    <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
+                      <p className="font-display text-xl font-bold leading-none">{registeredCount}</p>
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-white/75">Registered</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm font-medium text-text-secondary dark:text-text-dark-secondary">
+                <div className="relative z-10 mt-5 flex items-center gap-2 text-sm font-medium text-white/78">
                   <span className="material-symbols-outlined text-[20px]">calendar_today</span>
                   <span>{currentDate}</span>
                 </div>
@@ -373,30 +421,60 @@ const StudentDashboard = () => {
                     onClick={() => setActiveFilter(option.value)}
                     variant={activeFilter === option.value ? 'primary' : 'secondary'}
                     size="sm"
-                    className="h-8 rounded-full px-3 text-xs"
+                    className="h-8 rounded-full border border-transparent px-3 text-xs font-semibold"
                     aria-pressed={activeFilter === option.value}
                     aria-label={`Filter events: ${option.label}`}
                   >
                     {option.label}
                   </Button>
                 ))}
-                <div className="ml-auto">
-                  <label htmlFor="event-sort" className="flex items-center gap-2 text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">
+                <div className="ml-auto flex items-center gap-2">
+                  <label htmlFor="event-sort" className="text-[11px] font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary">
                     Sort
-                    <div className="relative">
-                      <select
-                        id="event-sort"
-                        aria-label="Sort events"
-                        value={sortMode}
-                        onChange={(event) => setSortMode(event.target.value)}
-                        className="h-11 min-w-42 appearance-none rounded-xl border border-border-subtle bg-white pl-3 pr-9 text-sm font-semibold text-text-primary shadow-sm transition-colors hover:border-primary/45 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-border-strong dark:bg-surface-elevated dark:text-white dark:hover:border-primary/60"
-                      >
-                        {SORT_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
-                    </div>
                   </label>
+                  <div className="relative">
+                    <div ref={sortMenuRef} className="relative">
+                      <button
+                        id="event-sort"
+                        type="button"
+                        aria-haspopup="listbox"
+                        aria-expanded={sortOpen}
+                        aria-label="Sort events"
+                        onClick={() => setSortOpen((previous) => !previous)}
+                        className="inline-flex h-11 min-w-42 items-center justify-between rounded-full border border-primary/45 bg-surface-panel px-4 text-sm font-bold text-text-primary shadow-soft-sm transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:bg-surface-elevated dark:text-white"
+                      >
+                        <span>{selectedSortLabel}</span>
+                        <span className={`material-symbols-outlined text-[18px] text-text-secondary transition-transform dark:text-text-dark-secondary ${sortOpen ? 'rotate-180' : ''}`}>
+                          expand_more
+                        </span>
+                      </button>
+
+                      {sortOpen ? (
+                        <div className="absolute right-0 z-60 mt-2 w-44 overflow-hidden rounded-xl border border-border-subtle bg-surface-panel shadow-soft-lg dark:border-border-strong dark:bg-surface-elevated">
+                          <ul role="listbox" aria-labelledby="event-sort" className="py-1">
+                            {SORT_OPTIONS.map((option) => (
+                              <li key={option.value} role="none">
+                                <button
+                                  type="button"
+                                  role="option"
+                                  aria-selected={sortMode === option.value}
+                                  onClick={() => {
+                                    setSortMode(option.value);
+                                    setSortOpen(false);
+                                  }}
+                                  className={`flex w-full items-center px-3 py-2 text-left text-sm font-semibold transition-colors ${sortMode === option.value
+                                    ? 'bg-primary/18 text-primary dark:bg-primary/24'
+                                    : 'text-text-primary hover:bg-surface-muted dark:text-white dark:hover:bg-border-strong/55'}`}
+                                >
+                                  {option.label}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -408,7 +486,7 @@ const StudentDashboard = () => {
             )}
 
             <div className="grid grid-cols-1 gap-4 p-4">
-              <button type="button" onClick={() => navigate('/student/calendar')} className="group relative h-64 overflow-hidden rounded-xl border border-border-subtle shadow-sm transition-all hover:shadow-md dark:border-border-strong sm:h-72 md:h-80">
+              <button type="button" onClick={() => navigate('/student/calendar')} className="dashboard-hero group relative h-64 transition-all hover:shadow-soft-xl sm:h-72 md:h-80">
                 <img
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3zrC2zWTw2D4ivcIDWAb6vufiRs4bu3TgruhnB8zNBUeKci7kXQow7VafPKRga4Lua80PMNk1-QDne8Jz2xL8sVt3D4vk8aly08_J7ECW6ibdVKe9cK___pbaTzgl6Ao0GGmlrhdkYYcHHKC28MFxi-5Mx_ilnkcmxWj5IIVBLlLxQYWXwPOekKPJDW0-W2SFeW-zf9V-A-3yzcHNOiIBjXVzDYVZKSGxx5ZgP8Wqr1aIRU71sDUnwUvmUITWOzvvnhPYUWOcoek"
                   alt="Students attending campus event"
@@ -416,18 +494,21 @@ const StudentDashboard = () => {
                   decoding="async"
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-black/55" aria-hidden="true"></div>
-                <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8">
-                  <div className="mb-4">
-                    <span className="material-symbols-outlined rounded-full bg-white/20 p-3 text-2xl text-white">calendar_month</span>
+                <div className="absolute inset-0 bg-overlay-scrim" aria-hidden="true"></div>
+                <div className="absolute inset-0 flex flex-col justify-between p-6 sm:p-8">
+                  <div className="flex items-center justify-between">
+                    <span className="kicker-label border-white/30 bg-white/8 text-white">Live Calendar</span>
+                    <span className="material-symbols-outlined rounded-full border border-white/20 bg-black/24 p-3 text-2xl text-white">calendar_month</span>
                   </div>
-                  <h3 className="mb-2 text-2xl font-bold text-white sm:text-3xl">Event Calendar</h3>
-                  <p className="line-clamp-2 max-w-2xl mx-auto text-center text-base text-gray-200">Check scheduled activities and plan your semester ahead.</p>
+                  <div className="text-left">
+                    <h3 className="mb-2 font-display text-2xl font-bold text-white sm:text-3xl">Event Calendar</h3>
+                    <p className="line-clamp-2 max-w-2xl text-base text-white/82">Check scheduled activities, compare overlaps, and plan your semester rhythm.</p>
+                  </div>
                 </div>
               </button>
             </div>
 
-            <section className="mt-8">
+            <section className="mt-8 enter-rise enter-delay-1">
               <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-4">
                 <div>
                   <h2 className="section-title text-[22px]">For You</h2>
@@ -452,7 +533,7 @@ const StudentDashboard = () => {
               </div>
             </section>
 
-            <section className="mb-8 mt-10">
+            <section className="mb-8 mt-10 enter-rise enter-delay-2">
               <div className="flex items-center justify-between px-4 pb-4">
                 <div>
                   <h2 className="section-title text-[22px]">Explore Beyond Your Clubs</h2>
@@ -476,7 +557,7 @@ const StudentDashboard = () => {
               </div>
             </section>
 
-            <section className="mb-8 mt-10">
+            <section className="mb-8 mt-10 enter-rise enter-delay-3">
               <div className="px-4 pb-4">
                 <h2 className="section-title text-[22px]">Student Activity Tracker</h2>
                 <p className="mt-1 text-sm text-text-secondary dark:text-text-dark-secondary">Events you have attended.</p>
@@ -505,7 +586,7 @@ const StudentDashboard = () => {
                         const dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                         const timeText = `${startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - ${endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
                         return (
-                          <article key={`${activity.event_name}-${index}`} className="rounded-xl border border-border-subtle bg-white p-4 dark:border-border-strong dark:bg-surface-elevated">
+                          <article key={`${activity.event_name}-${index}`} className="rounded-xl border border-border-subtle bg-surface-panel p-4 shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">
                             <h3 className="text-sm font-bold text-text-primary dark:text-white">{activity.event_name}</h3>
                             <p className="mt-1 text-xs text-text-secondary dark:text-text-dark-secondary">{activity.club_name}</p>
                             <p className="mt-2 text-xs text-text-secondary dark:text-text-dark-secondary">{dateText}</p>
@@ -515,7 +596,7 @@ const StudentDashboard = () => {
                       })}
                     </div>
 
-                    <div className="hidden overflow-x-auto rounded-xl border border-border-subtle bg-white dark:border-border-strong dark:bg-surface-elevated md:block">
+                    <div className="hidden overflow-x-auto rounded-xl border border-border-subtle bg-surface-panel shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated md:block">
                       <table className="w-full min-w-160 text-left text-sm text-text-primary dark:text-white">
                         <thead className="bg-surface-muted text-xs uppercase text-text-secondary dark:bg-border-strong dark:text-text-dark-secondary">
                           <tr>

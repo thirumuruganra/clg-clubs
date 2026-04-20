@@ -63,12 +63,19 @@ const EventManagementTab = ({
 
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Event Management</h1>
-          <p className="mt-1 text-text-secondary dark:text-text-dark-secondary">Create, edit, and track participation for club activities.</p>
+      <div className="dashboard-hero enter-rise mb-8 p-5 sm:p-7">
+        <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <span className="kicker-label border-white/28 bg-white/10 text-white">Operations Deck</span>
+            <h1 className="mt-4 font-display text-2xl font-bold text-white sm:text-4xl">Event Management</h1>
+            <p className="mt-2 text-white/82">Create, edit, and track participation for every club activity from one command surface.</p>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-black/24 px-3 py-2 text-sm text-white/84 backdrop-blur-sm">
+            <span className="material-symbols-outlined text-[18px]">insights</span>
+            <span>{totalEvents} active events</span>
+          </div>
         </div>
-        <Button onClick={() => setActiveTab('create-event')} className="w-full sm:w-auto">
+        <Button onClick={() => setActiveTab('create-event')} className="relative z-10 mt-5 w-full sm:mt-6 sm:w-auto">
           <span className="material-symbols-outlined text-[18px]">add</span> Create Event
         </Button>
       </div>
@@ -78,15 +85,15 @@ const EventManagementTab = ({
           { label: 'Upcoming Events', value: totalEvents, icon: 'event_available' },
           { label: 'Total Registrations', value: totalRSVPs, icon: 'group' },
           { label: 'Attendance Rate', value: `${attendanceRate}%`, icon: 'analytics' },
-        ].map((stat) => (
-          <Card key={stat.label} className="p-4 sm:p-6">
+        ].map((stat, index) => (
+          <Card key={stat.label} className={`feature-card p-4 sm:p-6 ${index === 0 ? 'enter-rise enter-delay-1' : index === 1 ? 'enter-rise enter-delay-2' : 'enter-rise enter-delay-3'}`}>
             <div className="mb-4 flex items-start justify-between">
-              <div className="rounded-lg bg-primary/10 p-2">
+              <div className="rounded-lg border border-primary/25 bg-primary/12 p-2">
                 <span className="material-symbols-outlined text-[24px] text-primary">{stat.icon}</span>
               </div>
             </div>
             <p className="mb-1 text-sm text-text-secondary dark:text-text-dark-secondary">{stat.label}</p>
-            <p className="text-2xl font-bold sm:text-3xl">{stat.value}</p>
+            <p className="font-display text-3xl font-bold sm:text-4xl">{stat.value}</p>
           </Card>
         ))}
       </div>
@@ -102,7 +109,7 @@ const EventManagementTab = ({
             onClick={() => setTagFilter(filter.value)}
             variant={tagFilter === filter.value ? 'primary' : 'secondary'}
             size="sm"
-            className="h-8 rounded-full px-3 text-xs"
+            className="h-8 rounded-full border border-transparent px-3 text-xs font-semibold"
           >
             {filter.label}
           </Button>
@@ -111,12 +118,12 @@ const EventManagementTab = ({
 
       {tableError ? <Toast tone="error" title="Unable to load events" description={tableError} className="mb-3" /> : null}
 
-      <div className="table-scroll overflow-hidden rounded-xl border border-border-subtle bg-white dark:border-border-strong dark:bg-[#1a2632]">
+      <div className="table-scroll overflow-hidden rounded-2xl border border-border-subtle bg-surface-panel shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">
         <table className="w-full min-w-180">
-          <thead>
+          <thead className="bg-surface-muted dark:bg-border-strong/55">
             <tr className="border-b border-border-subtle dark:border-border-strong">
               {['Event Name', 'Category', 'Date', 'Registered', 'Actions'].map((header) => (
-                <th key={header} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-text-dark-secondary">{header}</th>
+                <th key={header} className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary">{header}</th>
               ))}
             </tr>
           </thead>
@@ -135,7 +142,7 @@ const EventManagementTab = ({
               </tr>
             )}
             {filteredEvents.map((event) => (
-              <tr key={event.id} className="border-b border-border-subtle transition-colors hover:bg-surface-muted dark:border-border-strong dark:hover:bg-border-strong/50">
+              <tr key={event.id} className="border-b border-border-subtle transition-colors hover:bg-surface-muted dark:border-border-strong dark:hover:bg-border-strong/40">
                 <td className="group cursor-pointer px-4 py-3" onClick={() => openRsvpModal(event)}>
                   <div className="flex items-center gap-3">
                     <div className="h-12.5 w-10 shrink-0 overflow-hidden rounded-lg bg-[#0f1720]">

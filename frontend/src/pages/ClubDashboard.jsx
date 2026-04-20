@@ -1478,7 +1478,7 @@ const ClubDashboard = () => {
   }, [studentResults]);
 
   if (loading || loadingData) return (
-    <div className="min-h-dvh flex items-center justify-center bg-background-dark text-white">
+    <div className="flex min-h-dvh items-center justify-center bg-background-dark text-white">
       <div className="animate-pulse text-lg">Loading club dashboard...</div>
     </div>
   );
@@ -1527,10 +1527,13 @@ const ClubDashboard = () => {
 
   return (
     <AppShell sidebar={sidebarNode} topbar={topBarNode} mobileMenuOpen={mobileMenuOpen} onCloseMenu={() => setMobileMenuOpen(false)}>
-      <div className="relative flex h-full w-full flex-col overflow-hidden font-display text-slate-900 dark:text-white">
+      <div className="relative flex h-full w-full flex-col overflow-hidden font-body text-text-primary dark:text-white">
+        <div className="pointer-events-none absolute inset-0 opacity-55">
+          <div className="atmosphere-grid"></div>
+        </div>
 
         {user && user.has_google_calendar_access === false && (
-          <div className="mx-4 lg:mx-8 mt-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+          <div className="relative mx-4 mt-4 rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-amber-900 shadow-soft-sm dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200 lg:mx-8">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm">
                 Grant Google Calendar access only when needed for calendar-integrated admin actions.

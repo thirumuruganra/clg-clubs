@@ -2,10 +2,10 @@ import React from 'react';
 import { cn } from '../../lib/utils';
 
 const variants = {
-  primary: 'bg-primary text-white hover:bg-primary/90',
-  secondary: 'bg-surface-muted text-text-primary hover:bg-surface-muted/80',
-  ghost: 'bg-transparent text-text-secondary hover:bg-surface-muted',
-  danger: 'bg-danger text-white hover:bg-danger/90',
+  primary: 'border border-transparent bg-primary text-white shadow-soft-sm hover:bg-primary/90 hover:shadow-soft-md',
+  secondary: 'border border-border-subtle bg-surface-muted text-text-primary hover:bg-surface-muted/80 dark:border-border-strong',
+  ghost: 'border border-transparent bg-transparent text-text-secondary hover:bg-surface-muted hover:text-text-primary',
+  danger: 'border border-transparent bg-danger text-white shadow-soft-sm hover:bg-danger/90',
 };
 
 const sizes = {
@@ -26,7 +26,7 @@ export const Button = React.forwardRef(function Button(
       type={type}
       disabled={isDisabled}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
+        'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 enabled:hover:-translate-y-0.5',
         variants[variant],
         sizes[size],
         className,

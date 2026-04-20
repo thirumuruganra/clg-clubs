@@ -31,25 +31,26 @@ const ClubDashboardSidebar = ({
   }));
 
   const sidebarHeader = (
-    <div className="mb-1 flex items-center gap-3">
+    <div className="aura-panel mb-1 flex items-center gap-3 rounded-xl border border-border-subtle bg-surface-panel p-3 shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">
       {clubIconUrl ? (
-        <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/5">
+        <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/30 bg-primary/10">
           <img src={clubIconUrl} alt={club?.name || 'Club'} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
         </div>
       ) : (
         <div className="size-8"><img src={wavcIcon} alt="WAVC" className="h-full w-full object-contain" /></div>
       )}
       <div className="min-w-0 flex-1">
-        <span className="block truncate text-lg font-bold" title={club?.name || 'WAVC'}>
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">Club Admin Portal</p>
+        <span className="block truncate font-display text-lg font-bold" title={club?.name || 'WAVC'}>
           {club?.name || 'WAVC'}
         </span>
-        <p className="text-xs text-text-secondary">Club Admin Portal</p>
+        <p className="text-xs text-text-secondary">Operations and events</p>
       </div>
     </div>
   );
 
   const sidebarFooter = (
-    <div className="flex items-center gap-2 rounded-xl p-1 transition-colors hover:bg-surface-muted">
+    <div className="flex items-center gap-2 rounded-xl border border-border-subtle bg-surface-panel p-1 transition-colors hover:bg-surface-muted dark:border-border-strong dark:bg-surface-elevated">
       <button
         type="button"
         onClick={() => navigate('/club/profile')}

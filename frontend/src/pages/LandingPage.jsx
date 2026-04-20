@@ -11,22 +11,26 @@ const LandingPage = () => {
   ];
 
   return (
-    <div className="relative flex min-h-dvh w-full flex-col overflow-x-hidden bg-white dark:bg-[#111a22]">
-      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-solid border-slate-200 dark:border-border-strong bg-white/80 dark:bg-[#111a22]/80 backdrop-blur-md px-4 py-3 lg:px-10">
-        <div className="flex items-center gap-4 text-slate-900 dark:text-white">
-          <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary overflow-hidden">
-            <img src={wavcIcon} alt="WAVC Logo" className="w-full h-full object-contain p-1" />
+    <div className="relative flex min-h-dvh w-full flex-col overflow-x-hidden bg-surface-canvas text-text-primary">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="atmosphere-grid"></div>
+      </div>
+
+      <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border-subtle bg-surface-canvas/88 px-4 py-3 backdrop-blur-md lg:px-10">
+        <div className="flex items-center gap-4 text-text-primary">
+          <div className="size-10 overflow-hidden rounded-xl bg-primary/18 p-1.5 shadow-soft-sm">
+            <img src={wavcIcon} alt="WAVC Logo" className="h-full w-full object-contain" />
           </div>
-          <h2 className="text-xl font-bold leading-tight">WAVC</h2>
+          <h2 className="font-display text-xl font-bold leading-tight tracking-tight">WAVC</h2>
         </div>
-        
+
         {/* Desktop Navigation */}
         <div className="hidden md:flex flex-1 justify-end gap-8 items-center">
           <nav className="flex items-center gap-9">
             {navItems.map((item) => (
               <a
                 key={item.label}
-                className="text-slate-600 dark:text-text-dark-secondary text-sm font-medium leading-normal hover:text-primary transition-colors"
+                className="text-sm font-semibold leading-normal text-text-secondary transition-colors hover:text-primary"
                 href={item.href}
               >
                 {item.label}
@@ -35,24 +39,25 @@ const LandingPage = () => {
           </nav>
           <button
             onClick={() => window.location.href = '/login'}
-            className="flex min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-white text-sm font-bold leading-normal hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20">
+            className="flex h-10 min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-primary px-4 text-sm font-bold leading-normal text-white shadow-soft-md transition-all hover:-translate-y-0.5 hover:shadow-soft-lg"
+          >
             <span className="truncate">Login</span>
           </button>
         </div>
 
         {/* Mobile Menu Button */}
         <div className="md:hidden flex items-center">
-          <button 
+          <button
             aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 text-slate-600 dark:text-slate-300 hover:text-primary transition-colors focus:outline-none"
+            className="rounded-xl p-2 text-text-secondary transition-colors hover:text-primary focus:outline-none"
           >
             {isMobileMenuOpen ? (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-8 w-8">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-8 w-8">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
             )}
@@ -63,25 +68,26 @@ const LandingPage = () => {
       {/* Mobile Navigation Dropdown */}
       {isMobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-x-0 bottom-0 z-40 bg-white/95 dark:bg-[#111a22]/95 backdrop-blur-xl"
+          className="fixed inset-x-0 bottom-0 z-40 bg-surface-panel/95 backdrop-blur-xl md:hidden"
           style={{
             top: 'calc(4rem + env(safe-area-inset-top))',
             paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
           }}
         >
-           <nav className="flex flex-col items-center justify-center p-8 gap-8 h-full">
+          <nav className="flex h-full flex-col items-center justify-center gap-8 p-8">
             {navItems.map((item) => (
-              <a key={item.label}
-                 className="text-slate-800 dark:text-white text-2xl font-bold hover:text-primary transition-colors" 
-                 href={item.href}
-                 onClick={() => setIsMobileMenuOpen(false)}
-               >
-                 {item.label}
-               </a>
-             ))}
-             <button 
-               onClick={() => window.location.href = '/login'}
-               className="mt-4 w-full max-w-50 h-14 rounded-xl bg-primary text-white text-lg font-bold shadow-xl shadow-blue-500/30"
+              <a
+                key={item.label}
+                className="text-2xl font-bold text-text-primary transition-colors hover:text-primary"
+                href={item.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {item.label}
+              </a>
+            ))}
+            <button
+              onClick={() => window.location.href = '/login'}
+              className="mt-4 h-14 w-full max-w-50 rounded-xl bg-primary text-lg font-bold text-white shadow-soft-lg"
             >
               Login
             </button>
@@ -90,26 +96,27 @@ const LandingPage = () => {
       )}
 
       <main className="grow flex flex-col">
-        <section className="px-4 py-10 md:px-8 lg:px-40 lg:py-16">
+        <section className="px-4 pb-8 pt-10 md:px-8 lg:px-16 lg:pt-14">
           <div className="layout-content-container mx-auto flex max-w-240 flex-col gap-8">
-            <div className="relative overflow-hidden rounded-3xl border border-border-subtle dark:border-border-strong bg-[#111a22] p-6 sm:p-10 lg:p-14">
+            <div className="aura-panel enter-rise grid gap-8 rounded-3xl border border-border-subtle bg-surface-panel p-6 shadow-soft-lg md:grid-cols-12 md:p-10">
               <img
                 src={heroImage}
                 alt="Tree-lined campus road"
-                className="absolute inset-0 h-full w-full object-cover opacity-25"
+                className="absolute inset-0 h-full w-full object-cover opacity-18"
               />
-              <div className="absolute inset-0 bg-black/45" aria-hidden="true"></div>
-              <div className="relative z-10 mx-auto flex max-w-4xl flex-col gap-5 text-center">
-                <h1 className="text-balance text-3xl font-black leading-tight text-white sm:text-5xl md:text-6xl">
-                  Stay in the loop. Stay in the club.
+              <div className="absolute inset-0 bg-overlay-scrim" aria-hidden="true"></div>
+              <div className="relative z-10 md:col-span-7 lg:col-span-8">
+                <span className="kicker-label">SSN Campus Network</span>
+                <h1 className="headline-display mt-5 max-w-2xl text-white">
+                  Stay in the loop. Run your campus story.
                 </h1>
-                <p className="mx-auto max-w-3xl text-pretty text-base font-medium leading-relaxed text-white/90 sm:text-xl">
-                  Discover events, join communities, and manage club activities in one campus platform.
+                <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/88 md:text-lg">
+                  Discover events, join communities, and manage club momentum from one home built for student life.
                 </p>
-                <div className="mt-2 flex flex-col justify-center gap-3 sm:flex-row">
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <button
                     onClick={() => window.location.href = '/login'}
-                    className="flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-white px-6 text-base font-bold text-slate-900 transition-colors hover:bg-slate-100 sm:h-13 sm:w-auto"
+                    className="inline-flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-white px-6 text-base font-bold text-slate-900 transition-all hover:-translate-y-0.5 hover:bg-slate-100 sm:w-auto"
                   >
                     <img
                       alt="Google G Logo"
@@ -120,15 +127,31 @@ const LandingPage = () => {
                   </button>
                   <button
                     onClick={() => window.location.href = '/student/clubs'}
-                    className="flex h-12 w-full items-center justify-center rounded-xl border border-white/40 bg-transparent px-6 text-base font-bold text-white transition-colors hover:bg-white/10 sm:h-13 sm:w-auto"
+                    className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-white/35 bg-white/10 px-6 text-base font-bold text-white transition-colors hover:bg-white/18 sm:w-auto"
                   >
                     Explore Clubs
                   </button>
                 </div>
               </div>
+
+              <div className="relative z-10 grid gap-3 sm:grid-cols-3 md:col-span-5 md:grid-cols-1 lg:col-span-4">
+                {[
+                  { label: 'Events This Month', value: '10+' },
+                  { label: 'Active Clubs', value: '25+' },
+                  { label: 'Students Connected', value: '3000+' },
+                ].map((stat, index) => (
+                  <div
+                    key={stat.label}
+                    className={`rounded-2xl border border-white/18 bg-black/25 p-4 text-white backdrop-blur-sm enter-rise ${index === 0 ? 'enter-delay-1' : index === 1 ? 'enter-delay-2' : 'enter-delay-3'}`}
+                  >
+                    <p className="text-3xl font-display font-bold leading-none">{stat.value}</p>
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/76">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="enter-rise enter-delay-1 grid grid-cols-1 gap-4 md:grid-cols-3">
               {[
                 { title: 'Centralized Events', body: 'Find upcoming activities from all clubs in one place.' },
                 { title: 'Personalized Feed', body: 'Get recommendations based on your interests and follows.' },
@@ -136,7 +159,7 @@ const LandingPage = () => {
               ].map((item) => (
                 <article
                   key={item.title}
-                  className="rounded-2xl border border-border-subtle bg-white p-5 shadow-sm dark:border-border-strong dark:bg-[#1a2632]"
+                  className="feature-card p-5"
                 >
                   <h2 className="text-lg font-bold text-text-primary dark:text-white">{item.title}</h2>
                   <p className="mt-2 text-sm leading-6 text-text-secondary dark:text-text-dark-secondary">{item.body}</p>
@@ -146,12 +169,13 @@ const LandingPage = () => {
           </div>
         </section>
 
-        <section id="about" className="px-4 pt-2 pb-2 md:px-8 lg:px-40 lg:pt-6 lg:pb-20">
-          <div className="layout-content-container mx-auto grid max-w-240 items-stretch gap-6 rounded-3xl border border-border-subtle bg-white p-6 dark:border-border-strong dark:bg-[#1a2632] lg:grid-cols-[1.1fr_1fr] lg:p-8">
+        <section id="about" className="px-4 pb-10 pt-2 md:px-8 lg:px-16 lg:pb-20 lg:pt-4">
+          <div className="layout-content-container mx-auto grid max-w-240 items-stretch gap-6 rounded-3xl border border-border-subtle bg-surface-panel p-6 shadow-soft-md lg:grid-cols-[1.1fr_1fr] lg:p-10">
             <div className="flex h-full flex-col justify-center gap-4 lg:pr-4">
-              <h2 className="text-2xl font-bold text-text-primary dark:text-white">Built for campus communities</h2>
-              <p className="mt-3 text-sm leading-6 text-text-secondary dark:text-text-dark-secondary">
-                WAVC helps students discover relevant events and helps clubs run smoother operations with one shared workflow.
+              <span className="kicker-label w-fit">Built for campus communities</span>
+              <h2 className="text-3xl font-display font-bold text-text-primary dark:text-white">Every club moment in one shared flow.</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary dark:text-text-dark-secondary">
+                WAVC lets students discover what matters now and gives club admins a faster way to organize events, followers, and attendance.
               </p>
             </div>
             <div id="how-it-works" className="grid grid-cols-1 content-start gap-3 sm:grid-cols-3 lg:grid-cols-1">
@@ -160,7 +184,7 @@ const LandingPage = () => {
                 { title: 'Register', body: 'RSVP quickly and keep your activity history organized.' },
                 { title: 'Participate', body: 'Attend events and grow your campus involvement.' },
               ].map((step) => (
-                <div key={step.title} className="h-full rounded-xl border border-border-subtle bg-[#f6f7f8] p-4 dark:border-border-strong dark:bg-[#111a22]">
+                <div key={step.title} className="h-full rounded-xl border border-border-subtle bg-surface-muted p-4 dark:border-border-strong dark:bg-surface-canvas">
                   <h3 className="text-sm font-bold text-text-primary dark:text-white">{step.title}</h3>
                   <p className="mt-1 text-xs leading-5 text-text-secondary dark:text-text-dark-secondary">{step.body}</p>
                 </div>
@@ -170,27 +194,27 @@ const LandingPage = () => {
         </section>
       </main>
 
-      <footer id="contact" className="mt-auto flex flex-col gap-6 border-t border-slate-200 bg-slate-50 px-5 py-10 text-center dark:border-border-strong dark:bg-[#111a22]">
+      <footer id="contact" className="mt-auto flex flex-col gap-6 border-t border-border-subtle bg-surface-panel px-5 py-10 text-center dark:border-border-strong dark:bg-surface-canvas">
         <div className="layout-content-container mx-auto flex flex-col max-w-240 w-full">
           <div className="flex flex-col items-center justify-center gap-6 mb-8">
-            <div className="flex items-center gap-2 text-slate-900 dark:text-white mb-2">
+            <div className="mb-2 flex items-center gap-2 text-text-primary dark:text-white">
               <div className="w-10 h-10 flex items-center justify-center text-primary overflow-hidden">
                   <img src={wavcIcon} alt="WAVC Logo" className="w-full h-full object-contain" />
               </div>
-              <span className="text-2xl font-bold">WAVC</span>
+              <span className="font-display text-2xl font-bold">WAVC</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
               {['About Us', 'Privacy Policy', 'Terms of Service', 'Support'].map((item) => (
-                <a key={item} className="text-slate-500 dark:text-text-dark-secondary text-sm font-normal hover:text-primary transition-colors" href="#">{item}</a>
+                <a key={item} className="text-sm font-medium text-text-secondary transition-colors hover:text-primary dark:text-text-dark-secondary" href="#">{item}</a>
               ))}
             </div>
           </div>
           <div className="flex flex-wrap justify-center gap-6 mb-6">
-            <a className="flex items-center justify-center w-12 h-12 text-slate-400 dark:text-text-dark-secondary hover:text-primary dark:hover:text-white transition-colors bg-slate-200 dark:bg-slate-800 rounded-full" href="#">
+            <a className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-text-secondary transition-colors hover:text-primary dark:bg-surface-elevated dark:text-text-dark-secondary dark:hover:text-white" href="#">
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>public</span>
             </a>
             <a
-              className="flex items-center justify-center w-12 h-12 text-slate-400 dark:text-text-dark-secondary hover:text-primary dark:hover:text-white transition-colors bg-slate-200 dark:bg-slate-800 rounded-full"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-text-secondary transition-colors hover:text-primary dark:bg-surface-elevated dark:text-text-dark-secondary dark:hover:text-white"
               href="mailto:wavc.contact@gmail.com"
               aria-label="Email wavc.contact@gmail.com"
               title="wavc.contact@gmail.com"
@@ -198,7 +222,7 @@ const LandingPage = () => {
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>mail</span>
             </a>
           </div>
-          <p className="text-slate-400 dark:text-slate-600 text-sm font-normal leading-normal">© 2026 WAVC. All rights reserved.</p>
+          <p className="text-sm font-normal leading-normal text-text-tertiary dark:text-text-dark-secondary/80">© 2026 WAVC. All rights reserved.</p>
         </div>
       </footer>
     </div>
