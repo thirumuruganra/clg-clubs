@@ -6,9 +6,15 @@ from app.models.user import User
 from app.schemas import UserUpdate
 from app.core.security import get_current_user
 import json
+import re
+from datetime import datetime
 from typing import List
 
 router = APIRouter()
+
+REGISTER_NUMBER_PATTERN = re.compile(r"^3122\d{9}$")
+PASSOUT_YEAR_PATTERN = re.compile(r"^\d{4}$")
+PASSOUT_YEAR_MAX_AHEAD = 6
 
 
 def _safe_json_list(raw_value):
@@ -42,6 +48,31 @@ def _normalize_text(value) -> str:
 
 def _normalize_compact(value) -> str:
     return "".join(ch for ch in _normalize_text(value) if ch.isalnum())
+
+
+def _validate_register_number(value: str) -> str:
+    normalized = str(value or "").strip()
+    if not REGISTER_NUMBER_PATTERN.fullmatch(normalized):
+        raise HTTPException(status_code=422, detail="Register number must be exactly 13 digits and start with 3122")
+    return normalized
+
+
+def _validate_passout_year(value: str) -> str:
+    normalized = str(value or "").strip()
+    if not PASSOUT_YEAR_PATTERN.fullmatch(normalized):
+        raise HTTPException(status_code=422, detail="Passout year must be a 4-digit year")
+
+    current_year = datetime.now().year
+    min_passout_year = current_year
+    max_passout_year = current_year + PASSOUT_YEAR_MAX_AHEAD
+    year_value = int(normalized)
+    if year_value < min_passout_year or year_value > max_passout_year:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Passout year must be between {min_passout_year} and {max_passout_year}",
+        )
+
+    return normalized
 
 
 def _get_degree_duration(degree_str) -> int | None:
@@ -238,13 +269,13 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
         raise HTTPException(status_code=404, detail="User not found")
 
     if user_update.batch is not None:
-        user.batch = user_update.batch
+        user.batch = _validate_passout_year(user_update.batch)
     if user_update.department is not None:
         user.department = user_update.department
     if user_update.degree is not None:
         user.degree = user_update.degree
     if user_update.register_number is not None:
-        user.register_number = user_update.register_number
+        user.register_number = _validate_register_number(user_update.register_number)
     if user_update.joined_clubs is not None:
         user.joined_clubs = json.dumps(user_update.joined_clubs)
     if user_update.interests is not None:

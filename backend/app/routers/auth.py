@@ -14,6 +14,7 @@ from typing import Any, cast
 import re
 import json
 import os
+from datetime import datetime
 from urllib.parse import urlparse
 
 router = APIRouter()
@@ -33,6 +34,10 @@ STUDENT_EMAIL_REGEX = re.compile(r'.*[0-9]{4,}@ssn\.edu\.in$')
 # Regex for club emails: must end with @ssn.edu.in and local-part must not contain digits
 CLUB_EMAIL_REGEX = re.compile(r'^[A-Za-z._%+-]*[A-Za-z][A-Za-z._%+-]*@ssn\.edu\.in$')
 
+REGISTER_NUMBER_PATTERN = re.compile(r"^3122\d{9}$")
+PASSOUT_YEAR_PATTERN = re.compile(r"^\d{4}$")
+PASSOUT_YEAR_MAX_AHEAD = 6
+
 # Hardcoded testing club emails
 TESTING_CLUB_EMAILS = {
     "thirumuruganra@gmail.com",
@@ -40,6 +45,23 @@ TESTING_CLUB_EMAILS = {
     "tanisha.sriram2006@gmail.com",
     "hemnath.d.0912@gmail.com"
 }
+
+
+def _is_valid_register_number(value: str | None) -> bool:
+    normalized = str(value or "").strip()
+    return bool(REGISTER_NUMBER_PATTERN.fullmatch(normalized))
+
+
+def _is_valid_passout_year(value: str | None) -> bool:
+    normalized = str(value or "").strip()
+    if not PASSOUT_YEAR_PATTERN.fullmatch(normalized):
+        return False
+
+    current_year = datetime.now().year
+    min_passout_year = current_year
+    max_passout_year = current_year + PASSOUT_YEAR_MAX_AHEAD
+    year_value = int(normalized)
+    return min_passout_year <= year_value <= max_passout_year
 
 
 def _parse_origin(origin: str) -> str | None:
@@ -260,6 +282,8 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
                 or user_department in (None, "")
                 or user_degree in (None, "")
                 or user_register_number in (None, "")
+                or not _is_valid_passout_year(user_batch)
+                or not _is_valid_register_number(user_register_number)
                 or len(user_interests) < 3
             ):
                 redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/student/profile"
