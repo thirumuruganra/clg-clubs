@@ -8,7 +8,6 @@ This project is organized as a monorepo containing both the frontend and backend
 
 - `frontend/`: React + Vite progressive web application.
 - `backend/`: Python FastAPI application.
-- `ui_mockups/`: HTML/CSS mockups for the application interfaces.
 
 ## Prerequisites
 
