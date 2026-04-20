@@ -5,6 +5,6 @@
     "node": "20.x"
   },
   "scripts": {
-    "heroku-postbuild": "npm --prefix frontend install && npm --prefix frontend run build && rm -rf backend/app/static && mkdir -p backend/app/static && cp -r frontend/dist/. backend/app/static/"
+    "heroku-postbuild": "npm --prefix frontend install --include=dev && npm --prefix frontend run build && rm -rf backend/app/static && mkdir -p backend/app/static && cp -r frontend/dist/. backend/app/static/"
   }
 }
