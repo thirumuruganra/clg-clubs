@@ -308,13 +308,13 @@ const StudentCalendar = () => {
   const topbarActions = (
     <>
       <IconButton ariaLabel="Previous month" variant="soft" size="sm" onClick={prevMonth}>
-        <span className="material-symbols-outlined text-[22px]" aria-hidden="true">chevron_left</span>
+        <span className="material-symbols-outlined text-subheading" aria-hidden="true">chevron_left</span>
       </IconButton>
       <IconButton ariaLabel="Next month" variant="soft" size="sm" onClick={nextMonth}>
-        <span className="material-symbols-outlined text-[22px]" aria-hidden="true">chevron_right</span>
+        <span className="material-symbols-outlined text-subheading" aria-hidden="true">chevron_right</span>
       </IconButton>
       <IconButton ariaLabel="Notifications" variant="soft" size="sm">
-        <span className="material-symbols-outlined text-[20px]" aria-hidden="true">notifications</span>
+        <span className="material-symbols-outlined text-subheading" aria-hidden="true">notifications</span>
       </IconButton>
     </>
   );

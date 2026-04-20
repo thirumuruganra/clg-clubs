@@ -301,7 +301,7 @@ const StudentProfile = () => {
                       className="flex items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-500 transition-colors p-0.5"
                       aria-label={`Remove ${clubName}`}
                     >
-                      <span className="material-symbols-outlined text-[14px]">close</span>
+                      <span className="material-symbols-outlined text-secondary">close</span>
                     </button>
                   </span>
                 ))}
@@ -449,7 +449,7 @@ const StudentProfile = () => {
                       className="flex items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-500 transition-colors p-0.5"
                       aria-label={`Remove ${interest}`}
                     >
-                      <span className="material-symbols-outlined text-[14px]">close</span>
+                      <span className="material-symbols-outlined text-secondary">close</span>
                     </button>
                   </span>
                 ))}
