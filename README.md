@@ -140,7 +140,21 @@ In Google Cloud Console OAuth client settings:
 From repository root:
 
 ```bash
-git push heroku main
+# Switch to the branch you want to deploy
+git checkout heroku-deploy-setup
+
+# Sync with Heroku main (prevents non-fast-forward push rejection)
+git fetch heroku
+git rebase heroku/main
+
+# Deploy current branch to Heroku main
+git push heroku HEAD:main
+```
+
+If you intentionally need to replace Heroku `main` history, use:
+
+```bash
+git push --force-with-lease heroku HEAD:main
 ```
 
 Heroku build process will:
