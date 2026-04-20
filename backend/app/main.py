@@ -1,5 +1,7 @@
 import asyncio
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
 from starlette.middleware.sessions import SessionMiddleware
@@ -8,14 +10,17 @@ from app.routers import auth, users, events, clubs, rsvp, follow
 from app.core.storage import is_supabase_storage_configured
 from app.services.event_posters import cleanup_expired_event_posters
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 # Import all models so Base.metadata.create_all picks them up
 from app.models.user import User
 from app.models.club import Club
 from app.models.event import Event
+from app.models.event_worker import EventWorker
 from app.models.rsvp import RSVP
 from app.models.follow import Follow
+from app.models.club_member import ClubMember
 
 load_dotenv()
 
@@ -363,6 +368,30 @@ async def stop_event_poster_cleanup_scheduler() -> None:
     _poster_cleanup_task = None
 
 
+frontend_dist_dir = Path(__file__).resolve().parent / "static"
+frontend_index_file = frontend_dist_dir / "index.html"
+frontend_assets_dir = frontend_dist_dir / "assets"
+
+if frontend_assets_dir.exists():
+    app.mount("/assets", StaticFiles(directory=str(frontend_assets_dir)), name="frontend-assets")
+
+
 @app.get("/")
 def read_root():
+    if frontend_index_file.exists():
+        return FileResponse(frontend_index_file)
     return {"message": "Welcome to the WAVC API"}
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def frontend_spa_fallback(full_path: str):
+    if full_path.startswith("api"):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    if frontend_index_file.exists():
+        requested_path = frontend_dist_dir / full_path
+        if full_path and requested_path.is_file():
+            return FileResponse(requested_path)
+        return FileResponse(frontend_index_file)
+
+    raise HTTPException(status_code=404, detail="Not Found")

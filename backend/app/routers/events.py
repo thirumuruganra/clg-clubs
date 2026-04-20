@@ -8,11 +8,13 @@ import uuid
 from urllib.parse import urlencode, urlparse
 from app.database import get_db
 from app.models.event import Event
+from app.models.event_worker import EventWorker
 from app.models.club import Club
+from app.models.club_member import ClubMember
 from app.models.rsvp import RSVP
 from app.models.follow import Follow
 from app.models.user import User
-from app.schemas import EventCreate, EventUpdate, EventResponse
+from app.schemas import EventCreate, EventUpdate, EventResponse, EventWorkforceCreate
 from app.core.security import get_current_user
 from app.services.event_posters import (
     MAX_POSTER_BYTES,
@@ -38,6 +40,9 @@ def _require_frontend_checkin_base_url() -> str:
 
 
 FRONTEND_CHECKIN_BASE_URL = _require_frontend_checkin_base_url()
+
+WORKFORCE_ROLE_MEMBER = "CLUB_MEMBER"
+WORKFORCE_ROLE_VOLUNTEER = "VOLUNTEER"
 
 
 def _word_count(text: Optional[str]) -> int:
@@ -105,6 +110,23 @@ def _normalize_user_interests(interests: List[str]) -> set[str]:
     for interest in interests:
         normalized_tokens.update(_tokenize_text(str(interest)))
     return normalized_tokens
+
+
+def _serialize_event_worker(assignment: EventWorker, worker: User) -> dict:
+    return {
+        "id": assignment.id,
+        "event_id": assignment.event_id,
+        "user_id": assignment.user_id,
+        "role": assignment.role,
+        "created_at": assignment.created_at.isoformat() if assignment.created_at else None,
+        "name": worker.name,
+        "email": worker.email,
+        "picture": worker.picture,
+        "department": worker.department,
+        "degree": worker.degree,
+        "batch": worker.batch,
+        "register_number": worker.register_number,
+    }
 
 
 def _calculate_recommendation_score(event: Event, interest_tokens: set[str], is_followed_club: bool) -> float:
@@ -519,6 +541,109 @@ def close_event_attendance_qr(event_id: int, db: Session = Depends(get_db), curr
     }
 
 
+@router.get("/{event_id}/workforce")
+def get_event_workforce(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get workforce assignments (club members + volunteers) for one event."""
+    event = _require_admin_owned_event(event_id, db, current_user)
+
+    assignments = (
+        db.query(EventWorker, User)
+        .join(User, EventWorker.user_id == User.id)
+        .filter(EventWorker.event_id == event_id)
+        .all()
+    )
+
+    workers = [_serialize_event_worker(assignment, worker) for assignment, worker in assignments]
+    workers.sort(
+        key=lambda row: (
+            row.get("role") != WORKFORCE_ROLE_MEMBER,
+            str(row.get("name") or row.get("email") or "").strip().lower(),
+            row.get("user_id") or 0,
+        )
+    )
+
+    member_count = sum(1 for row in workers if row.get("role") == WORKFORCE_ROLE_MEMBER)
+    volunteer_count = sum(1 for row in workers if row.get("role") == WORKFORCE_ROLE_VOLUNTEER)
+
+    return {
+        "event_id": event_id,
+        "club_id": event.club_id,
+        "member_count": member_count,
+        "volunteer_count": volunteer_count,
+        "workers": workers,
+    }
+
+
+@router.post("/{event_id}/workforce", status_code=201)
+def add_event_workforce_member(
+    event_id: int,
+    payload: EventWorkforceCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Assign a club member or volunteer to an event."""
+    event = _require_admin_owned_event(event_id, db, current_user)
+
+    student = db.query(User).filter(User.id == payload.user_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if student.role != "STUDENT":
+        raise HTTPException(status_code=422, detail="Only students can be assigned")
+
+    if payload.role == WORKFORCE_ROLE_MEMBER:
+        is_club_member = (
+            db.query(ClubMember)
+            .filter(ClubMember.club_id == event.club_id, ClubMember.user_id == payload.user_id)
+            .first()
+            is not None
+        )
+        if not is_club_member:
+            raise HTTPException(status_code=422, detail="User must be a club member for CLUB_MEMBER role")
+
+    existing_assignment = (
+        db.query(EventWorker)
+        .filter(EventWorker.event_id == event_id, EventWorker.user_id == payload.user_id)
+        .first()
+    )
+    if existing_assignment:
+        if existing_assignment.role == payload.role:
+            raise HTTPException(status_code=400, detail="Student is already assigned to this event")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Student is already assigned as {existing_assignment.role}. Remove and add again to change role.",
+        )
+
+    assignment = EventWorker(event_id=event_id, user_id=payload.user_id, role=payload.role)
+    db.add(assignment)
+    db.commit()
+    db.refresh(assignment)
+
+    return _serialize_event_worker(assignment, student)
+
+
+@router.delete("/{event_id}/workforce/{assignment_id}", status_code=204)
+def remove_event_workforce_member(
+    event_id: int,
+    assignment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Remove one workforce assignment from an event."""
+    _require_admin_owned_event(event_id, db, current_user)
+
+    assignment = (
+        db.query(EventWorker)
+        .filter(EventWorker.id == assignment_id, EventWorker.event_id == event_id)
+        .first()
+    )
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Workforce assignment not found")
+
+    db.delete(assignment)
+    db.commit()
+    return None
+
+
 @router.delete("/{event_id}")
 def delete_event(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Delete an event. Only the club admin who owns the event can delete it."""
@@ -537,6 +662,7 @@ def delete_event(event_id: int, db: Session = Depends(get_db), current_user: Use
 
     # Delete associated RSVPs first
     db.query(RSVP).filter(RSVP.event_id == event_id).delete()
+    db.query(EventWorker).filter(EventWorker.event_id == event_id).delete()
     db.delete(event)
     db.commit()
 

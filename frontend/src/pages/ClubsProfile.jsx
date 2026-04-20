@@ -2,12 +2,16 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
+import { Button } from '../components/ui/button';
+import { FieldMessage } from '../components/ui/field-message';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 
 const API = '';
 const CLUB_LOGO_MAX_SIZE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-const ClubProfile = () => {
+const ClubsProfile = () => {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -244,45 +248,57 @@ const ClubProfile = () => {
   }
 
   return (
-    <div className="min-h-dvh bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white">
-      <header className="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#111a22]">
+    <div className="min-h-dvh bg-background-light font-body text-slate-900 dark:bg-background-dark dark:text-white">
+      <header className="flex items-center justify-between px-4 sm:px-8 py-4 border-b border-border-subtle dark:border-border-strong bg-white dark:bg-surface-panel">
         <div className="flex items-center gap-3">
           <div className="size-8"><img src={wavcIcon} alt="WAVC" className="w-full h-full object-contain" /></div>
           <span className="text-lg font-bold">WAVC</span>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          <button
+          <Button
             type="button"
             onClick={() => navigate('/club/dashboard')}
-            className="touch-target px-3 sm:px-4 py-2 rounded-xl border border-[#e5e7eb] dark:border-[#233648] text-xs sm:text-sm font-medium hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+            variant="secondary"
+            size="sm"
+            className="border border-border-subtle"
           >
             Back to Dashboard
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={logout}
-            className="touch-target px-3 sm:px-4 py-2 rounded-xl border border-[#e5e7eb] dark:border-[#233648] text-xs sm:text-sm font-medium hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+            variant="secondary"
+            size="sm"
+            className="border border-border-subtle"
           >
             Sign Out
-          </button>
+          </Button>
         </div>
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-2">Club Profile</h1>
-        <p className="text-[#637588] dark:text-[#92adc9] mb-10 text-lg">
+        <h1 className="type-page-title mb-2 sm:text-4xl">Club Profile</h1>
+        <p className="type-lead mb-10 text-text-secondary dark:text-text-dark-secondary">
           Update club details shown to students across clubs, calendar, and profile suggestions.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {formError && <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{formError}</p>}
-          {successMessage && <p className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-500">{successMessage}</p>}
+          {formError ? (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
+              <FieldMessage tone="error">{formError}</FieldMessage>
+            </div>
+          ) : null}
+          {successMessage ? (
+            <div className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2">
+              <FieldMessage tone="success">{successMessage}</FieldMessage>
+            </div>
+          ) : null}
 
           <div
             className={`rounded-xl border border-dashed p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8 transition-colors ${
               isLogoDragActive
                 ? 'border-primary bg-primary/5'
-                : 'border-[#e5e7eb] dark:border-[#233648]'
+                : 'border-border-subtle dark:border-border-strong'
             }`}
             onDragEnter={handleLogoDragEnter}
             onDragOver={handleLogoDragOver}
@@ -292,18 +308,18 @@ const ClubProfile = () => {
             <button
               type="button"
               onClick={openLogoFilePicker}
-              className="w-28 h-28 rounded-full border-2 border-dashed border-[#637588]/30 flex items-center justify-center shrink-0 bg-[#f0f2f4] dark:bg-[#233648] overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform"
+              className="w-28 h-28 rounded-full border-2 border-dashed border-text-secondary/30 flex items-center justify-center shrink-0 bg-surface-muted dark:bg-border-strong overflow-hidden cursor-pointer hover:scale-[1.02] transition-transform"
               aria-label="Choose club logo"
             >
               {resolvedPreviewImage ? (
                 <img src={resolvedPreviewImage} alt="Club profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
-                <span className="material-symbols-outlined text-[40px] text-[#637588]/50">photo_camera</span>
+                <span className="material-symbols-outlined text-[40px] text-text-secondary/50">photo_camera</span>
               )}
             </button>
             <div className="flex-1">
-              <h3 className="text-lg font-bold mb-1">Club Profile Picture</h3>
-              <p className="text-sm text-[#637588] dark:text-[#92adc9] mb-3">
+              <h3 className="text-xl font-semibold mb-1">Club Profile Picture</h3>
+              <p className="type-body text-text-secondary dark:text-text-dark-secondary mb-3">
                 If no custom image is set, your Google profile picture will be used automatically.
               </p>
               <input
@@ -314,15 +330,17 @@ const ClubProfile = () => {
                 className="hidden"
               />
               <div className="flex flex-wrap items-center gap-3">
-                <button
+                <Button
                   type="button"
                   onClick={openLogoFilePicker}
-                  className="touch-target inline-flex items-center gap-2 rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium cursor-pointer hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+                  variant="secondary"
+                  size="sm"
+                  className="border border-border-subtle"
                 >
                   <span className="material-symbols-outlined text-[18px]">upload</span>
                   Upload from device
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => {
                     setLogoFile(null);
@@ -333,44 +351,47 @@ const ClubProfile = () => {
                     });
                     setFormData((previous) => ({ ...previous, logo_url: '' }));
                   }}
-                  className="touch-target rounded-lg border border-[#e5e7eb] dark:border-[#233648] px-4 py-2 text-sm font-medium hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+                  variant="secondary"
+                  size="sm"
+                  className="border border-border-subtle"
                 >
                   Use Google Picture
-                </button>
-                <span className="text-xs text-[#637588] dark:text-[#92adc9] truncate max-w-64">{logoFile ? logoFile.name : 'No new file selected'}</span>
+                </Button>
+                <span className="text-xs text-text-secondary dark:text-text-dark-secondary truncate max-w-64">{logoFile ? logoFile.name : 'No new file selected'}</span>
               </div>
-              <p className="text-xs text-[#637588] dark:text-[#92adc9] mt-2">or drag and drop an image here</p>
+              <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2">or drag and drop an image here</p>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2">Club Name</label>
-            <input
+            <Label htmlFor="club-profile-name" required className="mb-2 block">Club Name</Label>
+            <Input
+              id="club-profile-name"
               type="text"
               required
               value={formData.name}
               onChange={(event) => setFormData((previous) => ({ ...previous, name: event.target.value }))}
               placeholder="e.g. WAVC Robotics Club"
-              className="w-full px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648] border-none text-base focus:ring-2 focus:ring-primary focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588]"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2">Instagram Handle</label>
-            <div className="flex items-center px-4 py-3 rounded-xl bg-[#f0f2f4] dark:bg-[#233648]">
-              <span className="text-[#637588] text-base mr-1">@</span>
-              <input
+            <Label htmlFor="club-profile-instagram" className="mb-2 block">Instagram Handle</Label>
+            <div className="flex items-center px-4 py-3 rounded-xl bg-surface-muted dark:bg-border-strong">
+              <span className="text-text-secondary text-base mr-1">@</span>
+              <Input
+                id="club-profile-instagram"
                 type="text"
                 value={formData.instagram_handle}
                 onChange={(event) => setFormData((previous) => ({ ...previous, instagram_handle: event.target.value }))}
                 placeholder="wavc_robotics"
-                className="bg-transparent border-none text-base focus:outline-none text-[#111418] dark:text-white placeholder:text-[#637588] flex-1"
+                className="h-auto flex-1 border-none bg-transparent px-0 focus-visible:ring-0"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-3">Category</label>
+            <Label className="mb-3 block">Category</Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 { value: 'TECH', label: 'Tech Club', desc: 'Coding, engineering, data science, and hardware projects.' },
@@ -383,36 +404,37 @@ const ClubProfile = () => {
                   className={`p-5 rounded-xl border text-left transition-all ${
                     formData.category === category.value
                       ? 'border-primary bg-primary/5 ring-2 ring-primary/30'
-                      : 'border-[#e5e7eb] dark:border-[#233648] hover:border-[#637588]'
+                      : 'border-border-subtle dark:border-border-strong hover:border-text-secondary'
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-2">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.category === category.value ? 'border-primary' : 'border-[#637588]'}`}>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.category === category.value ? 'border-primary' : 'border-text-secondary'}`}>
                       {formData.category === category.value && <div className="w-2.5 h-2.5 rounded-full bg-primary"></div>}
                     </div>
                     <span className="font-bold">{category.label}</span>
                   </div>
-                  <p className="text-sm text-[#637588] dark:text-[#92adc9] ml-8">{category.desc}</p>
+                  <p className="text-sm text-text-secondary dark:text-text-dark-secondary ml-8">{category.desc}</p>
                 </button>
               ))}
             </div>
           </div>
 
           <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4 pt-6">
-            <button
+            <Button
               type="button"
               onClick={() => navigate('/club/dashboard')}
-              className="touch-target px-6 py-3 rounded-xl border border-[#e5e7eb] dark:border-[#233648] text-sm font-bold hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors"
+              variant="secondary"
+              className="border border-border-subtle px-6 text-sm font-bold"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={saving}
-              className="touch-target px-8 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 transition-all shadow-lg shadow-primary/30 active:scale-[0.98] disabled:opacity-50"
+              className="px-8 text-sm font-bold"
             >
               {saving ? 'Saving...' : 'Save Changes'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -420,4 +442,4 @@ const ClubProfile = () => {
   );
 };
 
-export default ClubProfile;
+export default ClubsProfile;

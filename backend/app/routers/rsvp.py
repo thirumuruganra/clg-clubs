@@ -95,6 +95,7 @@ def get_event_rsvps(event_id: int, db: Session = Depends(get_db)):
                     "name": r.user.name,
                     "email": r.user.email,
                     "department": r.user.department,
+                    "degree": r.user.degree,
                     "batch": r.user.batch,
                     "register_number": r.user.register_number
                 } if r.user else None

@@ -28,7 +28,7 @@ export function AlertDialogContent({ className, ...props }) {
       <AlertDialogOverlay />
       <AlertDialogPrimitive.Content
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#e5e7eb] bg-white p-6 text-slate-900 shadow-xl dark:border-[#233648] dark:bg-[#1a2632] dark:text-white',
+          'fixed left-1/2 top-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border-subtle bg-white p-6 text-slate-900 shadow-xl dark:border-border-strong dark:bg-[#1a2632] dark:text-white',
           className,
         )}
         {...props}
@@ -50,14 +50,14 @@ export function AlertDialogTitle(props) {
 }
 
 export function AlertDialogDescription(props) {
-  return <AlertDialogPrimitive.Description className="text-sm text-[#637588] dark:text-[#92adc9]" {...props} />;
+  return <AlertDialogPrimitive.Description className="text-sm text-text-secondary dark:text-text-dark-secondary" {...props} />;
 }
 
 export function AlertDialogCancel({ className, ...props }) {
   return (
     <AlertDialogPrimitive.Cancel
       className={cn(
-        'rounded-xl border border-[#e5e7eb] px-4 py-2 text-sm font-bold text-[#637588] transition-colors hover:bg-[#f0f2f4] dark:border-[#233648] dark:text-[#92adc9] dark:hover:bg-[#233648]',
+        'rounded-xl border border-border-subtle px-4 py-2 text-sm font-bold text-text-secondary transition-colors hover:bg-surface-muted dark:border-border-strong dark:text-text-dark-secondary dark:hover:bg-border-strong',
         className,
       )}
       {...props}

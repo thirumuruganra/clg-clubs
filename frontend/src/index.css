@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/container-queries";
@@ -5,16 +6,534 @@
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #137fec;
-  --color-background-light: #f6f7f8;
-  --color-background-dark: #101922;
+  --color-primary: oklch(0.67 0.165 255);
+  --color-accent: oklch(0.74 0.15 41);
+  --color-success: oklch(0.73 0.14 156);
+  --color-warning: oklch(0.79 0.16 80);
+  --color-danger: oklch(0.65 0.2 24);
 
-  --font-display: "Plus Jakarta Sans", sans-serif;
+  --color-surface-canvas: oklch(0.976 0.008 247);
+  --color-surface-panel: oklch(0.995 0.004 247);
+  --color-surface-elevated: oklch(0.986 0.012 247);
+  --color-surface-muted: oklch(0.944 0.016 247);
+  --color-overlay-scrim: color-mix(in oklab, oklch(0.13 0.028 252) 62%, transparent);
+  --color-border-subtle: oklch(0.88 0.022 247);
+  --color-border-strong: oklch(0.74 0.038 247);
+
+  --color-text-primary: oklch(0.238 0.03 252);
+  --color-text-secondary: oklch(0.495 0.03 247);
+  --color-text-tertiary: oklch(0.61 0.03 247);
+  --color-text-inverse: oklch(0.99 0.003 247);
+  --color-text-dark-secondary: oklch(0.79 0.045 246);
+
+  --color-background-light: oklch(0.976 0.008 247);
+  --color-background-dark: oklch(0.168 0.026 252);
+
+  --font-heading: "Bricolage Grotesque", "Public Sans", sans-serif;
+  --font-body: "Public Sans", "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque", "Public Sans", sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.6875rem;
+  --text-3xl: 2.0625rem;
+
+  --text-caption: var(--text-xs);
+  --text-secondary: var(--text-sm);
+  --text-body: var(--text-base);
+  --text-subheading: var(--text-xl);
+  --text-heading: var(--text-2xl);
+  --text-display: var(--text-3xl);
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  --leading-display: 1.08;
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight: -0.02em;
+  --tracking-label: 0.11em;
 
   --radius: 0.5rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
   --radius-full: 9999px;
+
+  --spacing-unit: 0.25rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  --shadow-soft-sm: 0 3px 12px color-mix(in oklab, oklch(0.1 0.03 252) 8%, transparent);
+  --shadow-soft-md: 0 14px 34px color-mix(in oklab, oklch(0.1 0.03 252) 12%, transparent);
+  --shadow-soft-lg: 0 24px 52px color-mix(in oklab, oklch(0.1 0.03 252) 18%, transparent);
+  --shadow-soft-xl: 0 34px 74px color-mix(in oklab, oklch(0.1 0.03 252) 24%, transparent);
+
+  --z-base: 0;
+  --z-sticky: 20;
+  --z-nav: 90;
+  --z-overlay: 80;
+  --z-modal: 100;
+  --z-toast: 120;
+
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --motion-slow: 250ms;
+  --motion-page: 350ms;
+  --motion-route-enter: 420ms;
+  --motion-reveal: 520ms;
+  --ease-standard: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+  --color-surface-canvas: oklch(0.168 0.026 252);
+  --color-surface-panel: oklch(0.206 0.028 252);
+  --color-surface-elevated: oklch(0.254 0.03 252);
+  --color-surface-muted: oklch(0.304 0.03 252);
+  --color-overlay-scrim: color-mix(in oklab, oklch(0.08 0.018 254) 72%, transparent);
+  --color-border-subtle: oklch(0.37 0.032 252);
+  --color-border-strong: oklch(0.5 0.043 252);
+  --color-text-primary: oklch(0.958 0.01 252);
+  --color-text-secondary: oklch(0.79 0.045 246);
+  --color-text-tertiary: oklch(0.68 0.04 246);
+  --color-text-inverse: oklch(0.168 0.026 252);
+
+  --shadow-soft-sm: 0 4px 14px color-mix(in oklab, oklch(0.04 0.012 255) 42%, transparent);
+  --shadow-soft-md: 0 16px 36px color-mix(in oklab, oklch(0.04 0.012 255) 52%, transparent);
+  --shadow-soft-lg: 0 28px 56px color-mix(in oklab, oklch(0.04 0.012 255) 62%, transparent);
+  --shadow-soft-xl: 0 40px 80px color-mix(in oklab, oklch(0.04 0.012 255) 72%, transparent);
+}
+
+@layer base {
+  html {
+    font-kerning: normal;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--color-surface-canvas);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: var(--leading-normal);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-tight);
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: var(--text-display);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-display);
+  }
+
+  h2 {
+    font-size: var(--text-heading);
+  }
+
+  h3 {
+    font-size: var(--text-subheading);
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-size: var(--text-lg);
+  }
+
+  p,
+  li,
+  span,
+  label {
+    line-height: var(--leading-relaxed);
+    text-wrap: pretty;
+  }
+
+  p {
+    max-width: 68ch;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .bento-grid {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .bento-card {
+    background: var(--color-surface-panel);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft-sm);
+    padding: var(--space-4);
+  }
+
+  .bento-card-elevated {
+    background: var(--color-surface-elevated);
+    box-shadow: var(--shadow-soft-md);
+  }
+
+  .bento-card-interactive {
+    transition: transform var(--motion-base) var(--ease-out-quart), box-shadow var(--motion-base) var(--ease-out-quart), border-color var(--motion-base) var(--ease-standard);
+    will-change: transform;
+  }
+
+  .bento-card-interactive:hover,
+  .bento-card-interactive:focus-visible {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border-subtle));
+    box-shadow: var(--shadow-soft-lg);
+  }
+
+  .bento-card-interactive:active {
+    transform: translateY(0) scale(0.99);
+    transition-duration: 120ms;
+  }
+
+  .surface-muted {
+    background: var(--color-surface-muted);
+  }
+
+  .surface-panel {
+    background: var(--color-surface-panel);
+  }
+
+  .text-tonal {
+    color: var(--color-text-secondary);
+  }
+
+  .state-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
+    font-weight: 600;
+  }
+
+  .state-dot::before {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: var(--radius-full);
+    background: currentColor;
+  }
+
+  .state-dot-success {
+    color: var(--color-success);
+  }
+
+  .state-dot-warning {
+    color: var(--color-warning);
+  }
+
+  .state-dot-danger {
+    color: var(--color-danger);
+  }
+
+  .section-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-heading);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-tight);
+    letter-spacing: -0.01em;
+    color: var(--color-text-primary);
+    text-wrap: balance;
+  }
+
+  .type-body {
+    font-size: var(--text-body);
+    line-height: var(--leading-relaxed);
+  }
+
+  .type-lead {
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+    font-weight: var(--weight-medium);
+    max-width: 62ch;
+  }
+
+  .type-page-title {
+    font-family: var(--font-display);
+    font-size: var(--text-display);
+    font-weight: var(--weight-extrabold);
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .type-label {
+    font-size: var(--text-caption);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-label);
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  .type-metric {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .headline-display {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 4.4rem);
+    font-weight: var(--weight-extrabold);
+    line-height: var(--leading-display);
+    letter-spacing: var(--tracking-tight);
+    text-wrap: balance;
+  }
+
+  .kicker-label {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid color-mix(in oklab, var(--color-primary) 30%, var(--color-border-subtle));
+    border-radius: var(--radius-full);
+    background: color-mix(in oklab, var(--color-primary) 14%, transparent);
+    color: color-mix(in oklab, var(--color-text-primary) 82%, var(--color-primary));
+    font-size: var(--text-caption);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-label);
+    line-height: 1;
+    padding: 0.4rem 0.8rem;
+    text-transform: uppercase;
+  }
+
+  .atmosphere-grid {
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in oklab, var(--color-border-subtle) 38%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--color-border-subtle) 38%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 38px 38px;
+    background-position: center;
+    mask-image: radial-gradient(circle at center, black 28%, transparent 78%);
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+  }
+
+  .aura-panel {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .aura-panel::before,
+  .aura-panel::after {
+    border-radius: var(--radius-full);
+    content: "";
+    filter: blur(48px);
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .aura-panel::before {
+    background: color-mix(in oklab, var(--color-primary) 32%, transparent);
+    height: 14rem;
+    left: -4.2rem;
+    top: -5.2rem;
+    width: 14rem;
+  }
+
+  .aura-panel::after {
+    background: color-mix(in oklab, var(--color-accent) 28%, transparent);
+    height: 13rem;
+    right: -4.2rem;
+    top: 58%;
+    width: 13rem;
+  }
+
+  .feature-card {
+    background: color-mix(in oklab, var(--color-surface-panel) 86%, var(--color-primary));
+    border: 1px solid color-mix(in oklab, var(--color-border-subtle) 88%, var(--color-primary));
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-soft-sm);
+    transition: transform var(--motion-base) var(--ease-out), box-shadow var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-standard);
+  }
+
+  .feature-card:hover,
+  .feature-card:focus-within {
+    border-color: color-mix(in oklab, var(--color-primary) 45%, var(--color-border-subtle));
+    box-shadow: var(--shadow-soft-lg);
+    transform: translateY(-4px);
+  }
+
+  .dashboard-hero {
+    background:
+      radial-gradient(circle at 8% 18%, color-mix(in oklab, var(--color-primary) 35%, transparent), transparent 40%),
+      radial-gradient(circle at 89% 10%, color-mix(in oklab, var(--color-accent) 28%, transparent), transparent 36%),
+      linear-gradient(135deg, color-mix(in oklab, var(--color-surface-panel) 92%, black), color-mix(in oklab, var(--color-surface-elevated) 88%, black));
+    border: 1px solid color-mix(in oklab, var(--color-primary) 25%, var(--color-border-subtle));
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-soft-lg);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .dashboard-hero::after {
+    background: linear-gradient(
+      110deg,
+      transparent,
+      color-mix(in oklab, var(--color-text-inverse) 8%, transparent),
+      transparent
+    );
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .enter-rise {
+    animation: rise-in var(--motion-page) var(--ease-out) both;
+  }
+
+  .enter-delay-1 {
+    animation-delay: 90ms;
+  }
+
+  .enter-delay-2 {
+    animation-delay: 170ms;
+  }
+
+  .enter-delay-3 {
+    animation-delay: 250ms;
+  }
+
+  .interactive-press {
+    transform: translateZ(0);
+    transition:
+      transform var(--motion-base) var(--ease-out-quart),
+      box-shadow var(--motion-base) var(--ease-out-quart),
+      background-color var(--motion-base) var(--ease-standard),
+      border-color var(--motion-base) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      opacity var(--motion-fast) var(--ease-standard);
+    will-change: transform;
+  }
+
+  .interactive-press:hover {
+    transform: translateY(-2px);
+  }
+
+  .interactive-press:active {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 120ms;
+  }
+
+  .interactive-press:disabled,
+  .interactive-press[aria-disabled='true'] {
+    transform: none;
+    will-change: auto;
+  }
+
+  .interactive-field {
+    transition:
+      transform var(--motion-base) var(--ease-out-quart),
+      border-color var(--motion-base) var(--ease-standard),
+      box-shadow var(--motion-base) var(--ease-out-quart),
+      background-color var(--motion-base) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard);
+  }
+
+  .interactive-field:focus-visible {
+    transform: translateY(-1px);
+  }
+
+  .route-transition {
+    animation: route-enter var(--motion-route-enter) var(--ease-out-quint) both;
+    will-change: opacity, transform;
+  }
+
+  .reveal-block {
+    opacity: 0;
+    transform: translateY(var(--reveal-distance, 16px)) scale(0.988);
+    transition:
+      opacity var(--motion-reveal) var(--ease-out-expo),
+      transform var(--motion-reveal) var(--ease-out-expo);
+    transition-delay: var(--reveal-delay, 0ms);
+    will-change: opacity, transform;
+  }
+
+  .reveal-block.is-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.986);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Hide scrollbars globally while keeping scroll interaction intact. */
@@ -39,23 +558,53 @@
 }
 
 .modern-datetime-input {
-  background: #f0f2f4;
+  background: var(--color-surface-muted);
   border: 1px solid transparent;
-  border-radius: 0.75rem;
-  color: #111418;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--text-secondary);
+  line-height: var(--leading-normal);
   outline: none;
   padding: 0.5rem 0.75rem;
 }
 
 .modern-datetime-input:focus {
-  border-color: #137fec;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(19, 127, 236, 0.25);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal-block {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 .modern-datetime-input::placeholder {
-  color: #637588;
+  color: var(--color-text-secondary);
+}
+
+.sort-select {
+  background-image: linear-gradient(
+    125deg,
+    color-mix(in oklab, var(--color-primary) 12%, transparent),
+    transparent 54%
+  );
+}
+
+.sort-select option {
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+  font-weight: 600;
 }
 
 .modern-datepicker-popper {
@@ -63,19 +612,19 @@
 }
 
 .react-datepicker.modern-datepicker-calendar {
-  background-color: #1a2632 !important;
-  border: 1px solid #233648 !important;
-  border-radius: 1rem !important;
+  background-color: var(--color-surface-elevated) !important;
+  border: 1px solid var(--color-border-subtle) !important;
+  border-radius: var(--radius-lg) !important;
   box-shadow: 0 22px 50px rgba(2, 8, 18, 0.5) !important;
   color: #e8f0fa;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: var(--font-body);
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__header {
-  background: #111a22;
-  border-bottom: 1px solid #233648;
-  border-top-left-radius: 1rem;
-  border-top-right-radius: 1rem;
+  background: var(--color-surface-panel);
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__month-container,
@@ -84,16 +633,16 @@
 .react-datepicker.modern-datepicker-calendar .react-datepicker__time,
 .react-datepicker.modern-datepicker-calendar .react-datepicker__time-box,
 .react-datepicker.modern-datepicker-calendar .react-datepicker__time-list {
-  background: #1a2632;
+  background: var(--color-surface-elevated);
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__input-time-container {
-  background: #111a22;
-  border-top: 1px solid #233648;
+  background: var(--color-surface-panel);
+  border-top: 1px solid var(--color-border-subtle);
   margin: 0;
   padding: 1rem;
-  border-bottom-left-radius: 1rem;
-  border-bottom-right-radius: 1rem;
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
   display: flex !important;
   align-items: center;
   justify-content: center;
@@ -105,7 +654,7 @@
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__input-time-container .react-datepicker-time__caption {
   font-weight: 600;
-  color: #92adc9;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -120,10 +669,10 @@
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker-time__input-container .react-datepicker-time__input input {
-  background: #233648;
-  border: 1px solid #34485c;
-  border-radius: 0.5rem;
-  color: #ffffff;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
   color-scheme: dark;
   font-weight: 600;
   padding: 0.5rem 0.75rem;
@@ -141,7 +690,7 @@
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker-time__input-container .react-datepicker-time__input input:focus {
-  border-color: #137fec;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(19, 127, 236, 0.18);
 }
 
@@ -154,11 +703,12 @@
 .react-datepicker.modern-datepicker-calendar .react-datepicker__time-list-item,
 .react-datepicker.modern-datepicker-calendar .react-datepicker__navigation-icon::before {
   color: #e8f0fa;
+  font-variant-numeric: tabular-nums;
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__day-name,
 .react-datepicker.modern-datepicker-calendar .react-datepicker-time__header {
-  color: #92adc9;
+  color: var(--color-text-secondary);
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__day--selected,
@@ -171,17 +721,17 @@
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__day:hover,
 .react-datepicker.modern-datepicker-calendar .react-datepicker__time-list-item:hover {
-  background: #233648;
+  background: var(--color-surface-muted);
   border-radius: 0.5rem;
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__day--outside-month {
-  color: #637588;
+  color: var(--color-text-tertiary);
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__time-container,
 .react-datepicker.modern-datepicker-calendar .react-datepicker__time {
-  border-left: 1px solid #233648;
+  border-left: 1px solid var(--color-border-subtle);
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__time-box {
@@ -189,24 +739,24 @@
 }
 
 .modern-datepicker-popper .react-datepicker__triangle {
-  fill: #111a22 !important;
-  color: #111a22 !important;
-  stroke: #233648 !important;
+  fill: var(--color-surface-panel) !important;
+  color: var(--color-surface-panel) !important;
+  stroke: var(--color-border-subtle) !important;
 }
 
 .react-datepicker.modern-datepicker-calendar .react-datepicker__today-button {
-  background: #111a22;
-  border-top: 1px solid #233648;
-  color: #92adc9;
+  background: var(--color-surface-panel);
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
 }
 
 .dark .modern-datetime-input {
-  background: #233648;
-  color: #ffffff;
+  background: var(--color-surface-muted);
+  color: var(--color-text-primary);
 }
 
 .dark .modern-datetime-input::placeholder {
-  color: #92adc9;
+  color: var(--color-text-secondary);
 }
 
 html,
@@ -214,6 +764,10 @@ body,
 #root {
   min-height: 100%;
   overflow-x: hidden;
+}
+
+#root {
+  min-height: 100dvh;
 }
 
 .touch-target {
@@ -244,17 +798,6 @@ body,
 @media (max-height: 500px) {
   .modal-panel {
     max-height: 82dvh;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
   }
 }
 

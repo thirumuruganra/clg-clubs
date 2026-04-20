@@ -1,377 +1,446 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
-import StudentSidebar from '../components/StudentSidebar';
+import StudentSidebar from '../components/student-dashboard/StudentSidebar';
+import AppShell from '../components/layout/AppShell';
+import AppTopBar from '../components/layout/AppTopBar';
+import { Button } from '../components/ui/button';
+import { EmptyState } from '../components/ui/empty-state';
+import { Skeleton } from '../components/ui/skeleton';
+import { Toast } from '../components/ui/toast';
+import StudentDashboardActivityTracker from '../components/student-dashboard/StudentDashboardActivityTracker';
+import StudentDashboardDiscoverItem from '../components/student-dashboard/StudentDashboardDiscoverItem';
+import StudentDashboardEventCard from '../components/student-dashboard/StudentDashboardEventCard';
+import StudentDashboardEventCardSkeleton from '../components/student-dashboard/StudentDashboardEventCardSkeleton';
+import { Reveal } from '../components/ui/reveal';
 import { warmPosterCacheForEvents } from '../lib/utils';
 
 const API = '';
 
-const eventMatchesSearch = (event, rawQuery) => {
-    const query = rawQuery.trim().toLowerCase();
-    if (!query) return true;
+const FILTER_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'TECH', label: 'Tech' },
+  { value: 'NON_TECH', label: 'Non-Tech' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'week', label: 'This Week' },
+];
 
-    return [event.title, event.description, event.keywords]
-        .filter(Boolean)
-        .some((field) => field.toLowerCase().includes(query));
+const SORT_OPTIONS = [
+  { value: 'recommended', label: 'Recommended' },
+  { value: 'soonest', label: 'Soonest' },
+  { value: 'popular', label: 'Most Popular' },
+];
+
+const eventMatchesSearch = (event, rawQuery) => {
+  const query = rawQuery.trim().toLowerCase();
+  if (!query) return true;
+
+  return [event.title, event.description, event.keywords]
+    .filter(Boolean)
+    .some((field) => field.toLowerCase().includes(query));
+};
+
+const eventMatchesFilter = (event, filter) => {
+  if (filter === 'all') return true;
+  if (filter === 'TECH' || filter === 'NON_TECH') return event.tag === filter;
+  if (filter === 'paid') return Boolean(event.is_paid);
+  if (filter === 'week') {
+    if (!event.start_time) return false;
+    const eventDate = new Date(event.start_time);
+    if (Number.isNaN(eventDate.getTime())) return false;
+    const now = new Date();
+    const nextWeek = new Date();
+    nextWeek.setDate(now.getDate() + 7);
+    return eventDate >= now && eventDate <= nextWeek;
+  }
+  return true;
+};
+
+const sortEvents = (events, sortMode) => {
+  const cloned = [...events];
+  if (sortMode === 'soonest') {
+    cloned.sort((a, b) => {
+      const aTime = a.start_time ? new Date(a.start_time).getTime() : Number.MAX_SAFE_INTEGER;
+      const bTime = b.start_time ? new Date(b.start_time).getTime() : Number.MAX_SAFE_INTEGER;
+      return aTime - bTime;
+    });
+    return cloned;
+  }
+  if (sortMode === 'popular') {
+    cloned.sort((a, b) => (b.rsvp_count || 0) - (a.rsvp_count || 0));
+    return cloned;
+  }
+  return cloned;
 };
 
 const StudentDashboard = () => {
-    const { user, loading } = useAuth();
-    const navigate = useNavigate();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [forYouEvents, setForYouEvents] = useState([]);
-    const [discoverEvents, setDiscoverEvents] = useState([]);
-    const [loadingEvents, setLoadingEvents] = useState(true);
-    const [activities, setActivities] = useState([]);
-    const [loadingActivities, setLoadingActivities] = useState(true);
-    const [actionError, setActionError] = useState('');
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [sortMode, setSortMode] = useState('recommended');
+  const [forYouEvents, setForYouEvents] = useState([]);
+  const [discoverEvents, setDiscoverEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [pendingRsvpId, setPendingRsvpId] = useState(null);
+  const [activities, setActivities] = useState([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+  const [actionError, setActionError] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortMenuRef = useRef(null);
 
-    const fetchEvents = useCallback(async () => {
-        if (!user?.id) return;
+  const fetchEvents = useCallback(async () => {
+    if (!user?.id) return;
+    setLoadingEvents(true);
+    try {
+      const recommendedRes = await fetch(`${API}/api/events/feed?type=recommended&user_id=${user.id}`);
+      if (recommendedRes.ok) {
+        const recommendedEvents = await recommendedRes.json();
+        warmPosterCacheForEvents(recommendedEvents);
+        setForYouEvents(recommendedEvents);
+        setDiscoverEvents(recommendedEvents.filter((event) => !event.is_from_followed_club));
+      }
+    } catch (err) {
+      console.error('Error fetching events:', err);
+    } finally {
+      setLoadingEvents(false);
+    }
+  }, [user]);
 
-        try {
-            const recommendedRes = await fetch(`${API}/api/events/feed?type=recommended&user_id=${user.id}`);
-            if (recommendedRes.ok) {
-                const recommendedEvents = await recommendedRes.json();
-                warmPosterCacheForEvents(recommendedEvents);
-                setForYouEvents(recommendedEvents);
-                setDiscoverEvents(recommendedEvents.filter((event) => !event.is_from_followed_club));
-            }
-        } catch (err) {
-            console.error('Error fetching events:', err);
-        } finally {
-            setLoadingEvents(false);
-        }
-    }, [user]);
+  const fetchActivities = useCallback(async () => {
+    setLoadingActivities(true);
+    try {
+      const res = await fetch(`${API}/api/rsvp/rsvps/me/activity`);
+      if (res.ok) {
+        setActivities(await res.json());
+      }
+    } catch (err) {
+      console.error('Error fetching activities:', err);
+    } finally {
+      setLoadingActivities(false);
+    }
+  }, []);
 
-    const fetchActivities = useCallback(async () => {
-        try {
-            const res = await fetch(`${API}/api/rsvp/rsvps/me/activity`);
-            if (res.ok) {
-                setActivities(await res.json());
-            }
-        } catch (err) { console.error('Error fetching activities:', err); }
-        finally { setLoadingActivities(false); }
-    }, []);
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/login');
+      return;
+    }
+    if (
+      user &&
+      user.role !== 'CLUB_ADMIN' &&
+      (!user.batch || !user.department || !user.degree || (user.interests || []).length < 3)
+    ) {
+      navigate('/student/profile');
+      return;
+    }
+    if (user) {
+      void fetchEvents();
+      void fetchActivities();
+    }
+  }, [user, loading, navigate, fetchEvents, fetchActivities]);
 
-    useEffect(() => {
-        if (!loading && !user) {
-            navigate('/login');
-            return;
-        }
-        if (
-            user &&
-            user.role !== 'CLUB_ADMIN' &&
-            (!user.batch || !user.department || !user.degree || (user.interests || []).length < 3)
-        ) {
-            navigate('/student/profile');
-            return;
-        }
-        if (user) {
-            void fetchEvents();
-            void fetchActivities();
-        }
-    }, [user, loading, navigate, fetchEvents, fetchActivities]);
+  useEffect(() => {
+    if (!sortOpen) return undefined;
 
-    const handleRSVP = async (eventId, isRegistered) => {
-        setActionError('');
-        try {
-            const method = isRegistered ? 'DELETE' : 'POST';
-            const res = await fetch(`${API}/api/rsvp/events/${eventId}/rsvp`, { method });
-            if (res.ok) fetchEvents();
-            else {
-                const data = await res.json();
-                setActionError(data.detail || (isRegistered ? 'Failed to unregister.' : 'Already registered for this event.'));
-            }
-        } catch (err) {
-            console.error(err);
-            setActionError('Unable to update registration right now.');
-        }
+    const handlePointerDown = (event) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(event.target)) {
+        setSortOpen(false);
+      }
     };
 
-
-    if (loading) return (
-        <div className="min-h-dvh flex items-center justify-center bg-background-light dark:bg-background-dark">
-            <div className="animate-pulse text-white text-lg">Loading...</div>
-        </div>
-    );
-
-    const name = user?.name || 'Student';
-    const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-    const formatDate = (iso) => {
-        if (!iso) return { month: '', day: '' };
-        const d = new Date(iso);
-        return { month: d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(), day: d.getDate() };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setSortOpen(false);
+      }
     };
 
-    const EventCard = ({ event }) => {
-        const { month, day } = formatDate(event.start_time);
-        return (
-            <div className="flex flex-col overflow-hidden rounded-xl bg-white dark:bg-[#1a2632] shadow-sm border border-[#e5e7eb] dark:border-[#233648] hover:shadow-lg transition-shadow">
-                <div className="relative h-36 sm:h-40 bg-[#0f1720] overflow-hidden">
-                    {event.image_url ? (
-                        <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" />
-                    ) : null}
-                    <div className="absolute top-3 right-3 rounded-lg bg-white/90 dark:bg-[#111a22]/90 px-2 py-1 text-center backdrop-blur-sm shadow-sm">
-                        <p className="text-xs font-bold text-primary uppercase">{month}</p>
-                        <p className="text-lg font-bold text-[#111418] dark:text-white">{day}</p>
-                    </div>
-                    <div className="absolute bottom-3 left-3">
-                        <span className="inline-flex items-center rounded-md bg-primary/90 px-2 py-1 text-xs font-medium text-white">{event.club_name || 'Club'}</span>
-                    </div>
-                </div>
-                <div className="flex flex-col p-4 flex-1">
-                    <h3 className="mb-1 text-lg font-bold text-[#111418] dark:text-white">{event.title}</h3>
-                    <p className="mb-2 text-sm text-[#637588] dark:text-[#92adc9] line-clamp-2">{event.description}</p>
-                    
-                    {event.keywords && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                            {event.keywords.split(",").map((kw, i) => (
-                                <span key={i} className="px-2 py-0.5 bg-gray-100 dark:bg-[#233648] text-[#637588] dark:text-[#92adc9] text-[10px] rounded-full border border-[#e5e7eb] dark:border-[#34485c]">{kw.trim()}</span>
-                            ))}
-                        </div>
-                    )}
-                    
-                    {event.is_paid && (
-                        <div className="mb-3 text-xs flex flex-col gap-1 bg-orange-50 dark:bg-orange-500/10 p-2 rounded-lg border border-orange-100 dark:border-orange-500/20">
-                            <div className="flex items-center gap-1 text-orange-600 dark:text-orange-400 font-medium">
-                                <span className="material-symbols-outlined text-[14px]">payments</span>
-                                <span>Registration Fee: {event.registration_fees || "TBA"}</span>
-                            </div>
-                            {event.payment_link && (
-                                <a href={event.payment_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline" onClick={e => e.stopPropagation()}>
-                                    <span className="material-symbols-outlined text-[14px]">link</span>
-                                    <span>Payment Link</span>
-                                </a>
-                            )}
-                        </div>
-                    )}
-                    <div className="mt-auto flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-[#637588] dark:text-[#92adc9]">
-                            <span className="material-symbols-outlined text-[16px]">group</span>
-                            <span className="text-xs font-medium">{event.rsvp_count || 0} registered</span>
-                        </div>
-                        <button
-                            onClick={() => handleRSVP(event.id, event.is_rsvped)}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${event.is_rsvped ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
-                        >
-                            {event.is_rsvped ? 'Unregister' : 'Register'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
 
-    const DiscoverItem = ({ event }) => {
-        const { month, day } = formatDate(event.start_time);
-        return (
-            <div className="flex flex-col sm:flex-row overflow-hidden rounded-xl bg-white dark:bg-[#1a2632] shadow-sm border border-[#e5e7eb] dark:border-[#233648] min-h-40 hover:shadow-lg transition-shadow">
-                <div className="w-full sm:w-1/3 h-32 sm:h-auto bg-[#0f1720] overflow-hidden">
-                    {event.image_url ? (
-                        <img src={event.image_url} alt={event.title} className="h-full w-full object-cover" />
-                    ) : null}
-                </div>
-                <div className="flex w-full sm:w-2/3 flex-col p-4 justify-between gap-3">
-                    <div>
-                        <div className="flex justify-between items-start">
-                            <span className="text-xs font-bold text-primary uppercase tracking-wider mb-1">{event.club_name || 'Club'}</span>
-                            <span className="text-xs text-[#637588] dark:text-[#92adc9] font-medium bg-[#f0f2f4] dark:bg-[#233648] px-2 py-0.5 rounded">{month} {day}</span>
-                        </div>
-                        <h3 className="text-lg font-bold text-[#111418] dark:text-white leading-tight">{event.title}</h3>
-                        {event.location && (
-                            <div className="flex items-center gap-1 mt-2 text-[#637588] dark:text-[#92adc9]">
-                                <span className="material-symbols-outlined text-[16px]">location_on</span>
-                                <span className="text-xs">{event.location}</span>
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex items-center justify-end">
-                        <button onClick={() => navigate('/student/calendar')} className="flex items-center gap-1 rounded-lg border border-[#e5e7eb] dark:border-[#233648] bg-transparent px-3 py-1.5 text-xs font-bold text-[#111418] dark:text-white hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors">
-                            More Info
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
     };
+  }, [sortOpen]);
 
+  const handleRSVP = async (eventId, isRegistered) => {
+    setActionError('');
+    setPendingRsvpId(eventId);
+    try {
+      const method = isRegistered ? 'DELETE' : 'POST';
+      const res = await fetch(`${API}/api/rsvp/events/${eventId}/rsvp`, { method });
+      if (res.ok) {
+        await fetchEvents();
+      } else {
+        const data = await res.json();
+        setActionError(data.detail || (isRegistered ? 'Failed to unregister.' : 'Already registered for this event.'));
+      }
+    } catch (err) {
+      console.error(err);
+      setActionError('Unable to update registration right now.');
+    } finally {
+      setPendingRsvpId(null);
+    }
+  };
+
+  const filteredForYouEvents = useMemo(() => {
+    const filtered = forYouEvents
+      .filter((event) => eventMatchesSearch(event, searchQuery))
+      .filter((event) => eventMatchesFilter(event, activeFilter));
+    return sortEvents(filtered, sortMode);
+  }, [forYouEvents, searchQuery, activeFilter, sortMode]);
+
+  const filteredDiscoverEvents = useMemo(() => {
+    const filtered = discoverEvents
+      .filter((event) => eventMatchesSearch(event, searchQuery))
+      .filter((event) => eventMatchesFilter(event, activeFilter));
+    return sortEvents(filtered, sortMode);
+  }, [discoverEvents, searchQuery, activeFilter, sortMode]);
+
+  if (loading) {
     return (
-        <div className="relative flex h-auto min-h-dvh w-full bg-background-light dark:bg-background-dark font-display overflow-x-hidden text-slate-900 dark:text-white">
-            {mobileMenuOpen && (
-                <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setMobileMenuOpen(false)}></div>
-            )}
-            <StudentSidebar mobileMenuOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-            <div className="layout-container flex h-full grow flex-col flex-1 min-w-0">
-                {/* Header */}
-                <header className="flex items-center justify-between border-b border-solid border-[#e5e7eb] dark:border-[#233648] px-4 md:px-10 py-3 bg-white dark:bg-[#111a22]">
-                    <div className="flex items-center gap-3 md:gap-8 min-w-0">
-                        <button aria-label="Open sidebar" className="lg:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#f0f2f4] dark:hover:bg-[#233648] transition-colors" onClick={() => setMobileMenuOpen(true)}>
-                            <span className="material-symbols-outlined text-[24px]">menu</span>
-                        </button>
-                        <div className="flex items-center gap-3 md:gap-4 text-[#111418] dark:text-white cursor-pointer min-w-0" onClick={() => navigate('/student/dashboard')}>
-                            <h2 className="text-[#111418] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] truncate">WAVC</h2>
-                        </div>
-                        <label className="hidden md:flex flex-col min-w-40 h-10! max-w-64">
-                            <div className="flex w-full flex-1 items-stretch rounded-xl h-full">
-                                <div className="text-[#637588] dark:text-[#92adc9] flex border-none bg-[#f0f2f4] dark:bg-[#233648] items-center justify-center pl-4 rounded-l-xl">
-                                    <span className="material-symbols-outlined text-[24px]">search</span>
-                                </div>
-                                <input
-                                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] dark:text-white focus:outline-0 focus:ring-0 border-none bg-[#f0f2f4] dark:bg-[#233648] h-full placeholder:text-[#637588] dark:placeholder:text-[#92adc9] px-4 rounded-l-none pl-2 text-base font-normal"
-                                    placeholder="Search"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                            </div>
-                        </label>
-                    </div>
-                    <div className="flex flex-1 justify-end gap-3 md:gap-8 min-w-0">
-                        {user?.role === 'CLUB_ADMIN' && (
-                            <button onClick={() => navigate('/club/dashboard')} className="hidden md:flex min-w-21 cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-colors">
-                                <span className="truncate">Create Event</span>
-                            </button>
-                        )}
-                    </div>
-                </header>
-
-                {/* Main Content */}
-                <main className="px-4 md:px-10 lg:px-40 flex flex-1 justify-center py-6 md:py-8 overflow-x-hidden">
-                    <div className="layout-content-container flex flex-col max-w-240 w-full min-w-0 flex-1">
-                        <div className="md:hidden px-4 pb-2 pt-4">
-                            <label className="flex flex-col h-10">
-                                <div className="flex w-full flex-1 items-stretch rounded-xl h-full">
-                                    <div className="text-[#637588] dark:text-[#92adc9] flex border-none bg-[#f0f2f4] dark:bg-[#233648] items-center justify-center pl-3 rounded-l-xl">
-                                        <span className="material-symbols-outlined text-[20px]">search</span>
-                                    </div>
-                                    <input
-                                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] dark:text-white focus:outline-0 focus:ring-0 border-none bg-[#f0f2f4] dark:bg-[#233648] h-full placeholder:text-[#637588] dark:placeholder:text-[#92adc9] px-3 rounded-l-none pl-2 text-sm font-normal"
-                                        placeholder="Search events"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                    />
-                                </div>
-                            </label>
-                        </div>
-                        {/* Welcome */}
-                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-end pb-3 pt-6 px-4 min-w-0">
-                            <div className="min-w-0">
-                                <h1 className="text-[#111418] dark:text-white text-3xl sm:text-[32px] font-bold leading-tight wrap-break-word">Welcome back, {name}!</h1>
-                                <p className="text-[#637588] dark:text-[#92adc9] text-base mt-2">Here's what's happening around campus today.</p>
-                            </div>
-                            <div className="text-[#637588] dark:text-[#92adc9] text-sm font-medium flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[20px]">calendar_today</span>
-                                <span>{currentDate}</span>
-                            </div>
-                        </div>
-                        {actionError && <p className="mx-4 mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{actionError}</p>}
-
-                        {/* Calendar Tile */}
-                        <div className="grid grid-cols-1 gap-4 p-4">
-                            <div onClick={() => navigate('/student/calendar')} className="group relative cursor-pointer overflow-hidden rounded-xl shadow-sm transition-all hover:shadow-md h-64 sm:h-72 md:h-80">
-                                <div className="absolute inset-0 bg-linear-to-t from-black/70 to-black/20 transition-transform duration-500 group-hover:scale-105 bg-cover bg-center"
-                                    style={{ backgroundImage: 'linear-gradient(0deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuB3zrC2zWTw2D4ivcIDWAb6vufiRs4bu3TgruhnB8zNBUeKci7kXQow7VafPKRga4Lua80PMNk1-QDne8Jz2xL8sVt3D4vk8aly08_J7ECW6ibdVKe9cK___pbaTzgl6Ao0GGmlrhdkYYcHHKC28MFxi-5Mx_ilnkcmxWj5IIVBLlLxQYWXwPOekKPJDW0-W2SFeW-zf9V-A-3yzcHNOiIBjXVzDYVZKSGxx5ZgP8Wqr1aIRU71sDUnwUvmUITWOzvvnhPYUWOcoek")' }}
-                                ></div>
-                                <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8">
-                                    <div className="mb-4"><span className="material-symbols-outlined rounded-full bg-white/20 p-3 text-white backdrop-blur-sm text-2xl">calendar_month</span></div>
-                                    <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2">Event Calendar</h3>
-                                    <p className="text-base text-gray-200 line-clamp-2 max-w-2xl">Check out all scheduled activities and plan your semester ahead.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* For You */}
-                        <div className="mt-8">
-                            <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-4">
-                                <div>
-                                    <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">For You</h2>
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Interest-matched events ranked for you across all clubs</p>
-                                </div>
-                                <button onClick={() => navigate('/student/calendar')} className="text-primary text-sm font-bold hover:underline">View All</button>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
-                                {!loadingEvents && forYouEvents.length === 0 && (
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm col-span-3 italic">No personalized events yet. Add more interests in your profile.</p>
-                                )}
-                                {forYouEvents
-                                    .filter(e => eventMatchesSearch(e, searchQuery))
-                                    .slice(0, 3).map(e => <EventCard key={e.id} event={e} />)}
-                            </div>
-                        </div>
-
-                        {/* Discover */}
-                        <div className="mt-10 mb-8">
-                            <div className="flex items-center justify-between px-4 pb-4">
-                                <div>
-                                    <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">Explore Beyond Your Clubs</h2>
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Great matches from clubs you do not follow yet</p>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4">
-                                {!loadingEvents && discoverEvents.length === 0 && (
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm col-span-2 italic">No extra recommendations right now.</p>
-                                )}
-                                {discoverEvents
-                                    .filter(e => eventMatchesSearch(e, searchQuery))
-                                    .slice(0, 4).map(e => <DiscoverItem key={e.id} event={e} />)}
-                            </div>
-                        </div>
-
-                        {/* Student Activity Tracker */}
-                        <div className="mt-10 mb-8">
-                            <div className="flex items-center justify-between px-4 pb-4">
-                                <div>
-                                    <h2 className="text-[#111418] dark:text-white text-[22px] font-bold">Student Activity Tracker</h2>
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm mt-1">Events you have attended</p>
-                                </div>
-                            </div>
-                            <div className="px-4">
-                                {loadingActivities ? (
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm italic">Loading activities...</p>
-                                ) : activities.length === 0 ? (
-                                    <p className="text-[#637588] dark:text-[#92adc9] text-sm italic">No attended events yet. Participate in events to earn activity points!</p>
-                                ) : (
-                                    <div className="overflow-x-auto rounded-xl border border-[#e5e7eb] dark:border-[#233648] bg-white dark:bg-[#1a2632]">
-                                        <table className="w-full min-w-160 text-left text-sm text-[#111418] dark:text-white">
-                                            <thead className="bg-[#f0f2f4] dark:bg-[#233648] text-xs uppercase text-[#637588] dark:text-[#92adc9]">
-                                                <tr>
-                                                    <th className="px-3 md:px-6 py-3 whitespace-nowrap">Event Name</th>
-                                                    <th className="px-3 md:px-6 py-3 whitespace-nowrap">Club Name</th>
-                                                    <th className="px-3 md:px-6 py-3 whitespace-nowrap">Date</th>
-                                                    <th className="px-3 md:px-6 py-3 whitespace-nowrap">Start Time</th>
-                                                    <th className="px-3 md:px-6 py-3 whitespace-nowrap">End Time</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y border-t border-[#e5e7eb] dark:border-[#233648] divide-[#e5e7eb] dark:divide-[#233648]">
-                                                {activities.map((act, i) => {
-                                                    const startD = new Date(act.start_time);
-                                                    const endD = new Date(act.end_time);
-                                                    const dateStr = startD.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                                                    const startTimeStr = startD.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                                                    const endTimeStr = endD.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                                                    return (
-                                                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-[#111a22] transition-colors">
-                                                            <td className="px-3 md:px-6 py-4 font-medium">{act.event_name}</td>
-                                                            <td className="px-3 md:px-6 py-4">{act.club_name}</td>
-                                                            <td className="px-3 md:px-6 py-4">{dateStr}</td>
-                                                            <td className="px-3 md:px-6 py-4">{startTimeStr}</td>
-                                                            <td className="px-3 md:px-6 py-4">{endTimeStr}</td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </main>
-            </div>
+      <div className="flex min-h-dvh items-center justify-center bg-background-light dark:bg-background-dark">
+        <div className="w-full max-w-sm space-y-3 px-4">
+          <Skeleton className="h-6 w-2/3" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
         </div>
+      </div>
     );
+  }
+
+  const name = user?.name || 'Student';
+  const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const upcomingWeekCount = forYouEvents.filter((event) => eventMatchesFilter(event, 'week')).length;
+  const registeredCount = forYouEvents.filter((event) => event.is_rsvped).length;
+  const selectedSortLabel = SORT_OPTIONS.find((option) => option.value === sortMode)?.label || 'Recommended';
+
+  const sidebarNode = <StudentSidebar mobileMenuOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />;
+
+  const topbarActions = user?.role === 'CLUB_ADMIN'
+    ? (
+      <Button onClick={() => navigate('/club/dashboard')} size="sm" className="h-10">
+        Club Admin
+      </Button>
+      )
+    : null;
+
+  const topbarNode = (
+    <AppTopBar
+      title="Student Dashboard"
+      onOpenMenu={() => setMobileMenuOpen(true)}
+      showSearch
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      searchPlaceholder="Search events"
+      actions={topbarActions}
+    />
+  );
+
+  return (
+    <AppShell sidebar={sidebarNode} topbar={topbarNode} mobileMenuOpen={mobileMenuOpen} onCloseMenu={() => setMobileMenuOpen(false)}>
+      <div className="layout-container flex h-full min-w-0 flex-1 grow flex-col font-body text-text-primary dark:text-white">
+        <div className="flex flex-1 justify-center overflow-x-hidden px-4 py-6 md:px-10 md:py-8 lg:px-16">
+          <div className="layout-content-container flex w-full max-w-240 min-w-0 flex-1 flex-col">
+
+            <div className="min-w-0 px-4 pb-3 pt-6">
+              <Reveal className="dashboard-hero p-5 sm:p-7" distance={18}>
+                <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="min-w-0">
+                    <span className="kicker-label">Student Dashboard</span>
+                    <h1 className="wrap-break-word type-page-title mt-4 text-white sm:text-4xl">Welcome back, {name}!</h1>
+                    <p className="type-lead mt-3 text-white/84">Track campus buzz, pick your next event, and keep your momentum visible.</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-white sm:gap-3">
+                    <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
+                      <p className="type-metric text-white">{forYouEvents.length}</p>
+                      <p className="type-label mt-1 text-white/75">Matches</p>
+                    </div>
+                    <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
+                      <p className="type-metric text-white">{upcomingWeekCount}</p>
+                      <p className="type-label mt-1 text-white/75">This Week</p>
+                    </div>
+                    <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/15 bg-black/26 p-3 text-center backdrop-blur-sm">
+                      <p className="type-metric text-white">{registeredCount}</p>
+                      <p className="type-label mt-1 text-white/75">Registered</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="relative z-10 mt-5 flex items-center gap-2 text-sm font-medium text-white/78">
+                  <span className="material-symbols-outlined text-[20px]">calendar_today</span>
+                  <span>{currentDate}</span>
+                </div>
+              </Reveal>
+            </div>
+
+            <div className="px-4 pb-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {FILTER_OPTIONS.map((option) => (
+                  <Button
+                    key={option.value}
+                    onClick={() => setActiveFilter(option.value)}
+                    variant={activeFilter === option.value ? 'primary' : 'secondary'}
+                    size="sm"
+                    className="type-label h-8 rounded-full border border-transparent px-3"
+                    aria-pressed={activeFilter === option.value}
+                    aria-label={`Filter events: ${option.label}`}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+                <div className="ml-auto flex items-center gap-2">
+                  <label htmlFor="event-sort" className="type-label text-text-secondary dark:text-text-dark-secondary">
+                    Sort
+                  </label>
+                  <div className="relative">
+                    <div ref={sortMenuRef} className="relative">
+                      <button
+                        id="event-sort"
+                        type="button"
+                        aria-haspopup="listbox"
+                        aria-expanded={sortOpen}
+                        aria-label="Sort events"
+                        onClick={() => setSortOpen((previous) => !previous)}
+                        className="interactive-press inline-flex h-11 min-w-42 items-center justify-between rounded-full border border-primary/45 bg-surface-panel px-4 text-sm font-bold text-text-primary shadow-soft-sm transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:bg-surface-elevated dark:text-white"
+                      >
+                        <span>{selectedSortLabel}</span>
+                        <span className={`material-symbols-outlined text-[18px] text-text-secondary transition-transform dark:text-text-dark-secondary ${sortOpen ? 'rotate-180' : ''}`}>
+                          expand_more
+                        </span>
+                      </button>
+
+                      {sortOpen ? (
+                        <div className="absolute right-0 z-60 mt-2 w-44 overflow-hidden rounded-xl border border-border-subtle bg-surface-panel shadow-soft-lg dark:border-border-strong dark:bg-surface-elevated">
+                          <ul role="listbox" aria-labelledby="event-sort" className="py-1">
+                            {SORT_OPTIONS.map((option) => (
+                              <li key={option.value} role="none">
+                                <button
+                                  type="button"
+                                  role="option"
+                                  aria-selected={sortMode === option.value}
+                                  onClick={() => {
+                                    setSortMode(option.value);
+                                    setSortOpen(false);
+                                  }}
+                                  className={`flex w-full items-center px-3 py-2 text-left text-sm font-semibold transition-colors ${sortMode === option.value
+                                    ? 'bg-primary/18 text-primary dark:bg-primary/24'
+                                    : 'text-text-primary hover:bg-surface-muted dark:text-white dark:hover:bg-border-strong/55'}`}
+                                >
+                                  {option.label}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {actionError && (
+              <div className="mx-4 mt-2">
+                <Toast tone="error" title="Action failed" description={actionError} />
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 p-4">
+              <button type="button" onClick={() => navigate('/student/calendar')} className="interactive-press dashboard-hero group relative h-64 transition-all hover:shadow-soft-xl sm:h-72 md:h-80">
+                <img
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3zrC2zWTw2D4ivcIDWAb6vufiRs4bu3TgruhnB8zNBUeKci7kXQow7VafPKRga4Lua80PMNk1-QDne8Jz2xL8sVt3D4vk8aly08_J7ECW6ibdVKe9cK___pbaTzgl6Ao0GGmlrhdkYYcHHKC28MFxi-5Mx_ilnkcmxWj5IIVBLlLxQYWXwPOekKPJDW0-W2SFeW-zf9V-A-3yzcHNOiIBjXVzDYVZKSGxx5ZgP8Wqr1aIRU71sDUnwUvmUITWOzvvnhPYUWOcoek"
+                  alt="Students attending campus event"
+                  loading="lazy"
+                  decoding="async"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-overlay-scrim" aria-hidden="true"></div>
+                <div className="absolute inset-0 flex flex-col justify-between p-6 sm:p-8">
+                  <div className="flex items-center justify-between">
+                    <span className="kicker-label border-white/30 bg-white/8 text-white">Live Calendar</span>
+                    <span className="material-symbols-outlined rounded-full border border-white/20 bg-black/24 p-3 text-2xl text-white">calendar_month</span>
+                  </div>
+                  <div className="text-left">
+                    <h3 className="section-title mb-2 text-white sm:text-3xl">Event Calendar</h3>
+                    <p className="line-clamp-2 max-w-2xl text-base text-white/82">Check scheduled activities, compare overlaps, and plan your semester rhythm.</p>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <Reveal as="section" className="mt-8" delay={120}>
+              <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-4">
+                <div>
+                  <h2 className="section-title">For You</h2>
+                  <p className="mt-1 text-sm text-text-secondary dark:text-text-dark-secondary">Interest-matched events ranked for you.</p>
+                </div>
+                <Button onClick={() => navigate('/student/calendar')} variant="ghost" size="sm" className="h-8 px-2 text-sm font-bold text-primary">View All</Button>
+              </div>
+              <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2 lg:grid-cols-3">
+                {loadingEvents && Array.from({ length: 3 }).map((_, index) => <StudentDashboardEventCardSkeleton key={`for-you-skeleton-${index}`} />)}
+                {!loadingEvents && filteredForYouEvents.length === 0 && (
+                  <div className="col-span-3">
+                    <EmptyState
+                      icon="search_off"
+                      title="No matching events"
+                      description="No events match current search and filters. Adjust filters or browse all events."
+                      actionLabel="Open Calendar"
+                      onAction={() => navigate('/student/calendar')}
+                    />
+                  </div>
+                )}
+                {!loadingEvents && filteredForYouEvents.slice(0, 3).map((event) => (
+                  <StudentDashboardEventCard
+                    key={event.id}
+                    event={event}
+                    pendingRsvpId={pendingRsvpId}
+                    onToggleRsvp={handleRSVP}
+                  />
+                ))}
+              </div>
+            </Reveal>
+
+            <Reveal as="section" className="mb-8 mt-10" delay={180}>
+              <div className="flex items-center justify-between px-4 pb-4">
+                <div>
+                  <h2 className="section-title">Explore Beyond Your Clubs</h2>
+                  <p className="mt-1 text-sm text-text-secondary dark:text-text-dark-secondary">Recommended events from clubs you do not follow yet.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2">
+                {loadingEvents && Array.from({ length: 2 }).map((_, index) => <StudentDashboardEventCardSkeleton key={`discover-skeleton-${index}`} />)}
+                {!loadingEvents && filteredDiscoverEvents.length === 0 && (
+                  <div className="col-span-2">
+                    <EmptyState
+                      icon="interests"
+                      title="No extra recommendations"
+                      description="No recommendations beyond followed clubs right now. Check calendar for upcoming events."
+                      actionLabel="View Calendar"
+                      onAction={() => navigate('/student/calendar')}
+                    />
+                  </div>
+                )}
+                {!loadingEvents && filteredDiscoverEvents.slice(0, 4).map((event) => (
+                  <StudentDashboardDiscoverItem
+                    key={event.id}
+                    event={event}
+                    onMoreInfo={() => navigate('/student/calendar')}
+                  />
+                ))}
+              </div>
+            </Reveal>
+            <StudentDashboardActivityTracker
+              loadingActivities={loadingActivities}
+              activities={activities}
+              onBrowseEvents={() => navigate('/student/calendar')}
+            />
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
 };
 
 export default StudentDashboard;

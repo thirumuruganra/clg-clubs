@@ -34,9 +34,15 @@ __pycache__/
 *.db
 venv/
 .venv/
+backend/app/static/
 
 run.txt
 new_features.md
 desktop.ini
 *.csv
+.github/
+.impeccable.md
+
+# Local deploy helpers (not committed)
+deploy-heroku.sh
 *.sh
