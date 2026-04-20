@@ -144,16 +144,21 @@ const ClubMembersTab = ({
               <table className="w-full min-w-184 table-fixed">
                 <colgroup>
                   <col className="w-[24%]" />
-                  <col className="w-[26%]" />
+                  <col className="w-[24%]" />
                   <col className="w-[18%]" />
                   <col className="w-[10%]" />
                   <col className="w-[14%]" />
-                  <col className="w-[8%]" />
+                  <col className="w-[10%]" />
                 </colgroup>
                 <thead className="bg-surface-muted dark:bg-border-strong/55">
                   <tr className="border-b border-border-subtle dark:border-border-strong">
                     {['Student', 'Email', 'Department', 'Year', 'Register No', 'Actions'].map((header) => (
-                      <th key={header} className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary">{header}</th>
+                      <th
+                        key={header}
+                        className={`px-5 py-3.5 text-xs font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary ${header === 'Actions' ? 'text-center' : 'text-left'}`}
+                      >
+                        {header}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -181,11 +186,11 @@ const ClubMembersTab = ({
                         <td className="px-5 py-4 align-middle text-sm">
                           <span className="block truncate" title={member.register_number || '-'}>{member.register_number || '-'}</span>
                         </td>
-                        <td className="px-5 py-4 align-middle">
+                        <td className="px-5 py-4 align-middle text-center">
                           <button
                             type="button"
                             onClick={() => onRemoveMember(member)}
-                            className="rounded-lg border border-red-500/25 px-2.5 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
+                            className="inline-flex min-w-22 items-center justify-center rounded-lg border border-red-500/25 px-3 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
                           >
                             Remove
                           </button>
