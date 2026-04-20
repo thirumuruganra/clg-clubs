@@ -72,6 +72,7 @@ const STUDENT_DEPARTMENT_OPTIONS = [
 ];
 
 const STUDENT_YEAR_OPTIONS = ['I', 'II', 'III', 'IV', 'V', 'Alumni'];
+const VALID_REGISTER_NUMBER_PATTERN = /^3122\d{9}$/;
 
 const countWords = (value = '') => {
   const trimmed = value.trim();
@@ -878,13 +879,16 @@ const ClubsDashboard = () => {
 
   const getAdmissionYearFromRegisterNumber = (registerNumber) => {
     const digitsOnly = String(registerNumber || '').replace(/\D/g, '');
-    if (digitsOnly.length < 6) return null;
+    if (!VALID_REGISTER_NUMBER_PATTERN.test(digitsOnly)) return null;
 
     // SSN register numbers usually encode admission year as the 5th and 6th digits.
     const admissionYearCode = parseInt(digitsOnly.slice(4, 6), 10);
     if (Number.isNaN(admissionYearCode)) return null;
 
-    return 2000 + admissionYearCode;
+    const admissionYear = 2000 + admissionYearCode;
+    if (admissionYear > new Date().getFullYear()) return null;
+
+    return admissionYear;
   };
 
   const calculateYearFromAdmission = (admissionYear, duration, currentYear) => {

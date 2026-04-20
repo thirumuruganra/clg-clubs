@@ -91,7 +91,8 @@ def _get_degree_duration(degree_str) -> int | None:
 
 def _get_admission_year_from_register_number(register_number) -> int | None:
     digits_only = "".join(ch for ch in str(register_number or "") if ch.isdigit())
-    if len(digits_only) < 6:
+    # Admission year can only be derived from canonical SSN register numbers.
+    if not REGISTER_NUMBER_PATTERN.fullmatch(digits_only):
         return None
 
     try:
@@ -99,7 +100,12 @@ def _get_admission_year_from_register_number(register_number) -> int | None:
     except ValueError:
         return None
 
-    return 2000 + code
+    admission_year = 2000 + code
+    current_year = datetime.now().year
+    if admission_year > current_year:
+        return None
+
+    return admission_year
 
 
 def _calculate_year_from_admission(admission_year: int | None, duration: int | None, current_year: int) -> str | None:
