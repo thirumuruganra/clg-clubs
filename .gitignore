@@ -41,6 +41,7 @@ new_features.md
 desktop.ini
 *.csv
 .github/
+.impeccable.md
 
 # Local deploy helpers (not committed)
 deploy-heroku.sh
