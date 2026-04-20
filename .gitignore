@@ -34,6 +34,7 @@ __pycache__/
 *.db
 venv/
 .venv/
+backend/app/static/
 
 run.txt
 new_features.md
