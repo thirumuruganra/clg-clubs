@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../auth-context';
 import { warmPosterCacheForEvents, warmPosterImageCache } from '../../lib/utils';
-import { Button } from '../components/ui/button';
-import { EmptyState } from '../components/ui/empty-state';
-import { EventPosterFallback } from '../components/ui/event-poster-fallback';
-import { IconButton } from '../components/ui/icon-button';
-import { Skeleton } from '../components/ui/skeleton';
+import { Button } from '../ui/button';
+import { EmptyState } from '../ui/empty-state';
+import { EventPosterFallback } from '../ui/event-poster-fallback';
+import { IconButton } from '../ui/icon-button';
+import { Skeleton } from '../ui/skeleton';
 
 const API = '';
 
