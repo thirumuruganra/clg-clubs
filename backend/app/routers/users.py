@@ -9,6 +9,7 @@ import json
 import re
 from datetime import datetime
 from typing import List
+from uuid import UUID
 
 router = APIRouter()
 
@@ -175,7 +176,7 @@ def list_registered_students(
     q: str = Query(default="", max_length=120),
     department: str | None = Query(default=None),
     year: str | None = Query(default=None),
-    exclude_club_id: int | None = Query(default=None),
+    exclude_club_id: UUID | None = Query(default=None),
     limit: int = Query(default=200, ge=1, le=500),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -235,7 +236,7 @@ def list_registered_students(
     filtered_students.sort(
         key=lambda student: (
             _normalize_text(student.get("name") or student.get("email")),
-            student["id"],
+            str(student["id"]),
         )
     )
 
@@ -246,7 +247,7 @@ def list_registered_students(
     }
 
 @router.get("/{user_id}")
-def read_user(user_id: int, db: Session = Depends(get_db)):
+def read_user(user_id: UUID, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -269,7 +270,7 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
     }
 
 @router.put("/{user_id}")
-def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)):
+def update_user(user_id: UUID, user_update: UserUpdate, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

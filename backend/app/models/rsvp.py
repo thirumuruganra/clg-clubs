@@ -1,4 +1,7 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, UniqueConstraint, Boolean
+import uuid
+
+from sqlalchemy import Column, DateTime, ForeignKey, UniqueConstraint, Boolean
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -7,9 +10,9 @@ from app.database import Base
 class RSVP(Base):
     __tablename__ = "rsvps"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    event_id = Column(UUID(as_uuid=True), ForeignKey("events.id"), nullable=False)
     attended = Column(Boolean, default=False)
     attended_marked_at = Column(DateTime, nullable=True)
     is_paid = Column(Boolean, default=False)

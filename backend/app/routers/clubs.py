@@ -10,6 +10,7 @@ from app.schemas import ClubCreate, ClubMemberCreate, ClubUpdate
 from app.core.security import get_current_user
 from app.services.club_logos import MAX_LOGO_BYTES, replace_club_logo
 from typing import Optional
+from uuid import UUID
 
 router = APIRouter()
 
@@ -75,7 +76,7 @@ def _sync_user_joined_clubs(user: User, club_name: str, add: bool) -> bool:
     return True
 
 
-def _get_owned_club(club_id: int, current_user: User, db: Session) -> Club:
+def _get_owned_club(club_id: UUID, current_user: User, db: Session) -> Club:
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
@@ -87,7 +88,7 @@ def _get_owned_club(club_id: int, current_user: User, db: Session) -> Club:
 
 
 @router.get("/")
-def get_all_clubs(user_id: Optional[int] = Query(None), db: Session = Depends(get_db)):
+def get_all_clubs(user_id: Optional[UUID] = Query(None), db: Session = Depends(get_db)):
     """Get all clubs with follower count and follow status for current user."""
     clubs = db.query(Club).all()
     result = []
@@ -104,7 +105,7 @@ def get_all_clubs(user_id: Optional[int] = Query(None), db: Session = Depends(ge
 
 
 @router.get("/{club_id}")
-def get_club(club_id: int, user_id: Optional[int] = Query(None), db: Session = Depends(get_db)):
+def get_club(club_id: UUID, user_id: Optional[UUID] = Query(None), db: Session = Depends(get_db)):
     """Get a single club by ID."""
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
@@ -122,7 +123,7 @@ def get_club(club_id: int, user_id: Optional[int] = Query(None), db: Session = D
 
 @router.get("/{club_id}/members")
 def get_club_members(
-    club_id: int,
+    club_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -154,7 +155,7 @@ def get_club_members(
             }
         )
 
-    members.sort(key=lambda member: (_normalize_text(member.get("name") or member.get("email")), member["user_id"]))
+    members.sort(key=lambda member: (_normalize_text(member.get("name") or member.get("email")), str(member["user_id"])))
 
     return {
         "club_id": club_id,
@@ -165,7 +166,7 @@ def get_club_members(
 
 @router.post("/{club_id}/members", status_code=status.HTTP_201_CREATED)
 def add_club_member(
-    club_id: int,
+    club_id: UUID,
     payload: ClubMemberCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -211,8 +212,8 @@ def add_club_member(
 
 @router.delete("/{club_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_club_member(
-    club_id: int,
-    user_id: int,
+    club_id: UUID,
+    user_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -266,7 +267,7 @@ def create_club(club: ClubCreate, db: Session = Depends(get_db), current_user: U
 
 
 @router.put("/{club_id}")
-def update_club(club_id: int, club_update: ClubUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_club(club_id: UUID, club_update: ClubUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Update an existing club. Only the owning admin can update."""
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
@@ -295,7 +296,7 @@ def update_club(club_id: int, club_update: ClubUpdate, db: Session = Depends(get
 
 @router.post("/{club_id}/logo")
 async def upload_club_logo(
-    club_id: int,
+    club_id: UUID,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -337,7 +338,7 @@ async def upload_club_logo(
 
 
 @router.get("/{club_id}/events")
-def get_club_events(club_id: int, db: Session = Depends(get_db)):
+def get_club_events(club_id: UUID, db: Session = Depends(get_db)):
     """Get all events for a specific club."""
     from app.models.event import Event
     from app.models.rsvp import RSVP

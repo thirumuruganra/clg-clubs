@@ -6,6 +6,7 @@ import re
 import os
 import uuid
 from urllib.parse import urlencode, urlparse
+from uuid import UUID
 from app.database import get_db
 from app.models.event import Event
 from app.models.event_worker import EventWorker
@@ -85,12 +86,12 @@ def _tokenize_text(raw_text: Optional[str]) -> set[str]:
     return {token for token in re.findall(r"[a-z0-9]+", raw_text.lower()) if token}
 
 
-def _build_attendance_checkin_url(event_id: int, qr_code: str) -> str:
+def _build_attendance_checkin_url(event_id: UUID, qr_code: str) -> str:
     query = urlencode({"event_id": event_id, "qr": qr_code})
     return f"{FRONTEND_CHECKIN_BASE_URL}/student/attendance-checkin?{query}"
 
 
-def _require_admin_owned_event(event_id: int, db: Session, current_user: User) -> Event:
+def _require_admin_owned_event(event_id: UUID, db: Session, current_user: User) -> Event:
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -184,7 +185,7 @@ def get_all_events(search: Optional[str] = Query(None), db: Session = Depends(ge
 @router.get("/feed")
 def get_event_feed(
     type: str = Query("following", pattern="^(following|discover|recommended)$"),
-    user_id: Optional[int] = Query(None),
+    user_id: Optional[UUID] = Query(None),
     search: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
@@ -279,7 +280,7 @@ def get_event_feed(
 
 
 @router.get("/{event_id}")
-def get_event(event_id: int, user_id: Optional[int] = Query(None), db: Session = Depends(get_db)):
+def get_event(event_id: UUID, user_id: Optional[UUID] = Query(None), db: Session = Depends(get_db)):
     """Get a single event by ID."""
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
@@ -377,7 +378,7 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
 
 @router.post("/{event_id}/poster")
 async def upload_event_poster(
-    event_id: int,
+    event_id: UUID,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -412,7 +413,7 @@ async def upload_event_poster(
 
 
 @router.put("/{event_id}")
-def update_event(event_id: int, event_update: EventUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_event(event_id: UUID, event_update: EventUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Update an existing event. Only the club admin who owns the event can update it."""
     _validate_short_description(event_update.description)
 
@@ -490,7 +491,7 @@ def update_event(event_id: int, event_update: EventUpdate, db: Session = Depends
 
 
 @router.get("/{event_id}/attendance-qr")
-def get_event_attendance_qr(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_event_attendance_qr(event_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get attendance QR payload for an event (club admin owner only)."""
     event = _require_admin_owned_event(event_id, db, current_user)
 
@@ -507,7 +508,7 @@ def get_event_attendance_qr(event_id: int, db: Session = Depends(get_db), curren
 
 
 @router.post("/{event_id}/attendance-qr/open")
-def open_event_attendance_qr(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def open_event_attendance_qr(event_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Open attendance QR for student scans (club admin owner only)."""
     event = _require_admin_owned_event(event_id, db, current_user)
 
@@ -527,7 +528,7 @@ def open_event_attendance_qr(event_id: int, db: Session = Depends(get_db), curre
 
 
 @router.post("/{event_id}/attendance-qr/close")
-def close_event_attendance_qr(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def close_event_attendance_qr(event_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Close attendance QR scans for an event (club admin owner only)."""
     event = _require_admin_owned_event(event_id, db, current_user)
 
@@ -542,7 +543,7 @@ def close_event_attendance_qr(event_id: int, db: Session = Depends(get_db), curr
 
 
 @router.get("/{event_id}/workforce")
-def get_event_workforce(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_event_workforce(event_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get workforce assignments (club members + volunteers) for one event."""
     event = _require_admin_owned_event(event_id, db, current_user)
 
@@ -558,7 +559,7 @@ def get_event_workforce(event_id: int, db: Session = Depends(get_db), current_us
         key=lambda row: (
             row.get("role") != WORKFORCE_ROLE_MEMBER,
             str(row.get("name") or row.get("email") or "").strip().lower(),
-            row.get("user_id") or 0,
+            str(row.get("user_id") or ""),
         )
     )
 
@@ -576,7 +577,7 @@ def get_event_workforce(event_id: int, db: Session = Depends(get_db), current_us
 
 @router.post("/{event_id}/workforce", status_code=201)
 def add_event_workforce_member(
-    event_id: int,
+    event_id: UUID,
     payload: EventWorkforceCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -623,8 +624,8 @@ def add_event_workforce_member(
 
 @router.delete("/{event_id}/workforce/{assignment_id}", status_code=204)
 def remove_event_workforce_member(
-    event_id: int,
-    assignment_id: int,
+    event_id: UUID,
+    assignment_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -645,7 +646,7 @@ def remove_event_workforce_member(
 
 
 @router.delete("/{event_id}")
-def delete_event(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def delete_event(event_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Delete an event. Only the club admin who owns the event can delete it."""
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
@@ -670,7 +671,7 @@ def delete_event(event_id: int, db: Session = Depends(get_db), current_user: Use
 
 
 @router.get("/{event_id}/activity")
-def get_event_activity(event_id: int, db: Session = Depends(get_db)):
+def get_event_activity(event_id: UUID, db: Session = Depends(get_db)):
     """Get live activity for an event (RSVP count in the last hour)."""
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:

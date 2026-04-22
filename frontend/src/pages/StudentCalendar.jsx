@@ -114,7 +114,7 @@ const StudentCalendar = () => {
   const filteredEvents = events.filter((event) => {
     if (categoryFilter === 'tech' && event.tag !== 'TECH') return false;
     if (categoryFilter === 'nontech' && event.tag !== 'NON_TECH') return false;
-    if (selectedClubId !== null && Number(event.club_id) !== selectedClubId) return false;
+    if (selectedClubId !== null && event.club_id !== selectedClubId) return false;
     if (!eventMatchesSearch(event, searchQuery)) return false;
     return true;
   });

@@ -1068,7 +1068,7 @@ const ClubsDashboard = () => {
       const response = await fetch(`${API}/api/events/${rsvpModal.event.id}/workforce`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: Number(userId), role }),
+        body: JSON.stringify({ user_id: userId, role }),
       });
 
       if (!response.ok) {

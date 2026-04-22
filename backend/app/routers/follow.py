@@ -5,12 +5,13 @@ from app.models.follow import Follow
 from app.models.club import Club
 from app.models.user import User
 from app.core.security import get_current_user
+from uuid import UUID
 
 router = APIRouter()
 
 
 @router.post("/clubs/{club_id}/follow")
-def follow_club(club_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def follow_club(club_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Follow a club. Requires authentication."""
     # Verify club exists
     club = db.query(Club).filter(Club.id == club_id).first()
@@ -37,7 +38,7 @@ def follow_club(club_id: int, db: Session = Depends(get_db), current_user: User 
 
 
 @router.delete("/clubs/{club_id}/follow")
-def unfollow_club(club_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def unfollow_club(club_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Unfollow a club. Requires authentication."""
     follow = db.query(Follow).filter(
         Follow.user_id == current_user.id, Follow.club_id == club_id
@@ -52,7 +53,7 @@ def unfollow_club(club_id: int, db: Session = Depends(get_db), current_user: Use
 
 
 @router.get("/users/{user_id}/following")
-def get_user_following(user_id: int, db: Session = Depends(get_db)):
+def get_user_following(user_id: UUID, db: Session = Depends(get_db)):
     """Get all clubs a user follows."""
     follows = db.query(Follow).filter(Follow.user_id == user_id).all()
 
@@ -73,7 +74,7 @@ def get_user_following(user_id: int, db: Session = Depends(get_db)):
 
 @router.get("/clubs/{club_id}/followers")
 def get_club_followers(
-    club_id: int,
+    club_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

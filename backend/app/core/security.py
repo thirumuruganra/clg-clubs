@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 import os
 from typing import Iterable
+from uuid import UUID
 
 GOOGLE_BASE_SCOPES = "openid email profile"
 GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events"
@@ -44,6 +45,9 @@ ACCESS_TOKEN_EXPIRE_DAYS = 7
 def create_access_token(data: dict) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
+    user_id = to_encode.get("user_id")
+    if isinstance(user_id, UUID):
+        to_encode["user_id"] = str(user_id)
     expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -71,9 +75,14 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-    user_id = payload.get("user_id")
-    if not user_id:
+    user_id_raw = payload.get("user_id")
+    if not user_id_raw:
         raise HTTPException(status_code=401, detail="Invalid token payload")
+
+    try:
+        user_id = UUID(str(user_id_raw))
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail="Invalid token payload") from exc
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

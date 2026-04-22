@@ -9,6 +9,7 @@ from app.models.user import User
 from app.core.security import get_current_user
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+from uuid import UUID
 
 router = APIRouter()
 IST_TZ = ZoneInfo("Asia/Kolkata")
@@ -19,7 +20,7 @@ def _current_ist_datetime() -> datetime:
     return datetime.now(timezone.utc).astimezone(IST_TZ).replace(tzinfo=None)
 
 
-def _verify_admin_owns_event(event_id: int, db: Session, current_user: User) -> None:
+def _verify_admin_owns_event(event_id: UUID, db: Session, current_user: User) -> None:
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -30,7 +31,7 @@ def _verify_admin_owns_event(event_id: int, db: Session, current_user: User) -> 
 
 
 @router.post("/events/{event_id}/rsvp")
-def rsvp_to_event(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def rsvp_to_event(event_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """RSVP to an event (register / 'I will be there'). Requires authentication."""
     # Verify event exists
     event = db.query(Event).filter(Event.id == event_id).first()
@@ -57,7 +58,7 @@ def rsvp_to_event(event_id: int, db: Session = Depends(get_db), current_user: Us
 
 
 @router.delete("/events/{event_id}/rsvp")
-def cancel_rsvp(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def cancel_rsvp(event_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Cancel an RSVP. Requires authentication."""
     rsvp = db.query(RSVP).filter(
         RSVP.user_id == current_user.id, RSVP.event_id == event_id
@@ -72,7 +73,7 @@ def cancel_rsvp(event_id: int, db: Session = Depends(get_db), current_user: User
 
 
 @router.get("/events/{event_id}/rsvps")
-def get_event_rsvps(event_id: int, db: Session = Depends(get_db)):
+def get_event_rsvps(event_id: UUID, db: Session = Depends(get_db)):
     """Get all RSVPs for an event."""
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
@@ -138,7 +139,7 @@ class AttendanceCheckinRequest(BaseModel):
     qr_code: str
 
 @router.patch("/rsvps/{rsvp_id}")
-def update_rsvp_attendance(rsvp_id: int, update_data: RSVPAttendUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_rsvp_attendance(rsvp_id: UUID, update_data: RSVPAttendUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Update RSVP attendance status. Typically requires Club Admin."""
     if current_user.role != "CLUB_ADMIN":
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -164,11 +165,11 @@ def update_rsvp_attendance(rsvp_id: int, update_data: RSVPAttendUpdate, db: Sess
 from typing import List
 
 class BulkRSVPUpdate(BaseModel):
-    rsvp_ids: List[int]
+    rsvp_ids: List[UUID]
     is_paid: bool
 
 @router.post("/events/{event_id}/bulk-payment")
-def bulk_update_payments(event_id: int, update_data: BulkRSVPUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def bulk_update_payments(event_id: UUID, update_data: BulkRSVPUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role != "CLUB_ADMIN":
         raise HTTPException(status_code=403, detail="Not authorized")
 
@@ -185,7 +186,7 @@ def bulk_update_payments(event_id: int, update_data: BulkRSVPUpdate, db: Session
 
 @router.post("/events/{event_id}/attendance/checkin")
 def checkin_attendance_via_qr(
-    event_id: int,
+    event_id: UUID,
     payload: AttendanceCheckinRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

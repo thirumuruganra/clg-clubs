@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List, Literal
 from datetime import datetime
+from uuid import UUID
 
 
 # ===== USER SCHEMAS =====
@@ -21,7 +22,7 @@ class UserCreate(UserBase):
     pass
 
 class UserResponse(UserBase):
-    id: int
+    id: UUID
 
     class Config:
         from_attributes = True
@@ -53,8 +54,8 @@ class ClubUpdate(BaseModel):
     instagram_handle: Optional[str] = None
 
 class ClubResponse(ClubBase):
-    id: int
-    admin_id: int
+    id: UUID
+    admin_id: UUID
     icon_url: Optional[str] = None
     admin_picture: Optional[str] = None
     follower_count: Optional[int] = 0
@@ -80,7 +81,7 @@ class EventBase(BaseModel):
     registration_fees: Optional[str] = None
 
 class EventCreate(EventBase):
-    club_id: int
+    club_id: UUID
 
 class EventUpdate(BaseModel):
     title: Optional[str] = None
@@ -96,8 +97,8 @@ class EventUpdate(BaseModel):
     registration_fees: Optional[str] = None
 
 class EventResponse(EventBase):
-    id: int
-    club_id: int
+    id: UUID
+    club_id: UUID
     club_name: Optional[str] = None
     rsvp_count: Optional[int] = 0
     is_rsvped: Optional[bool] = False
@@ -109,16 +110,16 @@ class EventResponse(EventBase):
 # ===== RSVP SCHEMAS =====
 
 class RSVPCreate(BaseModel):
-    event_id: int
+    event_id: UUID
 
 class RSVPUpdate(BaseModel):
     attended: Optional[bool] = None
     is_paid: Optional[bool] = None
 
 class RSVPResponse(BaseModel):
-    id: int
-    user_id: int
-    event_id: int
+    id: UUID
+    user_id: UUID
+    event_id: UUID
     attended: Optional[bool] = False
     attended_marked_at: Optional[datetime] = None
     is_paid: Optional[bool] = False
@@ -128,7 +129,7 @@ class RSVPResponse(BaseModel):
         from_attributes = True
 
 class EventRSVPUserResponse(BaseModel):
-    id: int
+    id: UUID
     name: Optional[str] = None
     email: str
     department: Optional[str] = None
@@ -137,9 +138,9 @@ class EventRSVPUserResponse(BaseModel):
     register_number: Optional[str] = None
 
 class EventRSVPResponse(BaseModel):
-    id: int
-    user_id: int
-    event_id: int
+    id: UUID
+    user_id: UUID
+    event_id: UUID
     attended: Optional[bool] = False
     attended_marked_at: Optional[datetime] = None
     is_paid: Optional[bool] = False
@@ -153,12 +154,12 @@ class EventRSVPResponse(BaseModel):
 # ===== FOLLOW SCHEMAS =====
 
 class FollowCreate(BaseModel):
-    club_id: int
+    club_id: UUID
 
 class FollowResponse(BaseModel):
-    id: int
-    user_id: int
-    club_id: int
+    id: UUID
+    user_id: UUID
+    club_id: UUID
 
     class Config:
         from_attributes = True
@@ -167,13 +168,13 @@ class FollowResponse(BaseModel):
 # ===== CLUB MEMBER SCHEMAS =====
 
 class ClubMemberCreate(BaseModel):
-    user_id: int
+    user_id: UUID
 
 
 class ClubMemberResponse(BaseModel):
-    id: int
-    club_id: int
-    user_id: int
+    id: UUID
+    club_id: UUID
+    user_id: UUID
     created_at: Optional[datetime] = None
     name: Optional[str] = None
     email: Optional[str] = None
@@ -185,7 +186,7 @@ class ClubMemberResponse(BaseModel):
 
 
 class ClubMembersListResponse(BaseModel):
-    club_id: int
+    club_id: UUID
     member_count: int
     members: List[ClubMemberResponse]
 
@@ -193,7 +194,7 @@ class ClubMembersListResponse(BaseModel):
 # ===== STUDENT DIRECTORY SCHEMAS =====
 
 class StudentDirectoryStudentResponse(BaseModel):
-    id: int
+    id: UUID
     name: Optional[str] = None
     email: str
     picture: Optional[str] = None
@@ -212,14 +213,14 @@ class StudentDirectoryListResponse(BaseModel):
 # ===== EVENT WORKFORCE SCHEMAS =====
 
 class EventWorkforceCreate(BaseModel):
-    user_id: int
+    user_id: UUID
     role: Literal["CLUB_MEMBER", "VOLUNTEER"]
 
 
 class EventWorkforceMemberResponse(BaseModel):
-    id: int
-    event_id: int
-    user_id: int
+    id: UUID
+    event_id: UUID
+    user_id: UUID
     role: Literal["CLUB_MEMBER", "VOLUNTEER"]
     created_at: Optional[datetime] = None
     name: Optional[str] = None
@@ -232,8 +233,8 @@ class EventWorkforceMemberResponse(BaseModel):
 
 
 class EventWorkforceListResponse(BaseModel):
-    event_id: int
-    club_id: int
+    event_id: UUID
+    club_id: UUID
     member_count: int
     volunteer_count: int
     workers: List[EventWorkforceMemberResponse]

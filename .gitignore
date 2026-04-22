@@ -3,6 +3,7 @@
 .idea
 .vscode/*
 !.vscode/extensions.json
+.github/
 
 # Logs
 logs
@@ -35,14 +36,11 @@ __pycache__/
 venv/
 .venv/
 backend/app/static/
+backend/app/utils
 
+desktop.ini
 run.txt
 new_features.md
-desktop.ini
 *.csv
-.github/
 .impeccable.md
-
-# Local deploy helpers (not committed)
-deploy-heroku.sh
 *.sh
