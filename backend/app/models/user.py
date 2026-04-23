@@ -12,7 +12,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     name = Column(String(255))
     role = Column(String(50))            # "STUDENT" or "CLUB_ADMIN"
-    google_token = Column(Text)          # Access token can be long, use Text
+    google_token = Column(Text, nullable=True)  # Deprecated: keep null unless encrypted persistence is explicitly required
     google_scopes = Column(Text, default="[]")  # JSON list of scopes granted by Google OAuth
     picture = Column(String(500))        # Profile picture URL
     batch = Column(String(10), nullable=True)       # e.g. "2024"

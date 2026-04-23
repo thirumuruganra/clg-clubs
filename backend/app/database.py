@@ -2,8 +2,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # Load backend/.env explicitly so uvicorn reload subprocesses resolve env consistently.
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -43,12 +46,12 @@ try:
     with engine.connect() as conn:
         pass
     print("Connected to PostgreSQL database")
-except Exception as e:
+except Exception:
+    logger.exception("Database connection initialization failed")
     raise RuntimeError(
         "Could not connect to PostgreSQL database. "
         "Set valid credentials using DATABASE_URL or POSTGRES_USER/POSTGRES_PASSWORD/POSTGRES_HOST/POSTGRES_PORT/POSTGRES_DB in backend/.env. "
-        f"Original error: {e}"
-    ) from e
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

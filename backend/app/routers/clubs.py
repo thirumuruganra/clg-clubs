@@ -9,6 +9,7 @@ from app.models.user import User
 from app.schemas import ClubCreate, ClubMemberCreate, ClubUpdate
 from app.core.security import get_current_user
 from app.services.club_logos import MAX_LOGO_BYTES, replace_club_logo
+from app.utils.common import normalize_text, safe_json_list
 from typing import Optional
 from uuid import UUID
 
@@ -33,22 +34,8 @@ def _club_payload(club: Club, follower_count: int, is_following: bool = False):
     }
 
 
-def _safe_json_list(raw_value):
-    if not raw_value:
-        return []
-    try:
-        data = json.loads(raw_value)
-    except (TypeError, json.JSONDecodeError):
-        return []
-    return data if isinstance(data, list) else []
-
-
-def _normalize_text(value) -> str:
-    return str(value or "").strip().lower()
-
-
 def _sync_user_joined_clubs(user: User, club_name: str, add: bool) -> bool:
-    existing_values = _safe_json_list(user.joined_clubs)
+    existing_values = safe_json_list(user.joined_clubs)
     seen = set()
     normalized_club_name = _normalize_text(club_name)
     normalized_values = []
