@@ -8,6 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.database import engine, Base, SessionLocal
 from app.routers import auth, users, events, clubs, rsvp, follow
 from app.core.storage import is_supabase_storage_configured
+from app.core.rate_limit import InMemoryRateLimitMiddleware, RateLimitRule
 from app.services.event_posters import cleanup_expired_event_posters
 import os
 from pathlib import Path
@@ -300,28 +301,72 @@ def _parse_origins_env(var_name: str, default_origins: list[str]) -> list[str]:
     return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
 
 
+def _parse_csv_env(var_name: str, default_values: list[str]) -> list[str]:
+    raw_value = os.getenv(var_name, "").strip()
+    if not raw_value:
+        return default_values
+    return [value.strip() for value in raw_value.split(",") if value.strip()]
+
+
+def _is_production_environment() -> bool:
+    return os.getenv("APP_ENV", "development").strip().lower() in {"prod", "production"}
+
+
+def _require_env(var_name: str) -> str:
+    value = os.getenv(var_name, "").strip()
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {var_name}")
+    return value
+
+
 default_cors_origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
 cors_allow_origins = _parse_origins_env("CORS_ALLOW_ORIGINS", default_cors_origins)
+cors_allow_methods = _parse_csv_env(
+    "CORS_ALLOW_METHODS",
+    ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+)
+cors_allow_headers = _parse_csv_env(
+    "CORS_ALLOW_HEADERS",
+    ["Authorization", "Content-Type", "Accept", "X-CSRF-Token"],
+)
+is_production_environment = _is_production_environment()
+session_same_site = os.getenv("SESSION_SAMESITE", "lax").strip().lower()
+if session_same_site not in {"lax", "strict", "none"}:
+    session_same_site = "lax"
+if session_same_site == "none" and not is_production_environment:
+    session_same_site = "lax"
+
+app.add_middleware(
+    InMemoryRateLimitMiddleware,
+    rules=[
+        RateLimitRule(path_prefix="/api/auth/callback", limit=20, window_seconds=60, methods=frozenset({"GET"})),
+        RateLimitRule(path_prefix="/api/users/", limit=120, window_seconds=60, methods=frozenset({"GET", "PUT", "PATCH"})),
+        RateLimitRule(path_prefix="/api/follow/users/", limit=80, window_seconds=60, methods=frozenset({"GET"})),
+        RateLimitRule(path_prefix="/api/rsvp/events/", limit=100, window_seconds=60, methods=frozenset({"GET", "DELETE"})),
+        RateLimitRule(path_prefix="/api/rsvp/events/", limit=60, window_seconds=60, methods=frozenset({"POST"})),
+        RateLimitRule(path_prefix="/api/rsvp/rsvps/", limit=30, window_seconds=60, methods=frozenset({"PATCH"})),
+    ],
+)
 
 # CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_allow_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=cors_allow_methods,
+    allow_headers=cors_allow_headers,
 )
 
 # Session Middleware for OAuth state
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SECRET_KEY", "wavc-secret-key"),
+    secret_key=_require_env("SECRET_KEY"),
     session_cookie=os.getenv("SESSION_COOKIE_NAME", "wavc_oauth_session"),
-    same_site="lax",
-    https_only=False,
+    same_site=session_same_site,
+    https_only=is_production_environment,
 )
 
 # Register all routers

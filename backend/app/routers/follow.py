@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.follow import Follow
 from app.models.club import Club
 from app.models.user import User
+from app.core.audit import log_security_event
 from app.core.security import get_current_user
+from app.services.authz_rules import require_self_access
 from uuid import UUID
 
 router = APIRouter()
@@ -53,8 +55,22 @@ def unfollow_club(club_id: UUID, db: Session = Depends(get_db), current_user: Us
 
 
 @router.get("/users/{user_id}/following")
-def get_user_following(user_id: UUID, db: Session = Depends(get_db)):
-    """Get all clubs a user follows."""
+def get_user_following(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get all clubs a user follows (self only)."""
+    try:
+        require_self_access(current_user.id, user_id, detail="You can only view your own following list")
+    except HTTPException:
+        log_security_event(
+            "authz.following.denied",
+            actor_user_id=current_user.id,
+            target_user_id=user_id,
+        )
+        raise
+
     follows = db.query(Follow).filter(Follow.user_id == user_id).all()
 
     result = []
@@ -69,6 +85,7 @@ def get_user_following(user_id: UUID, db: Session = Depends(get_db)):
                 "category": club.category,
                 "follower_count": follower_count,
             })
+    log_security_event("authz.following.read", actor_user_id=current_user.id, target_user_id=user_id)
     return result
 
 
@@ -84,6 +101,11 @@ def get_club_followers(
         raise HTTPException(status_code=404, detail="Club not found")
 
     if current_user.role != "CLUB_ADMIN" or club.admin_id != current_user.id:
+        log_security_event(
+            "authz.club_followers.denied",
+            actor_user_id=current_user.id,
+            club_id=club_id,
+        )
         raise HTTPException(status_code=403, detail="You can only view followers for your own club")
 
     follows = db.query(Follow).filter(Follow.club_id == club_id).all()
@@ -108,6 +130,8 @@ def get_club_followers(
         )
 
     followers.sort(key=lambda follower: (follower.get("name") or "").lower())
+
+    log_security_event("authz.club_followers.read", actor_user_id=current_user.id, club_id=club_id, count=len(followers))
 
     return {
         "club_id": club_id,

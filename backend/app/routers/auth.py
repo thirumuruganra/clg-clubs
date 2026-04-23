@@ -3,30 +3,25 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
+from app.core.audit import log_security_event
 from app.core.security import (
     oauth,
     create_access_token,
     get_current_user,
-    GOOGLE_CALENDAR_SCOPE,
     build_google_scope,
 )
+from app.services.payloads import auth_me_payload
+from app.utils.common import safe_json_list
 from typing import Any, cast
 import re
 import json
 import os
+import logging
 from datetime import datetime
 from urllib.parse import urlparse
 
 router = APIRouter()
-
-def _safe_json_list(raw_value):
-    if not raw_value:
-        return []
-    try:
-        data = json.loads(raw_value)
-    except (TypeError, json.JSONDecodeError):
-        return []
-    return data if isinstance(data, list) else []
+logger = logging.getLogger(__name__)
 
 # Regex for student emails
 STUDENT_EMAIL_REGEX = re.compile(r'.*[0-9]{4,}@ssn\.edu\.in$')
@@ -38,13 +33,30 @@ REGISTER_NUMBER_PATTERN = re.compile(r"^3122\d{9}$")
 PASSOUT_YEAR_PATTERN = re.compile(r"^\d{4}$")
 PASSOUT_YEAR_MAX_AHEAD = 6
 
-# Hardcoded testing club emails
-TESTING_CLUB_EMAILS = {
-    "thirumuruganra@gmail.com",
-    "vishmuralee1006@gmail.com",
-    "tanisha.sriram2006@gmail.com",
-    "hemnath.d.0912@gmail.com"
-}
+
+def _is_production_environment() -> bool:
+    return os.getenv("APP_ENV", "development").strip().lower() in {"prod", "production"}
+
+
+def _parse_allowed_testing_emails() -> set[str]:
+    raw_allowlist = os.getenv("DEV_TESTING_CLUB_EMAIL_ALLOWLIST", "").strip()
+    if not raw_allowlist:
+        return set()
+    return {email.strip().lower() for email in raw_allowlist.split(",") if email.strip()}
+
+
+def _is_dev_allowlisted_email(email: str) -> bool:
+    if _is_production_environment():
+        return False
+    return email.strip().lower() in _parse_allowed_testing_emails()
+
+
+def _resolve_user_role(email: str) -> str:
+    if STUDENT_EMAIL_REGEX.match(email):
+        return "STUDENT"
+    if CLUB_EMAIL_REGEX.match(email) or _is_dev_allowlisted_email(email):
+        return "CLUB_ADMIN"
+    return "STUDENT"
 
 
 def _is_valid_register_number(value: str | None) -> bool:
@@ -196,14 +208,17 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     """
     try:
         token = await oauth.google.authorize_access_token(request)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail="OAuth Error: " + str(e))
+    except Exception:
+        logger.exception("OAuth callback failed while exchanging authorization code")
+        log_security_event("auth.oauth.exchange_failed", client_ip=request.client.host if request.client else "unknown")
+        raise HTTPException(status_code=400, detail="Authentication failed")
 
     user_info = token.get('userinfo')
     if not user_info:
         user_info = await oauth.google.userinfo(token=token)
 
     if not user_info:
+        log_security_event("auth.oauth.userinfo_missing", client_ip=request.client.host if request.client else "unknown")
         raise HTTPException(status_code=400, detail="Could not retrieve user info")
 
     email = user_info.get('email')
@@ -212,7 +227,8 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     email = email.strip().lower()
 
     # Block non-SSN accounts unless they are explicitly listed test club emails.
-    if not email.endswith("@ssn.edu.in") and email not in TESTING_CLUB_EMAILS:
+    if not email.endswith("@ssn.edu.in") and not _is_dev_allowlisted_email(email):
+        log_security_event("auth.oauth.email_rejected", email=email)
         request.session.pop("post_auth_redirect", None)
         return RedirectResponse(
             url=f"{FRONTEND_DEFAULT_ORIGIN}/login?error=ssn_email_required",
@@ -221,17 +237,12 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
 
     name = user_info.get('name')
     picture = user_info.get('picture')
-    google_token = token.get('access_token')
     raw_scopes = token.get('scope', '')
     granted_scopes = sorted({scope for scope in str(raw_scopes).split() if scope})
     google_scopes_json = json.dumps(granted_scopes)
 
     # Determine Role via regex
-    role = "STUDENT"
-    if STUDENT_EMAIL_REGEX.match(email):
-        role = "STUDENT"
-    elif CLUB_EMAIL_REGEX.match(email) or email in TESTING_CLUB_EMAILS:
-        role = "CLUB_ADMIN"
+    role = _resolve_user_role(email)
 
     # Upsert user
     db_user = db.query(User).filter(User.email == email).first()
@@ -241,7 +252,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
             email=email,
             name=name,
             role=role,
-            google_token=google_token,
+            google_token=None,
             google_scopes=google_scopes_json,
             picture=picture
         )
@@ -249,12 +260,14 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
     else:
-        user.google_token = google_token
+        user.google_token = None
         user.google_scopes = google_scopes_json
         user.name = name
         user.picture = picture
         user.role = role
         db.commit()
+
+    log_security_event("auth.oauth.login_success", user_id=user.id, email=user.email, role=user.role)
 
     # Create JWT token
     jwt_token = create_access_token({
@@ -271,7 +284,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         if user_role == "CLUB_ADMIN":
             redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/club/dashboard"
         else:
-            user_interests = _safe_json_list(user.interests)
+            user_interests = safe_json_list(user.interests)
             user_batch = cast(str | None, getattr(user, "batch", None))
             user_department = cast(str | None, getattr(user, "department", None))
             user_degree = cast(str | None, getattr(user, "degree", None))
@@ -290,11 +303,19 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
 
     # Set JWT as cookie and redirect
     response = RedirectResponse(url=redirect_url, status_code=302)
+    is_production = _is_production_environment()
+    cookie_same_site = os.getenv("ACCESS_TOKEN_SAMESITE", "lax").strip().lower()
+    if cookie_same_site not in {"lax", "strict", "none"}:
+        cookie_same_site = "lax"
+    if cookie_same_site == "none" and not is_production:
+        cookie_same_site = "lax"
+
     response.set_cookie(
         key="access_token",
         value=jwt_token,
-        httponly=False,       # Frontend needs to read it for API calls
-        samesite="lax",
+        httponly=True,
+        secure=is_production,
+        samesite=cookie_same_site,
         max_age=7 * 24 * 3600,  # 7 days
         path="/",
     )
@@ -304,24 +325,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
 @router.get('/me')
 async def get_me(current_user: User = Depends(get_current_user)):
     """Get the currently authenticated user's info."""
-    joined_clubs_list = _safe_json_list(current_user.joined_clubs)
-    interests_list = _safe_json_list(current_user.interests)
-    granted_scopes_list = _safe_json_list(current_user.google_scopes)
-    return {
-        "id": current_user.id,
-        "email": current_user.email,
-        "name": current_user.name,
-        "picture": current_user.picture,
-        "role": current_user.role,
-        "batch": current_user.batch,
-        "department": current_user.department,
-        "degree": current_user.degree,
-        "register_number": current_user.register_number,
-        "joined_clubs": joined_clubs_list,
-        "interests": interests_list,
-        "google_scopes": granted_scopes_list,
-        "has_google_calendar_access": GOOGLE_CALENDAR_SCOPE in granted_scopes_list,
-    }
+    return auth_me_payload(current_user)
 
 
 @router.get('/logout')

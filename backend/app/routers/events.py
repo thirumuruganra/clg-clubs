@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-import json
 import re
 import os
 import uuid
@@ -15,13 +14,16 @@ from app.models.club_member import ClubMember
 from app.models.rsvp import RSVP
 from app.models.follow import Follow
 from app.models.user import User
-from app.schemas import EventCreate, EventUpdate, EventResponse, EventWorkforceCreate
-from app.core.security import get_current_user
+from app.schemas import EventCreate, EventUpdate, EventWorkforceCreate
+from app.core.audit import log_security_event
+from app.core.security import get_current_user, get_optional_user
+from app.services.authz_rules import resolve_personalization_user_id
 from app.services.event_posters import (
     MAX_POSTER_BYTES,
     replace_event_poster,
     clear_event_poster,
 )
+from app.utils.common import safe_json_list
 from datetime import datetime, timedelta
 from typing import Optional, List
 
@@ -68,16 +70,6 @@ def _apply_event_search(query, search: Optional[str]):
             Event.keywords.ilike(search_term),
         )
     )
-
-
-def _safe_json_list(raw_value) -> List[str]:
-    if not raw_value:
-        return []
-    try:
-        data = json.loads(raw_value)
-    except (TypeError, json.JSONDecodeError):
-        return []
-    return data if isinstance(data, list) else []
 
 
 def _tokenize_text(raw_text: Optional[str]) -> set[str]:
@@ -151,6 +143,19 @@ def _calculate_recommendation_score(event: Event, interest_tokens: set[str], is_
     return score
 
 
+def _resolve_personalization_user_id(requested_user_id: UUID | None, current_user: User | None) -> UUID | None:
+    actor_user_id = current_user.id if current_user else None
+    try:
+        return resolve_personalization_user_id(requested_user_id, actor_user_id)
+    except HTTPException:
+        log_security_event(
+            "authz.events.personalization_denied",
+            actor_user_id=actor_user_id,
+            requested_user_id=requested_user_id,
+        )
+        raise
+
+
 @router.get("/all")
 def get_all_events(search: Optional[str] = Query(None), db: Session = Depends(get_db)):
     """Get all events (for calendar view)."""
@@ -187,7 +192,8 @@ def get_event_feed(
     type: str = Query("following", pattern="^(following|discover|recommended)$"),
     user_id: Optional[UUID] = Query(None),
     search: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
 ):
     """
     Get event feed.
@@ -195,18 +201,20 @@ def get_event_feed(
     - type=discover: events from clubs the user does NOT follow
     - type=recommended: ranked mixed feed by user interests + recency
     """
+    personalization_user_id = _resolve_personalization_user_id(user_id, current_user)
+
     followed_club_ids = []
     interest_tokens = set()
 
-    if user_id:
+    if personalization_user_id:
         followed_club_ids = [
-            f.club_id for f in db.query(Follow).filter(Follow.user_id == user_id).all()
+            f.club_id for f in db.query(Follow).filter(Follow.user_id == personalization_user_id).all()
         ]
-        user = db.query(User).filter(User.id == user_id).first()
+        user = db.query(User).filter(User.id == personalization_user_id).first()
         if user:
-            interest_tokens = _normalize_user_interests(_safe_json_list(user.interests))
+            interest_tokens = _normalize_user_interests(safe_json_list(user.interests))
 
-    if not user_id:
+    if not personalization_user_id:
         # If no user_id, return all events chronologically.
         query = db.query(Event)
         query = _apply_event_search(query, search)
@@ -244,9 +252,9 @@ def get_event_feed(
         is_rsvped = False
         is_from_followed_club = event.club_id in followed_club_ids
         recommendation_score = 0.0
-        if user_id:
+        if personalization_user_id:
             is_rsvped = db.query(RSVP).filter(
-                RSVP.event_id == event.id, RSVP.user_id == user_id
+                RSVP.event_id == event.id, RSVP.user_id == personalization_user_id
             ).first() is not None
             if type == "recommended":
                 recommendation_score = _calculate_recommendation_score(
@@ -280,8 +288,15 @@ def get_event_feed(
 
 
 @router.get("/{event_id}")
-def get_event(event_id: UUID, user_id: Optional[UUID] = Query(None), db: Session = Depends(get_db)):
+def get_event(
+    event_id: UUID,
+    user_id: Optional[UUID] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+):
     """Get a single event by ID."""
+    personalization_user_id = _resolve_personalization_user_id(user_id, current_user)
+
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -290,9 +305,9 @@ def get_event(event_id: UUID, user_id: Optional[UUID] = Query(None), db: Session
     rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
 
     is_rsvped = False
-    if user_id:
+    if personalization_user_id:
         is_rsvped = db.query(RSVP).filter(
-            RSVP.event_id == event.id, RSVP.user_id == user_id
+            RSVP.event_id == event.id, RSVP.user_id == personalization_user_id
         ).first() is not None
 
     # Live activity: RSVPs in the last hour

@@ -6,11 +6,15 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 import os
+import logging
 from typing import Iterable
 from uuid import UUID
 
 GOOGLE_BASE_SCOPES = "openid email profile"
 GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events"
+AUTH_ERROR_DETAIL = "Authentication required"
+
+logger = logging.getLogger(__name__)
 
 
 def build_google_scope(include_calendar: bool = False, extra_scopes: Iterable[str] | None = None) -> str:
@@ -37,7 +41,14 @@ oauth.register(
 )
 
 # JWT Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "wavc-super-secret-key-change-in-production")
+def _require_env_value(var_name: str) -> str:
+    value = os.getenv(var_name, "").strip()
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {var_name}")
+    return value
+
+
+SECRET_KEY = _require_env_value("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 7
 
@@ -60,32 +71,47 @@ def verify_token(token: str) -> dict:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
     except JWTError:
+        logger.info("JWT decode failed")
         return None
+
+
+def _resolve_user_from_token(token: str | None, db: Session):
+    from app.models.user import User
+
+    if not token:
+        return None
+
+    payload = verify_token(token)
+    if not payload:
+        return None
+
+    user_id_raw = payload.get("user_id")
+    if not user_id_raw:
+        return None
+
+    try:
+        user_id = UUID(str(user_id_raw))
+    except ValueError:
+        return None
+
+    return db.query(User).filter(User.id == user_id).first()
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
     """FastAPI dependency: extract user from JWT cookie."""
-    from app.models.user import User
-
     token = request.cookies.get("access_token")
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    payload = verify_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-
-    user_id_raw = payload.get("user_id")
-    if not user_id_raw:
-        raise HTTPException(status_code=401, detail="Invalid token payload")
-
-    try:
-        user_id = UUID(str(user_id_raw))
-    except ValueError as exc:
-        raise HTTPException(status_code=401, detail="Invalid token payload") from exc
-
-    user = db.query(User).filter(User.id == user_id).first()
+    user = _resolve_user_from_token(token, db)
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        raise HTTPException(status_code=401, detail=AUTH_ERROR_DETAIL)
+
+    return user
+
+
+def get_optional_user(request: Request, db: Session = Depends(get_db)):
+    """Return authenticated user when present; otherwise return None."""
+    token = request.cookies.get("access_token")
+    user = _resolve_user_from_token(token, db)
+    if user is None:
+        return None
 
     return user

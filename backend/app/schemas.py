@@ -2,6 +2,48 @@ from pydantic import BaseModel
 from typing import Optional, List, Literal
 from datetime import datetime
 from uuid import UUID
+from urllib.parse import urlparse
+import re
+
+try:
+    from pydantic import field_validator
+except ImportError:  # pragma: no cover
+    from pydantic import validator as field_validator
+
+
+INSTAGRAM_HANDLE_PATTERN = re.compile(r"^[A-Za-z0-9._]{1,30}$")
+
+
+def _validate_http_url(value: Optional[str], field_name: str) -> Optional[str]:
+    if value is None:
+        return None
+
+    normalized = str(value).strip()
+    if not normalized:
+        return None
+
+    parsed = urlparse(normalized)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError(f"{field_name} must be a valid http/https URL")
+
+    return normalized
+
+
+def _validate_instagram_handle(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+
+    normalized = str(value).strip()
+    if not normalized:
+        return None
+
+    if normalized.startswith("@"):
+        normalized = normalized[1:]
+
+    if not INSTAGRAM_HANDLE_PATTERN.fullmatch(normalized):
+        raise ValueError("instagram_handle must contain only letters, numbers, dots, or underscores")
+
+    return normalized.lower()
 
 
 # ===== USER SCHEMAS =====
@@ -44,6 +86,16 @@ class ClubBase(BaseModel):
     logo_url: Optional[str] = None
     instagram_handle: Optional[str] = None
 
+    @field_validator("logo_url")
+    @classmethod
+    def validate_logo_url(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_http_url(value, "logo_url")
+
+    @field_validator("instagram_handle")
+    @classmethod
+    def validate_instagram_handle(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_instagram_handle(value)
+
 class ClubCreate(ClubBase):
     pass
 
@@ -52,6 +104,16 @@ class ClubUpdate(BaseModel):
     category: Optional[str] = None
     logo_url: Optional[str] = None
     instagram_handle: Optional[str] = None
+
+    @field_validator("logo_url")
+    @classmethod
+    def validate_logo_url(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_http_url(value, "logo_url")
+
+    @field_validator("instagram_handle")
+    @classmethod
+    def validate_instagram_handle(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_instagram_handle(value)
 
 class ClubResponse(ClubBase):
     id: UUID
@@ -80,6 +142,16 @@ class EventBase(BaseModel):
     is_paid: Optional[bool] = False
     registration_fees: Optional[str] = None
 
+    @field_validator("image_url")
+    @classmethod
+    def validate_image_url(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_http_url(value, "image_url")
+
+    @field_validator("payment_link")
+    @classmethod
+    def validate_payment_link(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_http_url(value, "payment_link")
+
 class EventCreate(EventBase):
     club_id: UUID
 
@@ -95,6 +167,16 @@ class EventUpdate(BaseModel):
     payment_link: Optional[str] = None
     is_paid: Optional[bool] = None
     registration_fees: Optional[str] = None
+
+    @field_validator("image_url")
+    @classmethod
+    def validate_image_url(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_http_url(value, "image_url")
+
+    @field_validator("payment_link")
+    @classmethod
+    def validate_payment_link(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_http_url(value, "payment_link")
 
 class EventResponse(EventBase):
     id: UUID

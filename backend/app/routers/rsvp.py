@@ -6,6 +6,7 @@ from app.models.rsvp import RSVP
 from app.models.event import Event
 from app.models.club import Club
 from app.models.user import User
+from app.core.audit import log_security_event
 from app.core.security import get_current_user
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -27,6 +28,11 @@ def _verify_admin_owns_event(event_id: UUID, db: Session, current_user: User) ->
 
     club = db.query(Club).filter(Club.id == event.club_id).first()
     if not club or club.admin_id != current_user.id:
+        log_security_event(
+            "authz.rsvp.denied",
+            actor_user_id=current_user.id,
+            event_id=event_id,
+        )
         raise HTTPException(status_code=403, detail="You can only update RSVP data for your own club events")
 
 
@@ -73,15 +79,17 @@ def cancel_rsvp(event_id: UUID, db: Session = Depends(get_db), current_user: Use
 
 
 @router.get("/events/{event_id}/rsvps")
-def get_event_rsvps(event_id: UUID, db: Session = Depends(get_db)):
-    """Get all RSVPs for an event."""
-    event = db.query(Event).filter(Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
+def get_event_rsvps(
+    event_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get all RSVPs for an event (owning club admin only)."""
+    _verify_admin_owns_event(event_id, db, current_user)
 
     rsvps = db.query(RSVP).filter(RSVP.event_id == event_id).all()
 
-    return {
+    payload = {
         "event_id": event_id,
         "total": len(rsvps),
         "rsvps": [
@@ -104,6 +112,9 @@ def get_event_rsvps(event_id: UUID, db: Session = Depends(get_db)):
             for r in rsvps
         ],
     }
+
+    log_security_event("authz.rsvp.read", actor_user_id=current_user.id, event_id=event_id, count=len(rsvps))
+    return payload
 
 @router.get("/rsvps/me/activity")
 def get_user_activity(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
