@@ -37,26 +37,26 @@ def _club_payload(club: Club, follower_count: int, is_following: bool = False):
 def _sync_user_joined_clubs(user: User, club_name: str, add: bool) -> bool:
     existing_values = safe_json_list(user.joined_clubs)
     seen = set()
-    normalized_club_name = _normalize_text(club_name)
+    normalized_club_name = normalize_text(club_name)
     normalized_values = []
 
     for value in existing_values:
         cleaned = str(value or "").strip()
         if not cleaned:
             continue
-        key = _normalize_text(cleaned)
+        key = normalize_text(cleaned)
         if key in seen:
             continue
         seen.add(key)
         normalized_values.append(cleaned)
 
     if add:
-        already_present = any(_normalize_text(value) == normalized_club_name for value in normalized_values)
+        already_present = any(normalize_text(value) == normalized_club_name for value in normalized_values)
         if not already_present:
             normalized_values.append(club_name)
     else:
         normalized_values = [
-            value for value in normalized_values if _normalize_text(value) != normalized_club_name
+            value for value in normalized_values if normalize_text(value) != normalized_club_name
         ]
 
     user.joined_clubs = json.dumps(normalized_values)
@@ -142,7 +142,7 @@ def get_club_members(
             }
         )
 
-    members.sort(key=lambda member: (_normalize_text(member.get("name") or member.get("email")), str(member["user_id"])))
+    members.sort(key=lambda member: (normalize_text(member.get("name") or member.get("email")), str(member["user_id"])))
 
     return {
         "club_id": club_id,
