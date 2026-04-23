@@ -36,7 +36,6 @@ __pycache__/
 venv/
 .venv/
 backend/app/static/
-backend/app/utils
 
 desktop.ini
 run.txt
