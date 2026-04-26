@@ -1,5 +1,5 @@
 import React from 'react';
-import DatePicker from 'react-datepicker';
+import DatePicker from './LazyDatePicker';
 import { Button } from '../ui/button';
 import { FieldMessage } from '../ui/field-message';
 import { Input } from '../ui/input';

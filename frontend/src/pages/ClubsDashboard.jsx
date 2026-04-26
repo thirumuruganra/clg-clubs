@@ -1,18 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
-import DatePicker from 'react-datepicker';
-import imageCompression from 'browser-image-compression';
-import 'react-datepicker/dist/react-datepicker.css';
-import { QRCodeSVG } from 'qrcode.react';
-import ClubsCalendarTab from '../components/club-dashboard/ClubsCalendarTab';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
 import ClubDashboardSidebar from '../components/club-dashboard/ClubDashboardSidebar';
 import AppShell from '../components/layout/AppShell';
-import FollowersTab from '../components/club-dashboard/FollowersTab';
-import ClubMembersTab from '../components/club-dashboard/ClubMembersTab';
-import CreateEventTab from '../components/club-dashboard/CreateEventTab';
-import EventManagementTab from '../components/club-dashboard/EventManagementTab';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +27,14 @@ import { StatusBadge } from '../components/ui/status-badge';
 import { Textarea } from '../components/ui/textarea';
 import { Toast } from '../components/ui/toast';
 import { SearchBar } from '../components/ui/search-bar';
+
+const ClubsCalendarTab = lazy(() => import('../components/club-dashboard/ClubsCalendarTab'));
+const FollowersTab = lazy(() => import('../components/club-dashboard/FollowersTab'));
+const ClubMembersTab = lazy(() => import('../components/club-dashboard/ClubMembersTab'));
+const CreateEventTab = lazy(() => import('../components/club-dashboard/CreateEventTab'));
+const EventManagementTab = lazy(() => import('../components/club-dashboard/EventManagementTab'));
+const LazyDatePicker = lazy(() => import('../components/club-dashboard/LazyDatePicker'));
+const AttendanceQrCode = lazy(() => import('../components/club-dashboard/AttendanceQrCode'));
 
 const API = '';
 const DESCRIPTION_WORD_LIMIT = 100;
@@ -181,6 +180,20 @@ const normalizeYearLabel = (value) => {
   return '';
 };
 
+const DashboardTabFallback = ({ className = '' }) => (
+  <div className={`flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 ${className}`.trim()}>
+    <div className="mx-auto flex max-w-5xl flex-col gap-4">
+      <Skeleton className="h-28 w-full rounded-3xl" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <Skeleton className="h-36 rounded-2xl" />
+        <Skeleton className="h-36 rounded-2xl" />
+        <Skeleton className="h-36 rounded-2xl md:col-span-2 xl:col-span-1" />
+      </div>
+      <Skeleton className="h-72 rounded-3xl" />
+    </div>
+  </div>
+);
+
 const parseCsvRows = (text) => {
   const rows = [];
   let row = [];
@@ -316,9 +329,11 @@ const ClubsDashboard = () => {
   const [followers, setFollowers] = useState([]);
   const [followersLoading, setFollowersLoading] = useState(false);
   const [followersError, setFollowersError] = useState('');
+  const [followersLoaded, setFollowersLoaded] = useState(false);
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [membersError, setMembersError] = useState('');
+  const [membersLoaded, setMembersLoaded] = useState(false);
   const [memberActionError, setMemberActionError] = useState('');
   const [memberActionSuccess, setMemberActionSuccess] = useState('');
   const [addMemberOpen, setAddMemberOpen] = useState(false);
@@ -434,6 +449,7 @@ const ClubsDashboard = () => {
   };
 
   const compressPosterFile = async (posterFile) => {
+    const { default: imageCompression } = await import('browser-image-compression');
     const compressed = await imageCompression(posterFile, {
       maxSizeMB: POSTER_MAX_SIZE_MB,
       maxWidthOrHeight: 1920,
@@ -481,69 +497,89 @@ const ClubsDashboard = () => {
     });
   };
 
+  const fetchFollowers = useCallback(async (clubId = club?.id, options = {}) => {
+    const { force = false } = options;
+    if (!clubId || (followersLoaded && !force)) return;
+
+    setFollowersLoading(true);
+    setFollowersError('');
+
+    try {
+      const response = await fetch(`${API}/api/follow/clubs/${clubId}/followers`);
+      if (!response.ok) {
+        throw new Error('Could not load followers right now.');
+      }
+
+      const payload = await response.json();
+      setFollowers(Array.isArray(payload.followers) ? payload.followers : []);
+    } catch (err) {
+      setFollowers([]);
+      setFollowersError(err?.message || 'Could not load followers right now.');
+    } finally {
+      setFollowersLoading(false);
+      setFollowersLoaded(true);
+    }
+  }, [club?.id, followersLoaded]);
+
+  const fetchMembers = useCallback(async (clubId = club?.id, options = {}) => {
+    const { force = false } = options;
+    if (!clubId || (membersLoaded && !force)) return;
+
+    setMembersLoading(true);
+    setMembersError('');
+
+    try {
+      const response = await fetch(`${API}/api/clubs/${clubId}/members`);
+      if (!response.ok) {
+        throw new Error('Could not load club members right now.');
+      }
+
+      const payload = await response.json();
+      setMembers(Array.isArray(payload.members) ? payload.members : []);
+    } catch (err) {
+      setMembers([]);
+      setMembersError(err?.message || 'Could not load club members right now.');
+    } finally {
+      setMembersLoading(false);
+      setMembersLoaded(true);
+    }
+  }, [club?.id, membersLoaded]);
+
   const fetchData = useCallback(async () => {
     if (!user) return;
 
     try {
+      setTableError('');
       const clubsRes = await fetch(`${API}/api/clubs/`);
       if (clubsRes.ok) {
         const clubs = await clubsRes.json();
         let myClub = clubs.find(c => c.admin_id === user.id);
         if (!myClub) { navigate('/club/setup'); return; }
-        
-        if (myClub.instagram_handle) {
-          try {
-            await fetch(`${API}/api/clubs/${myClub.id}/sync-instagram`, { method: 'POST' });
-            const updatedClubRes = await fetch(`${API}/api/clubs/${myClub.id}`);
-            if (updatedClubRes.ok) {
-              myClub = await updatedClubRes.json();
-            }
-          } catch (err) {
-            console.error('Failed to sync instagram logo', err);
-          }
-        }
-        
-        setClub(myClub);
-        setFollowersLoading(true);
-        setFollowersError('');
-        setMembersLoading(true);
-        setMembersError('');
 
-        const [eventsRes, followersRes, membersRes] = await Promise.all([
-          fetch(`${API}/api/clubs/${myClub.id}/events`),
-          fetch(`${API}/api/follow/clubs/${myClub.id}/followers`),
-          fetch(`${API}/api/clubs/${myClub.id}/members`),
-        ]);
+        setClub(myClub);
+        setFollowers([]);
+        setFollowersError('');
+        setFollowersLoading(false);
+        setFollowersLoaded(false);
+        setMembers([]);
+        setMembersError('');
+        setMembersLoading(false);
+        setMembersLoaded(false);
+
+        const eventsRes = await fetch(`${API}/api/clubs/${myClub.id}/events`);
 
         if (eventsRes.ok) {
           setEvents(await eventsRes.json());
         } else {
           setEvents([]);
+          setTableError('Could not load events right now.');
         }
-
-        if (followersRes.ok) {
-          const followersPayload = await followersRes.json();
-          setFollowers(Array.isArray(followersPayload.followers) ? followersPayload.followers : []);
-        } else {
-          setFollowers([]);
-          setFollowersError('Could not load followers right now.');
-        }
-
-        if (membersRes.ok) {
-          const membersPayload = await membersRes.json();
-          setMembers(Array.isArray(membersPayload.members) ? membersPayload.members : []);
-        } else {
-          setMembers([]);
-          setMembersError('Could not load club members right now.');
-        }
-
-        setFollowersLoading(false);
-        setMembersLoading(false);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      setTableError('Could not load dashboard data right now.');
+    }
     finally {
-      setFollowersLoading(false);
-      setMembersLoading(false);
       setLoadingData(false);
     }
   }, [navigate, user]);
@@ -553,6 +589,19 @@ const ClubsDashboard = () => {
     if (user && user.role !== 'CLUB_ADMIN') { navigate('/student/dashboard'); return; }
     if (user) void fetchData();
   }, [user, loading, navigate, fetchData]);
+
+  useEffect(() => {
+    if (!club?.id) return;
+
+    if (activeTab === 'followers') {
+      void fetchFollowers(club.id);
+      return;
+    }
+
+    if (activeTab === 'members') {
+      void fetchMembers(club.id);
+    }
+  }, [activeTab, club?.id, fetchFollowers, fetchMembers]);
 
   const openAddMemberModal = () => {
     setAddMemberOpen(true);
@@ -632,7 +681,7 @@ const ClubsDashboard = () => {
 
       setMemberActionSuccess('Member added successfully.');
       setStudentResults((prev) => prev.filter((student) => student.id !== studentId));
-      await fetchData();
+      await fetchMembers(club.id, { force: true });
     } catch (err) {
       setMemberActionError(err?.message || 'Failed to add club member.');
     }
@@ -659,7 +708,7 @@ const ClubsDashboard = () => {
       }
 
       setMemberActionSuccess('Member removed successfully.');
-      await fetchData();
+      await fetchMembers(club.id, { force: true });
     } catch (err) {
       setMemberActionError(err?.message || 'Failed to remove club member.');
     }
@@ -986,6 +1035,10 @@ const ClubsDashboard = () => {
       tab: safeInitialTab,
       availableTabs,
     });
+
+    if (availableTabs.includes('team')) {
+      void fetchMembers(eventObj.club_id || club?.id);
+    }
 
     try {
       const [rsvpRes, workforceRes] = await Promise.all([
@@ -1525,7 +1578,7 @@ const ClubsDashboard = () => {
     return Array.from(values).sort((a, b) => a.localeCompare(b));
   }, [studentResults]);
 
-  if (loading || loadingData) return (
+  if ((!user && loading) || loadingData) return (
     <div className="flex min-h-dvh items-center justify-center bg-background-dark text-white">
       <div className="animate-pulse text-lg">Loading club dashboard...</div>
     </div>
@@ -1601,107 +1654,117 @@ const ClubsDashboard = () => {
 
         {/* Content Area */}
         {activeTab === 'events' ? (
-          <div className="flex-1 overflow-hidden p-0">
-            <ClubsCalendarTab
-              club={club} 
+          <Suspense fallback={<DashboardTabFallback className="p-0" />}>
+            <div className="flex-1 overflow-hidden p-0">
+              <ClubsCalendarTab
+                club={club}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                onOpenEditModal={openEditModal}
+                onOpenCreateModal={(date) => {
+                  setNewEvent({ ...EMPTY_EVENT_FORM, start_time: date, end_time: new Date(date.getTime() + 60 * 60 * 1000) });
+                  createPosterDragCounterRef.current = 0;
+                  setIsCreatePosterDragActive(false);
+                  if (newPosterInputRef.current) {
+                    newPosterInputRef.current.value = '';
+                  }
+                  setNewPosterFile(null);
+                  setNewPosterPreview((previous) => {
+                    if (previous) URL.revokeObjectURL(previous);
+                    return '';
+                  });
+                  setCreateError('');
+                  setActiveTab('create-event');
+                }}
+              />
+            </div>
+          </Suspense>
+        ) : activeTab === 'followers' ? (
+          <Suspense fallback={<DashboardTabFallback />}>
+            <FollowersTab
+              followers={followers}
+              followersLoading={followersLoading}
+              followersError={followersError}
+              calculateYear={calculateYear}
+            />
+          </Suspense>
+        ) : activeTab === 'members' ? (
+          <Suspense fallback={<DashboardTabFallback />}>
+            <ClubMembersTab
+              members={members}
+              membersLoading={membersLoading}
+              membersError={membersError}
+              calculateYear={calculateYear}
+              memberActionError={memberActionError}
+              memberActionSuccess={memberActionSuccess}
+              onOpenAddMember={openAddMemberModal}
+              onRemoveMember={handleRemoveMember}
+              addMemberOpen={addMemberOpen}
+              onCloseAddMember={closeAddMemberModal}
+              memberSearch={memberSearch}
+              setMemberSearch={setMemberSearch}
+              memberDepartmentFilter={memberDepartmentFilter}
+              setMemberDepartmentFilter={setMemberDepartmentFilter}
+              memberYearFilter={memberYearFilter}
+              setMemberYearFilter={setMemberYearFilter}
+              studentResults={studentResults}
+              studentsLoading={studentsLoading}
+              studentsError={studentsError}
+              onAddMember={handleAddMember}
+              memberDepartmentOptions={memberDepartmentOptions}
+              studentYearOptions={STUDENT_YEAR_OPTIONS}
+            />
+          </Suspense>
+        ) : activeTab === 'create-event' ? (
+          <Suspense fallback={<DashboardTabFallback />}>
+            <CreateEventTab
+              createError={createError}
+              newEvent={newEvent}
+              setNewEvent={setNewEvent}
+              handleCreateEvent={handleCreateEvent}
+              handleCreateFormKeyDown={handleCreateFormKeyDown}
+              creating={creating}
+              creatingPoster={creatingPoster}
+              DESCRIPTION_WORD_LIMIT={DESCRIPTION_WORD_LIMIT}
+              countWords={countWords}
+              isDescriptionTooLong={isDescriptionTooLong}
+              setActiveTab={setActiveTab}
+              isCreatePosterDragActive={isCreatePosterDragActive}
+              handlePosterDragEnter={handlePosterDragEnter}
+              handlePosterDragOver={handlePosterDragOver}
+              handlePosterDragLeave={handlePosterDragLeave}
+              handlePosterDrop={handlePosterDrop}
+              createPosterDragCounterRef={createPosterDragCounterRef}
+              setIsCreatePosterDragActive={setIsCreatePosterDragActive}
+              setNewPosterFile={setNewPosterFile}
+              setNewPosterPreview={setNewPosterPreview}
+              setCreateError={setCreateError}
+              newPosterInputRef={newPosterInputRef}
+              setPosterSelection={setPosterSelection}
+              openCreatePosterPicker={openCreatePosterPicker}
+              newPosterFile={newPosterFile}
+              newPosterPreview={newPosterPreview}
+            />
+          </Suspense>
+        ) : (
+          <Suspense fallback={<DashboardTabFallback />}>
+            <EventManagementTab
+              setActiveTab={setActiveTab}
+              totalEvents={totalEvents}
+              totalRSVPs={totalRSVPs}
+              attendanceRate={attendanceRate}
+              tableError={tableError}
+              events={events}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
-              onOpenEditModal={openEditModal} 
-              onOpenCreateModal={(date) => { 
-                setNewEvent({ ...EMPTY_EVENT_FORM, start_time: date, end_time: new Date(date.getTime() + 60*60*1000) }); 
-                createPosterDragCounterRef.current = 0;
-                setIsCreatePosterDragActive(false);
-                if (newPosterInputRef.current) {
-                  newPosterInputRef.current.value = '';
-                }
-                setNewPosterFile(null);
-                setNewPosterPreview((previous) => {
-                  if (previous) URL.revokeObjectURL(previous);
-                  return '';
-                });
-                setCreateError('');
-                setActiveTab('create-event');
-              }} 
+              eventMatchesSearch={eventMatchesSearch}
+              openRsvpModal={openRsvpModal}
+              openOdSheet={openOdSheet}
+              openQrModal={openQrModal}
+              openEditModal={openEditModal}
+              setDeleteTarget={setDeleteTarget}
             />
-          </div>
-        ) : activeTab === 'followers' ? (
-          <FollowersTab
-            followers={followers}
-            followersLoading={followersLoading}
-            followersError={followersError}
-            calculateYear={calculateYear}
-          />
-        ) : activeTab === 'members' ? (
-          <ClubMembersTab
-            members={members}
-            membersLoading={membersLoading}
-            membersError={membersError}
-            calculateYear={calculateYear}
-            memberActionError={memberActionError}
-            memberActionSuccess={memberActionSuccess}
-            onOpenAddMember={openAddMemberModal}
-            onRemoveMember={handleRemoveMember}
-            addMemberOpen={addMemberOpen}
-            onCloseAddMember={closeAddMemberModal}
-            memberSearch={memberSearch}
-            setMemberSearch={setMemberSearch}
-            memberDepartmentFilter={memberDepartmentFilter}
-            setMemberDepartmentFilter={setMemberDepartmentFilter}
-            memberYearFilter={memberYearFilter}
-            setMemberYearFilter={setMemberYearFilter}
-            studentResults={studentResults}
-            studentsLoading={studentsLoading}
-            studentsError={studentsError}
-            onAddMember={handleAddMember}
-            memberDepartmentOptions={memberDepartmentOptions}
-            studentYearOptions={STUDENT_YEAR_OPTIONS}
-          />
-        ) : activeTab === 'create-event' ? (
-          <CreateEventTab
-            createError={createError}
-            newEvent={newEvent}
-            setNewEvent={setNewEvent}
-            handleCreateEvent={handleCreateEvent}
-            handleCreateFormKeyDown={handleCreateFormKeyDown}
-            creating={creating}
-            creatingPoster={creatingPoster}
-            DESCRIPTION_WORD_LIMIT={DESCRIPTION_WORD_LIMIT}
-            countWords={countWords}
-            isDescriptionTooLong={isDescriptionTooLong}
-            setActiveTab={setActiveTab}
-            isCreatePosterDragActive={isCreatePosterDragActive}
-            handlePosterDragEnter={handlePosterDragEnter}
-            handlePosterDragOver={handlePosterDragOver}
-            handlePosterDragLeave={handlePosterDragLeave}
-            handlePosterDrop={handlePosterDrop}
-            createPosterDragCounterRef={createPosterDragCounterRef}
-            setIsCreatePosterDragActive={setIsCreatePosterDragActive}
-            setNewPosterFile={setNewPosterFile}
-            setNewPosterPreview={setNewPosterPreview}
-            setCreateError={setCreateError}
-            newPosterInputRef={newPosterInputRef}
-            setPosterSelection={setPosterSelection}
-            openCreatePosterPicker={openCreatePosterPicker}
-            newPosterFile={newPosterFile}
-            newPosterPreview={newPosterPreview}
-          />
-        ) : (
-          <EventManagementTab
-            setActiveTab={setActiveTab}
-            totalEvents={totalEvents}
-            totalRSVPs={totalRSVPs}
-            attendanceRate={attendanceRate}
-            tableError={tableError}
-            events={events}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            eventMatchesSearch={eventMatchesSearch}
-            openRsvpModal={openRsvpModal}
-            openOdSheet={openOdSheet}
-            openQrModal={openQrModal}
-            openEditModal={openEditModal}
-            setDeleteTarget={setDeleteTarget}
-          />
+          </Suspense>
         )}
 
       {/* Edit Event Modal */}
@@ -1742,34 +1805,38 @@ const ClubsDashboard = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary">Start Time</Label>
-                  <DatePicker
-                    selected={editEvent.start_time}
-                    onChange={(date) => setEditEvent((p) => ({ ...p, start_time: date }))}
-                    showTimeInput
-                    dateFormat="dd MMM yyyy, h:mm aa"
-                    placeholderText="Select start date and time"
-                    className="modern-datetime-input w-full"
-                    calendarClassName="modern-datepicker-calendar"
-                    popperClassName="modern-datepicker-popper"
-                    popperPlacement="bottom-start"
-                    required
-                  />
+                  <Suspense fallback={<Skeleton className="h-11 w-full rounded-xl" />}>
+                    <LazyDatePicker
+                      selected={editEvent.start_time}
+                      onChange={(date) => setEditEvent((p) => ({ ...p, start_time: date }))}
+                      showTimeInput
+                      dateFormat="dd MMM yyyy, h:mm aa"
+                      placeholderText="Select start date and time"
+                      className="modern-datetime-input w-full"
+                      calendarClassName="modern-datepicker-calendar"
+                      popperClassName="modern-datepicker-popper"
+                      popperPlacement="bottom-start"
+                      required
+                    />
+                  </Suspense>
                 </div>
                 <div>
                   <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary">End Time</Label>
-                  <DatePicker
-                    selected={editEvent.end_time}
-                    onChange={(date) => setEditEvent((p) => ({ ...p, end_time: date }))}
-                    showTimeInput
-                    dateFormat="dd MMM yyyy, h:mm aa"
-                    placeholderText="Select end date and time"
-                    minDate={editEvent.start_time || undefined}
-                    className="modern-datetime-input w-full"
-                    calendarClassName="modern-datepicker-calendar"
-                    popperClassName="modern-datepicker-popper"
-                    popperPlacement="bottom-start"
-                    required
-                  />
+                  <Suspense fallback={<Skeleton className="h-11 w-full rounded-xl" />}>
+                    <LazyDatePicker
+                      selected={editEvent.end_time}
+                      onChange={(date) => setEditEvent((p) => ({ ...p, end_time: date }))}
+                      showTimeInput
+                      dateFormat="dd MMM yyyy, h:mm aa"
+                      placeholderText="Select end date and time"
+                      minDate={editEvent.start_time || undefined}
+                      className="modern-datetime-input w-full"
+                      calendarClassName="modern-datepicker-calendar"
+                      popperClassName="modern-datepicker-popper"
+                      popperPlacement="bottom-start"
+                      required
+                    />
+                  </Suspense>
                 </div>
               </div>
               <div>
@@ -1918,7 +1985,9 @@ const ClubsDashboard = () => {
                 {qrModal.loading ? (
                   <Skeleton className="size-20 rounded-full" />
                 ) : qrModal.checkinUrl ? (
-                  <QRCodeSVG value={qrModal.checkinUrl} size={240} bgColor="#ffffff" fgColor="#111418" includeMargin />
+                  <Suspense fallback={<Skeleton className="size-60 rounded-3xl" />}>
+                    <AttendanceQrCode value={qrModal.checkinUrl} size={240} bgColor="#ffffff" fgColor="#111418" includeMargin />
+                  </Suspense>
                 ) : (
                   <EmptyState
                     icon="qr_code_2"

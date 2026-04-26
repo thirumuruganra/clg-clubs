@@ -30,16 +30,31 @@ const ROUTE_TITLES = {
 
 function LoadingRouteFallback() {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-surface-canvas px-6 text-center text-sm text-text-secondary">
-      Loading account...
-    </div>
+    <main className="flex min-h-dvh items-center justify-center bg-surface-canvas px-6 py-10">
+      <div className="w-full max-w-3xl rounded-[28px] border border-border-subtle bg-surface-panel p-6 shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">
+        <div className="space-y-4 animate-pulse">
+          <div className="h-5 w-28 rounded-full bg-surface-muted dark:bg-border-strong" />
+          <div className="grid gap-4 md:grid-cols-[15rem_minmax(0,1fr)]">
+            <div className="h-64 rounded-[24px] bg-surface-muted dark:bg-border-strong" />
+            <div className="space-y-4">
+              <div className="h-12 rounded-2xl bg-surface-muted dark:bg-border-strong" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="h-28 rounded-2xl bg-surface-muted dark:bg-border-strong" />
+                <div className="h-28 rounded-2xl bg-surface-muted dark:bg-border-strong" />
+              </div>
+              <div className="h-56 rounded-[24px] bg-surface-muted dark:bg-border-strong" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
 
 function ProtectedRoute({ children, allowRoles }) {
   const { loading, user } = useAuth();
 
-  if (loading) return <LoadingRouteFallback />;
+  if (loading && !user) return <LoadingRouteFallback />;
   if (!user) return <Navigate to="/login" replace />;
   if (allowRoles?.length && !allowRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
@@ -51,11 +66,12 @@ function ProtectedRoute({ children, allowRoles }) {
 function PublicRoute({ children }) {
   const { loading, user } = useAuth();
 
-  if (loading) return <LoadingRouteFallback />;
   if (user) {
     const homePath = user.role === 'CLUB_ADMIN' ? '/club/dashboard' : '/student/dashboard';
     return <Navigate to={homePath} replace />;
   }
+
+  if (loading) return children;
 
   return children;
 }

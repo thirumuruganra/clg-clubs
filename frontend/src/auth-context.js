@@ -2,8 +2,36 @@ import { createContext, createElement, useCallback, useContext, useEffect, useMe
 
 export const AuthContext = createContext(null);
 
+const AUTH_CACHE_KEY = 'wavc.auth.user';
+
+function readCachedUser() {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const cached = window.sessionStorage.getItem(AUTH_CACHE_KEY);
+    return cached ? JSON.parse(cached) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedUser(user) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    if (user) {
+      window.sessionStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(user));
+      return;
+    }
+
+    window.sessionStorage.removeItem(AUTH_CACHE_KEY);
+  } catch {
+    // Ignore storage write failures and continue with in-memory auth state.
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => readCachedUser());
   const [loading, setLoading] = useState(true);
 
   const fetchUser = useCallback(async () => {
@@ -12,11 +40,14 @@ export function AuthProvider({ children }) {
       if (response.ok) {
         const payload = await response.json();
         setUser(payload);
+        writeCachedUser(payload);
       } else {
         setUser(null);
+        writeCachedUser(null);
       }
     } catch {
       setUser(null);
+      writeCachedUser(null);
     } finally {
       setLoading(false);
     }

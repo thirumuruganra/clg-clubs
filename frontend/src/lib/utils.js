@@ -27,16 +27,32 @@ export function getClubInitial(club) {
 
 const warmedPosterUrls = new Set();
 
+function appendPosterResourceHint(posterUrl, rel) {
+  if (typeof document === 'undefined') return;
+
+  const selector = `link[data-poster-hint="${posterUrl}"][rel="${rel}"]`;
+  if (document.head.querySelector(selector)) return;
+
+  const link = document.createElement('link');
+  link.rel = rel;
+  link.as = 'image';
+  link.href = posterUrl;
+  link.dataset.posterHint = posterUrl;
+  document.head.appendChild(link);
+}
+
 export function warmPosterImageCache(rawUrl) {
   const posterUrl = typeof rawUrl === 'string' ? rawUrl.trim() : '';
   if (!posterUrl || warmedPosterUrls.has(posterUrl)) return;
 
-  const image = new Image();
-  image.decoding = 'async';
-  image.src = posterUrl;
+  appendPosterResourceHint(posterUrl, 'prefetch');
   warmedPosterUrls.add(posterUrl);
 }
 
-export function warmPosterCacheForEvents(events = []) {
-  events.forEach((event) => warmPosterImageCache(event?.image_url));
+export function warmPosterCacheForEvents(events = [], limit = 4) {
+  events
+    .map((event) => event?.image_url)
+    .filter(Boolean)
+    .slice(0, limit)
+    .forEach((posterUrl) => warmPosterImageCache(posterUrl));
 }
