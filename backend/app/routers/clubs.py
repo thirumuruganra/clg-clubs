@@ -1,4 +1,3 @@
-import json
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -9,7 +8,8 @@ from app.models.user import User
 from app.schemas import ClubCreate, ClubMemberCreate, ClubUpdate
 from app.core.security import get_current_user
 from app.services.club_logos import MAX_LOGO_BYTES, replace_club_logo
-from app.utils.common import normalize_text, safe_json_list
+from app.services.membership_sync import sync_user_joined_clubs_projection
+from app.utils.common import normalize_text
 from typing import Optional
 from uuid import UUID
 
@@ -32,36 +32,6 @@ def _club_payload(club: Club, follower_count: int, is_following: bool = False):
         "follower_count": follower_count,
         "is_following": is_following,
     }
-
-
-def _sync_user_joined_clubs(user: User, club_name: str, add: bool) -> bool:
-    existing_values = safe_json_list(user.joined_clubs)
-    seen = set()
-    normalized_club_name = normalize_text(club_name)
-    normalized_values = []
-
-    for value in existing_values:
-        cleaned = str(value or "").strip()
-        if not cleaned:
-            continue
-        key = normalize_text(cleaned)
-        if key in seen:
-            continue
-        seen.add(key)
-        normalized_values.append(cleaned)
-
-    if add:
-        already_present = any(normalize_text(value) == normalized_club_name for value in normalized_values)
-        if not already_present:
-            normalized_values.append(club_name)
-    else:
-        normalized_values = [
-            value for value in normalized_values if normalize_text(value) != normalized_club_name
-        ]
-
-    user.joined_clubs = json.dumps(normalized_values)
-    return True
-
 
 def _get_owned_club(club_id: UUID, current_user: User, db: Session) -> Club:
     club = db.query(Club).filter(Club.id == club_id).first()
@@ -177,7 +147,7 @@ def add_club_member(
 
     membership = ClubMember(club_id=club_id, user_id=payload.user_id)
     db.add(membership)
-    _sync_user_joined_clubs(student, club.name, add=True)
+    sync_user_joined_clubs_projection(db, student)
 
     db.commit()
     db.refresh(membership)
@@ -219,7 +189,7 @@ def remove_club_member(
     db.delete(membership)
 
     if student:
-        _sync_user_joined_clubs(student, club.name, add=False)
+        sync_user_joined_clubs_projection(db, student)
 
     db.commit()
     return None
