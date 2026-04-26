@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from app.database import engine, Base, SessionLocal
 from app.routers import auth, users, events, clubs, rsvp, follow
@@ -267,6 +268,14 @@ app = FastAPI(
 )
 
 
+class ImmutableStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers.setdefault("Cache-Control", "public, max-age=31536000, immutable")
+        return response
+
+
 POSTER_CLEANUP_INTERVAL_MINUTES = max(1, int(os.getenv("POSTER_CLEANUP_INTERVAL_MINUTES", "15")))
 _poster_cleanup_task: asyncio.Task | None = None
 
@@ -360,6 +369,8 @@ app.add_middleware(
     allow_headers=cors_allow_headers,
 )
 
+app.add_middleware(GZipMiddleware, minimum_size=1024)
+
 # Session Middleware for OAuth state
 app.add_middleware(
     SessionMiddleware,
@@ -417,14 +428,18 @@ frontend_dist_dir = Path(__file__).resolve().parent / "static"
 frontend_index_file = frontend_dist_dir / "index.html"
 frontend_assets_dir = frontend_dist_dir / "assets"
 
+
+def frontend_html_response(path: Path) -> FileResponse:
+    return FileResponse(path, headers={"Cache-Control": "no-cache"})
+
 if frontend_assets_dir.exists():
-    app.mount("/assets", StaticFiles(directory=str(frontend_assets_dir)), name="frontend-assets")
+    app.mount("/assets", ImmutableStaticFiles(directory=str(frontend_assets_dir)), name="frontend-assets")
 
 
 @app.get("/")
 def read_root():
     if frontend_index_file.exists():
-        return FileResponse(frontend_index_file)
+        return frontend_html_response(frontend_index_file)
     return {"message": "Welcome to the WAVC API"}
 
 
@@ -437,6 +452,6 @@ def frontend_spa_fallback(full_path: str):
         requested_path = frontend_dist_dir / full_path
         if full_path and requested_path.is_file():
             return FileResponse(requested_path)
-        return FileResponse(frontend_index_file)
+        return frontend_html_response(frontend_index_file)
 
     raise HTTPException(status_code=404, detail="Not Found")
