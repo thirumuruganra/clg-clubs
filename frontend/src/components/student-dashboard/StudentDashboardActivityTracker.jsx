@@ -5,7 +5,7 @@ import { Skeleton } from '../ui/skeleton';
 const StudentDashboardActivityTracker = ({ loadingActivities, activities, onBrowseEvents }) => (
   <section className="mb-8 mt-10 enter-rise enter-delay-3">
     <div className="px-4 pb-4">
-      <h2 className="section-title text-[22px]">Student Activity Tracker</h2>
+      <h2 className="section-title text-subheading">Student Activity Tracker</h2>
       <p className="mt-1 text-sm text-text-secondary dark:text-text-dark-secondary">Events you have attended.</p>
     </div>
     <div className="px-4">

@@ -241,14 +241,14 @@ const StudentDashboard = () => {
 
   return (
     <AppShell sidebar={sidebarNode} topbar={topbarNode} mobileMenuOpen={mobileMenuOpen} onCloseMenu={() => setMobileMenuOpen(false)}>
-      <div className="relative flex h-full w-full flex-col overflow-hidden font-body text-text-primary dark:text-white">
+      <div className="relative flex w-full flex-col font-body text-text-primary dark:text-white">
         <div className="pointer-events-none absolute inset-0 opacity-55">
           <div className="atmosphere-grid"></div>
         </div>
 
-        <div className="layout-container relative z-10 flex h-full min-w-0 flex-1 grow flex-col">
-          <div className="flex flex-1 justify-center overflow-x-hidden px-4 py-6 md:px-10 md:py-8 lg:px-16">
-            <div className="layout-content-container flex w-full max-w-240 min-w-0 flex-1 flex-col">
+        <div className="layout-container relative z-10 flex min-w-0 flex-col">
+          <div className="flex justify-center overflow-x-hidden px-4 py-6 md:px-10 md:py-8 lg:px-16">
+            <div className="layout-content-container flex w-full max-w-240 min-w-0 flex-col pb-10 md:pb-14">
 
             <div className="min-w-0 px-4 pb-3 pt-6">
               <Reveal className="dashboard-hero p-5 sm:p-7" distance={18}>

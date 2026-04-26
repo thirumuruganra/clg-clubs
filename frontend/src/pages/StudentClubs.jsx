@@ -142,12 +142,12 @@ const StudentClubs = () => {
       mobileMenuOpen={mobileMenuOpen}
       onCloseMenu={() => setMobileMenuOpen(false)}
     >
-      <div className="relative flex h-full w-full flex-col overflow-hidden font-body text-text-primary dark:text-white">
+      <div className="relative flex w-full flex-col font-body text-text-primary dark:text-white">
         <div className="pointer-events-none absolute inset-0 opacity-55">
           <div className="atmosphere-grid"></div>
         </div>
 
-        <section className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
+        <section className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 pb-10 sm:px-6 sm:pb-12 lg:px-10 lg:pb-14">
         <header className="space-y-2">
           <h2 className="section-title text-text-primary">Discover clubs</h2>
           <p className="type-body text-text-secondary">
