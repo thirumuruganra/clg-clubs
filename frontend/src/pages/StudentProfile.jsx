@@ -56,6 +56,56 @@ const DEGREE_OPTIONS = [
 const REGISTER_NUMBER_PATTERN = /^3122\d{9}$/;
 const PASSOUT_YEAR_PATTERN = /^\d{4}$/;
 const PASSOUT_YEAR_MAX_AHEAD = 6;
+const EMPTY_FIELD_ERRORS = {
+  register_number: '',
+  batch: '',
+  department: '',
+  degree: '',
+  interests: '',
+};
+
+function getStudentProfileErrors(formData, minPassoutYear, maxPassoutYear) {
+  const errors = { ...EMPTY_FIELD_ERRORS };
+  const registerNumber = String(formData.register_number || '').trim();
+  const passoutYear = String(formData.batch || '').trim();
+  const department = String(formData.department || '').trim();
+  const degree = String(formData.degree || '').trim();
+
+  if (!registerNumber) {
+    errors.register_number = 'Register number is required.';
+  } else if (!REGISTER_NUMBER_PATTERN.test(registerNumber)) {
+    errors.register_number = 'Register number must be exactly 13 digits and start with 3122.';
+  }
+
+  if (!passoutYear) {
+    errors.batch = 'Passout year is required.';
+  } else if (!PASSOUT_YEAR_PATTERN.test(passoutYear)) {
+    errors.batch = 'Passout year must be a 4-digit year (e.g. 2027).';
+  } else {
+    const passoutYearValue = Number(passoutYear);
+    if (passoutYearValue < minPassoutYear || passoutYearValue > maxPassoutYear) {
+      errors.batch = `Passout year must be between ${minPassoutYear} and ${maxPassoutYear}.`;
+    }
+  }
+
+  if (!department) {
+    errors.department = 'Course is required.';
+  }
+
+  if (!degree) {
+    errors.degree = 'Degree is required.';
+  }
+
+  if ((formData.interests || []).length < 3) {
+    errors.interests = 'Select at least 3 interests.';
+  }
+
+  return errors;
+}
+
+function hasStudentProfileErrors(errors) {
+  return Object.values(errors).some(Boolean);
+}
 
 const StudentProfile = () => {
   const { user, loading, logout, refetchUser } = useAuth();
@@ -68,6 +118,7 @@ const StudentProfile = () => {
   const [clubSearch, setClubSearch] = useState('');
   const [clubSearchOpen, setClubSearchOpen] = useState(false);
   const [interestInput, setInterestInput] = useState('');
+  const [fieldErrors, setFieldErrors] = useState(EMPTY_FIELD_ERRORS);
   const [saveError, setSaveError] = useState('');
   const currentYear = new Date().getFullYear();
   const minPassoutYear = currentYear;
@@ -94,12 +145,16 @@ const StudentProfile = () => {
         joined_clubs: user.joined_clubs || [],
         interests: user.interests || []
       });
+      setFieldErrors(EMPTY_FIELD_ERRORS);
+      setSaveError('');
       fetch(`${API}/api/clubs/`).then(r => r.json()).then(setClubs).catch(() => {});
     }
   }, [user, loading, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setSaveError('');
+    setFieldErrors((prev) => ({ ...prev, [name]: '' }));
 
     if (name === 'register_number') {
       const digitsOnly = String(value || '').replace(/\D/g, '').slice(0, 13);
@@ -114,6 +169,23 @@ const StudentProfile = () => {
     }
 
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFieldBlur = (e) => {
+    const { name } = e.target;
+    if (!name || !(name in EMPTY_FIELD_ERRORS)) return;
+
+    const nextErrors = getStudentProfileErrors(formData, minPassoutYear, maxPassoutYear);
+    setFieldErrors((prev) => ({ ...prev, [name]: nextErrors[name] }));
+  };
+
+  const syncInterestErrors = (nextInterests) => {
+    const nextErrors = getStudentProfileErrors(
+      { ...formData, interests: nextInterests },
+      minPassoutYear,
+      maxPassoutYear,
+    );
+    setFieldErrors((prev) => ({ ...prev, interests: nextErrors.interests }));
   };
 
   const handleAddClub = (clubName) => {
@@ -137,10 +209,13 @@ const StudentProfile = () => {
     );
     if (exists) return;
 
+    const nextInterests = [...formData.interests, normalized];
+    setSaveError('');
     setFormData((prev) => ({
       ...prev,
-      interests: [...prev.interests, normalized],
+      interests: nextInterests,
     }));
+    syncInterestErrors(nextInterests);
   };
 
   const handleAddCustomInterest = () => {
@@ -149,40 +224,30 @@ const StudentProfile = () => {
   };
 
   const handleRemoveInterest = (interestToRemove) => {
+    const nextInterests = formData.interests.filter(
+      (interest) => String(interest).toLowerCase() !== String(interestToRemove).toLowerCase()
+    );
+    setSaveError('');
     setFormData((prev) => ({
       ...prev,
-      interests: prev.interests.filter(
-        (interest) => String(interest).toLowerCase() !== String(interestToRemove).toLowerCase()
-      ),
+      interests: nextInterests,
     }));
+    syncInterestErrors(nextInterests);
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaveError('');
 
+    const nextErrors = getStudentProfileErrors(formData, minPassoutYear, maxPassoutYear);
+    setFieldErrors(nextErrors);
+    if (hasStudentProfileErrors(nextErrors)) {
+      setSaveError('Fix the highlighted fields and try again.');
+      return;
+    }
+
     const registerNumber = String(formData.register_number || '').trim();
-    if (!REGISTER_NUMBER_PATTERN.test(registerNumber)) {
-      setSaveError('Register number must be exactly 13 digits and start with 3122.');
-      return;
-    }
-
     const passoutYear = String(formData.batch || '').trim();
-    if (!PASSOUT_YEAR_PATTERN.test(passoutYear)) {
-      setSaveError('Passout year must be a 4-digit year (e.g. 2027).');
-      return;
-    }
-
-    const passoutYearValue = Number(passoutYear);
-    if (passoutYearValue < minPassoutYear || passoutYearValue > maxPassoutYear) {
-      setSaveError(`Passout year must be between ${minPassoutYear} and ${maxPassoutYear}.`);
-      return;
-    }
-
-    if (formData.interests.length < 3) {
-      setSaveError('Please select at least 3 interests.');
-      return;
-    }
 
     setSaving(true);
     try {
@@ -266,7 +331,7 @@ const StudentProfile = () => {
           Keep your details up to date for better recommendations, easier registrations, and relevant club activity.
         </p>
 
-        <form onSubmit={handleSave} className="space-y-8">
+        <form onSubmit={handleSave} noValidate className="space-y-8">
             {saveError ? (
               <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
                 <FieldMessage tone="error">{saveError}</FieldMessage>
@@ -312,13 +377,18 @@ const StudentProfile = () => {
                   name="register_number"
                   value={formData.register_number}
                   onChange={handleChange}
+                  onBlur={handleFieldBlur}
                   required
                   aria-required="true"
+                  aria-invalid={fieldErrors.register_number ? 'true' : 'false'}
+                  aria-describedby={fieldErrors.register_number ? 'profile-register-number-error' : undefined}
                   inputMode="numeric"
                   pattern="3122\d{9}"
                   maxLength={13}
                   placeholder="e.g. 3122012345678"
+                  className={fieldErrors.register_number ? 'border-danger focus-visible:ring-danger' : undefined}
                 />
+                <FieldMessage id="profile-register-number-error" tone="error">{fieldErrors.register_number}</FieldMessage>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="profile-batch" required>Passout Year</Label>
@@ -328,33 +398,62 @@ const StudentProfile = () => {
                   name="batch"
                   value={formData.batch}
                   onChange={handleChange}
+                  onBlur={handleFieldBlur}
                   required
                   aria-required="true"
+                  aria-invalid={fieldErrors.batch ? 'true' : 'false'}
+                  aria-describedby={fieldErrors.batch ? 'profile-batch-error' : undefined}
                   inputMode="numeric"
                   pattern="\d{4}"
                   maxLength={4}
                   min={String(minPassoutYear)}
                   max={String(maxPassoutYear)}
                   placeholder="e.g. 2027"
+                  className={fieldErrors.batch ? 'border-danger focus-visible:ring-danger' : undefined}
                 />
+                <FieldMessage id="profile-batch-error" tone="error">{fieldErrors.batch}</FieldMessage>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="profile-department" required>Course</Label>
-                <Select id="profile-department" name="department" value={formData.department} onChange={handleChange} required aria-required="true">
+                <Select
+                  id="profile-department"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  onBlur={handleFieldBlur}
+                  required
+                  aria-required="true"
+                  aria-invalid={fieldErrors.department ? 'true' : 'false'}
+                  aria-describedby={fieldErrors.department ? 'profile-department-error' : undefined}
+                  className={fieldErrors.department ? 'border-danger focus-visible:ring-danger' : undefined}
+                >
                   <option value="" disabled>Select your course</option>
                   {COURSE_OPTIONS.map((course) => (
                     <option key={course} value={course}>{course}</option>
                   ))}
                 </Select>
+                <FieldMessage id="profile-department-error" tone="error">{fieldErrors.department}</FieldMessage>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="profile-degree" required>Degree</Label>
-                <Select id="profile-degree" name="degree" value={formData.degree} onChange={handleChange} required aria-required="true">
+                <Select
+                  id="profile-degree"
+                  name="degree"
+                  value={formData.degree}
+                  onChange={handleChange}
+                  onBlur={handleFieldBlur}
+                  required
+                  aria-required="true"
+                  aria-invalid={fieldErrors.degree ? 'true' : 'false'}
+                  aria-describedby={fieldErrors.degree ? 'profile-degree-error' : undefined}
+                  className={fieldErrors.degree ? 'border-danger focus-visible:ring-danger' : undefined}
+                >
                   <option value="" disabled>Select your degree</option>
                   {DEGREE_OPTIONS.map((degree) => (
                     <option key={degree} value={degree}>{degree}</option>
                   ))}
                 </Select>
+                <FieldMessage id="profile-degree-error" tone="error">{fieldErrors.degree}</FieldMessage>
               </div>
             </div>
 
@@ -465,6 +564,8 @@ const StudentProfile = () => {
                 <Label htmlFor="profile-interest-input" required>Interests</Label>
                 <span className="text-xs text-text-secondary dark:text-text-dark-secondary">Select at least 3</span>
               </div>
+
+              <FieldMessage id="profile-interests-error" tone="error">{fieldErrors.interests}</FieldMessage>
 
               <div className="flex flex-wrap gap-2">
                 {PREDEFINED_INTERESTS.map((interest) => {
