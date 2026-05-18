@@ -310,6 +310,17 @@ const ClubsCalendarTab = ({
                         Payment Link
                       </a>
                     )}
+                    {selectedEvent.payment_qr_url && (
+                      <div className="mt-3 rounded-xl border border-orange-200/80 bg-white/85 p-3 dark:border-orange-500/20 dark:bg-[#0f1720]/55">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs font-bold uppercase tracking-[0.12em] text-orange-700 dark:text-orange-300">Payment QR</span>
+                          <a href={selectedEvent.payment_qr_url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-primary hover:underline">
+                            Open image
+                          </a>
+                        </div>
+                        <img src={selectedEvent.payment_qr_url} alt={`${selectedEvent.title} payment QR`} className="mt-2 w-full max-w-44 rounded-lg bg-white object-contain p-2" />
+                      </div>
+                    )}
                   </div>
                 )}
 

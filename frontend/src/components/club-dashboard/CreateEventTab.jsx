@@ -15,25 +15,35 @@ const CreateEventTab = ({
   handleCreateFormKeyDown,
   creating,
   creatingPoster,
+  creatingPaymentQr,
   DESCRIPTION_WORD_LIMIT,
   countWords,
   isDescriptionTooLong,
   setActiveTab,
   isCreatePosterDragActive,
+  isCreatePaymentQrDragActive,
   handlePosterDragEnter,
   handlePosterDragOver,
   handlePosterDragLeave,
   handlePosterDrop,
   createPosterDragCounterRef,
+  createPaymentQrDragCounterRef,
   setIsCreatePosterDragActive,
+  setIsCreatePaymentQrDragActive,
   setNewPosterFile,
   setNewPosterPreview,
+  setNewPaymentQrFile,
+  setNewPaymentQrPreview,
   setCreateError,
   newPosterInputRef,
+  newPaymentQrInputRef,
   setPosterSelection,
   openCreatePosterPicker,
+  openCreatePaymentQrPicker,
   newPosterFile,
   newPosterPreview,
+  newPaymentQrFile,
+  newPaymentQrPreview,
 }) => {
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
@@ -222,12 +232,57 @@ const CreateEventTab = ({
                     />
                   </div>
                 </div>
+                <div>
+                  <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary">Payment QR (Optional)</Label>
+                  <div
+                    className={`rounded-xl border-2 border-dashed p-4 transition-colors ${
+                      isCreatePaymentQrDragActive
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border-subtle bg-surface-muted dark:border-border-strong dark:bg-surface-canvas/60'
+                    }`}
+                    onDragEnter={(event) => handlePosterDragEnter(event, setIsCreatePaymentQrDragActive, createPaymentQrDragCounterRef)}
+                    onDragOver={handlePosterDragOver}
+                    onDragLeave={(event) => handlePosterDragLeave(event, setIsCreatePaymentQrDragActive, createPaymentQrDragCounterRef)}
+                    onDrop={(event) => handlePosterDrop(event, setIsCreatePaymentQrDragActive, createPaymentQrDragCounterRef, setNewPaymentQrFile, setNewPaymentQrPreview, setCreateError, 'Payment QR')}
+                  >
+                    <input
+                      ref={newPaymentQrInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(event) => {
+                        const selectedFile = event.target.files?.[0] || null;
+                        setPosterSelection(selectedFile, setNewPaymentQrFile, setNewPaymentQrPreview, setCreateError, 'Payment QR');
+                        event.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={openCreatePaymentQrPicker}
+                      >
+                        <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
+                        Choose Payment QR
+                      </Button>
+                      <span className="max-w-64 truncate text-xs text-text-secondary dark:text-text-dark-secondary">
+                        {newPaymentQrFile ? newPaymentQrFile.name : 'No file selected'}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs text-text-secondary dark:text-text-dark-secondary">or drag and drop a QR image here</p>
+                  </div>
+                  {newPaymentQrPreview && (
+                    <div className="mt-3 w-full max-w-40 overflow-hidden rounded-lg border border-border-subtle bg-white dark:border-border-strong dark:bg-[#0f1720]">
+                      <img src={newPaymentQrPreview} alt="Payment QR preview" className="h-full w-full object-contain" />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </section>
 
-          <Button type="submit" disabled={creating || creatingPoster} className="h-12 w-full text-sm font-semibold">
-            {creating ? 'Publishing...' : creatingPoster ? 'Uploading poster...' : 'Publish Event'}
+          <Button type="submit" disabled={creating || creatingPoster || creatingPaymentQr} className="h-12 w-full text-sm font-semibold">
+            {creating ? 'Publishing...' : creatingPoster || creatingPaymentQr ? 'Uploading assets...' : 'Publish Event'}
           </Button>
         </form>
       </div>

@@ -358,21 +358,33 @@ const ClubsDashboard = () => {
   const [newEvent, setNewEvent] = useState(EMPTY_EVENT_FORM);
   const [newPosterFile, setNewPosterFile] = useState(null);
   const [newPosterPreview, setNewPosterPreview] = useState('');
+  const [newPaymentQrFile, setNewPaymentQrFile] = useState(null);
+  const [newPaymentQrPreview, setNewPaymentQrPreview] = useState('');
   const [creating, setCreating] = useState(false);
   const [creatingPoster, setCreatingPoster] = useState(false);
+  const [creatingPaymentQr, setCreatingPaymentQr] = useState(false);
   const [isCreatePosterDragActive, setIsCreatePosterDragActive] = useState(false);
+  const [isCreatePaymentQrDragActive, setIsCreatePaymentQrDragActive] = useState(false);
   const newPosterInputRef = useRef(null);
+  const newPaymentQrInputRef = useRef(null);
   const createPosterDragCounterRef = useRef(0);
+  const createPaymentQrDragCounterRef = useRef(0);
 
   // Edit Modal
   const [editEvent, setEditEvent] = useState(null);
   const [editPosterFile, setEditPosterFile] = useState(null);
   const [editPosterPreview, setEditPosterPreview] = useState('');
+  const [editPaymentQrFile, setEditPaymentQrFile] = useState(null);
+  const [editPaymentQrPreview, setEditPaymentQrPreview] = useState('');
   const [editing, setEditing] = useState(false);
   const [editingPoster, setEditingPoster] = useState(false);
+  const [editingPaymentQr, setEditingPaymentQr] = useState(false);
   const [isEditPosterDragActive, setIsEditPosterDragActive] = useState(false);
+  const [isEditPaymentQrDragActive, setIsEditPaymentQrDragActive] = useState(false);
   const editPosterInputRef = useRef(null);
+  const editPaymentQrInputRef = useRef(null);
   const editPosterDragCounterRef = useRef(0);
+  const editPaymentQrDragCounterRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -386,7 +398,19 @@ const ClubsDashboard = () => {
     };
   }, [editPosterPreview]);
 
-  const setPosterSelection = (file, setFile, setPreview, setError) => {
+  useEffect(() => {
+    return () => {
+      if (newPaymentQrPreview) URL.revokeObjectURL(newPaymentQrPreview);
+    };
+  }, [newPaymentQrPreview]);
+
+  useEffect(() => {
+    return () => {
+      if (editPaymentQrPreview) URL.revokeObjectURL(editPaymentQrPreview);
+    };
+  }, [editPaymentQrPreview]);
+
+  const setPosterSelection = (file, setFile, setPreview, setError, assetLabel = 'Poster') => {
     setError('');
 
     if (!file) {
@@ -396,7 +420,7 @@ const ClubsDashboard = () => {
     }
 
     if (!ALLOWED_POSTER_TYPES.includes(file.type)) {
-      setError('Poster must be JPEG, PNG, or WebP.');
+      setError(`${assetLabel} must be JPEG, PNG, or WebP.`);
       setFile(null);
       setPreview('');
       return;
@@ -415,6 +439,14 @@ const ClubsDashboard = () => {
 
   const openEditPosterPicker = () => {
     editPosterInputRef.current?.click();
+  };
+
+  const openCreatePaymentQrPicker = () => {
+    newPaymentQrInputRef.current?.click();
+  };
+
+  const openEditPaymentQrPicker = () => {
+    editPaymentQrInputRef.current?.click();
   };
 
   const handlePosterDragEnter = (event, setDragActive, dragCounterRef) => {
@@ -439,13 +471,13 @@ const ClubsDashboard = () => {
     }
   };
 
-  const handlePosterDrop = (event, setDragActive, dragCounterRef, setFile, setPreview, setError) => {
+  const handlePosterDrop = (event, setDragActive, dragCounterRef, setFile, setPreview, setError, assetLabel = 'Poster') => {
     event.preventDefault();
     event.stopPropagation();
     dragCounterRef.current = 0;
     setDragActive(false);
     const droppedFile = event.dataTransfer.files?.[0] || null;
-    setPosterSelection(droppedFile, setFile, setPreview, setError);
+    setPosterSelection(droppedFile, setFile, setPreview, setError, assetLabel);
   };
 
   const compressPosterFile = async (posterFile) => {
@@ -483,15 +515,55 @@ const ClubsDashboard = () => {
     return response.json();
   };
 
+  const uploadPaymentQrForEvent = async (eventId, paymentQrFile) => {
+    const formData = new FormData();
+    formData.append('file', paymentQrFile, paymentQrFile.name || 'payment-qr');
+
+    const response = await fetch(`${API}/api/events/${eventId}/payment-qr`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.detail || 'Payment QR upload failed.');
+    }
+
+    return response.json();
+  };
+
+  const deletePaymentQrForEvent = async (eventId) => {
+    const response = await fetch(`${API}/api/events/${eventId}/payment-qr`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.detail || 'Payment QR removal failed.');
+    }
+
+    return response.json();
+  };
+
   const resetCreateEventForm = () => {
     setNewEvent(EMPTY_EVENT_FORM);
     setNewPosterFile(null);
+    setNewPaymentQrFile(null);
     createPosterDragCounterRef.current = 0;
+    createPaymentQrDragCounterRef.current = 0;
     setIsCreatePosterDragActive(false);
+    setIsCreatePaymentQrDragActive(false);
     if (newPosterInputRef.current) {
       newPosterInputRef.current.value = '';
     }
+    if (newPaymentQrInputRef.current) {
+      newPaymentQrInputRef.current.value = '';
+    }
     setNewPosterPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return '';
+    });
+    setNewPaymentQrPreview((previous) => {
       if (previous) URL.revokeObjectURL(previous);
       return '';
     });
@@ -748,23 +820,34 @@ const ClubsDashboard = () => {
       });
       if (res.ok) {
         const createdEvent = await res.json();
-        let posterUploadError = '';
+        const assetUploadErrors = [];
 
         if (newPosterFile) {
           setCreatingPoster(true);
           try {
             await uploadPosterForEvent(createdEvent.id, newPosterFile);
           } catch (err) {
-            posterUploadError = err?.message || 'Poster upload failed.';
+            assetUploadErrors.push(`poster: ${err?.message || 'Poster upload failed.'}`);
           } finally {
             setCreatingPoster(false);
           }
         }
 
+        if (newPaymentQrFile) {
+          setCreatingPaymentQr(true);
+          try {
+            await uploadPaymentQrForEvent(createdEvent.id, newPaymentQrFile);
+          } catch (err) {
+            assetUploadErrors.push(`payment QR: ${err?.message || 'Payment QR upload failed.'}`);
+          } finally {
+            setCreatingPaymentQr(false);
+          }
+        }
+
         resetCreateEventForm();
         setCreateError('');
-        if (posterUploadError) {
-          setTableError(`Event created, but poster upload failed: ${posterUploadError}`);
+        if (assetUploadErrors.length) {
+          setTableError(`Event created, but asset upload failed: ${assetUploadErrors.join(' ')}`);
         }
         void fetchData();
         setActiveTab('dashboard');
@@ -798,12 +881,22 @@ const ClubsDashboard = () => {
 
   const openEditModal = (event) => {
     editPosterDragCounterRef.current = 0;
+    editPaymentQrDragCounterRef.current = 0;
     setIsEditPosterDragActive(false);
+    setIsEditPaymentQrDragActive(false);
     if (editPosterInputRef.current) {
       editPosterInputRef.current.value = '';
     }
+    if (editPaymentQrInputRef.current) {
+      editPaymentQrInputRef.current.value = '';
+    }
     setEditPosterFile(null);
+    setEditPaymentQrFile(null);
     setEditPosterPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return '';
+    });
+    setEditPaymentQrPreview((previous) => {
       if (previous) URL.revokeObjectURL(previous);
       return '';
     });
@@ -818,6 +911,7 @@ const ClubsDashboard = () => {
       image_url: event.image_url || '',
       keywords: event.keywords || '',
       payment_link: event.payment_link || '',
+      payment_qr_url: event.payment_qr_url || '',
       is_paid: event.is_paid || false,
       registration_fees: event.registration_fees || '',
     });
@@ -848,6 +942,7 @@ const ClubsDashboard = () => {
         end_time: formatLocalDateTimeForApi(editEvent.end_time),
       };
       delete body.id;
+      delete body.payment_qr_url;
 
       const res = await fetch(`${API}/api/events/${editEvent.id}`, {
         method: 'PUT',
@@ -855,22 +950,39 @@ const ClubsDashboard = () => {
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        let posterUploadError = '';
+        const assetUploadErrors = [];
 
         if (editPosterFile) {
           setEditingPoster(true);
           try {
             await uploadPosterForEvent(editEvent.id, editPosterFile);
           } catch (err) {
-            posterUploadError = err?.message || 'Poster upload failed.';
+            assetUploadErrors.push(`poster: ${err?.message || 'Poster upload failed.'}`);
           } finally {
             setEditingPoster(false);
           }
         }
 
+        if (editPaymentQrFile) {
+          setEditingPaymentQr(true);
+          try {
+            await uploadPaymentQrForEvent(editEvent.id, editPaymentQrFile);
+          } catch (err) {
+            assetUploadErrors.push(`payment QR: ${err?.message || 'Payment QR upload failed.'}`);
+          } finally {
+            setEditingPaymentQr(false);
+          }
+        } else if (!editEvent.payment_qr_url) {
+          try {
+            await deletePaymentQrForEvent(editEvent.id);
+          } catch (err) {
+            assetUploadErrors.push(`payment QR: ${err?.message || 'Payment QR removal failed.'}`);
+          }
+        }
+
         closeEditModal();
-        if (posterUploadError) {
-          setTableError(`Event updated, but poster upload failed: ${posterUploadError}`);
+        if (assetUploadErrors.length) {
+          setTableError(`Event updated, but asset upload failed: ${assetUploadErrors.join(' ')}`);
         }
         void fetchData();
       } else {
@@ -1069,12 +1181,22 @@ const ClubsDashboard = () => {
     setEditError('');
     setEditEvent(null);
     setEditPosterFile(null);
+    setEditPaymentQrFile(null);
     editPosterDragCounterRef.current = 0;
+    editPaymentQrDragCounterRef.current = 0;
     setIsEditPosterDragActive(false);
+    setIsEditPaymentQrDragActive(false);
     if (editPosterInputRef.current) {
       editPosterInputRef.current.value = '';
     }
+    if (editPaymentQrInputRef.current) {
+      editPaymentQrInputRef.current.value = '';
+    }
     setEditPosterPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return '';
+    });
+    setEditPaymentQrPreview((previous) => {
       if (previous) URL.revokeObjectURL(previous);
       return '';
     });
@@ -1725,25 +1847,35 @@ const ClubsDashboard = () => {
               handleCreateFormKeyDown={handleCreateFormKeyDown}
               creating={creating}
               creatingPoster={creatingPoster}
+              creatingPaymentQr={creatingPaymentQr}
               DESCRIPTION_WORD_LIMIT={DESCRIPTION_WORD_LIMIT}
               countWords={countWords}
               isDescriptionTooLong={isDescriptionTooLong}
               setActiveTab={setActiveTab}
               isCreatePosterDragActive={isCreatePosterDragActive}
+              isCreatePaymentQrDragActive={isCreatePaymentQrDragActive}
               handlePosterDragEnter={handlePosterDragEnter}
               handlePosterDragOver={handlePosterDragOver}
               handlePosterDragLeave={handlePosterDragLeave}
               handlePosterDrop={handlePosterDrop}
               createPosterDragCounterRef={createPosterDragCounterRef}
+              createPaymentQrDragCounterRef={createPaymentQrDragCounterRef}
               setIsCreatePosterDragActive={setIsCreatePosterDragActive}
+              setIsCreatePaymentQrDragActive={setIsCreatePaymentQrDragActive}
               setNewPosterFile={setNewPosterFile}
               setNewPosterPreview={setNewPosterPreview}
+              setNewPaymentQrFile={setNewPaymentQrFile}
+              setNewPaymentQrPreview={setNewPaymentQrPreview}
               setCreateError={setCreateError}
               newPosterInputRef={newPosterInputRef}
+              newPaymentQrInputRef={newPaymentQrInputRef}
               setPosterSelection={setPosterSelection}
               openCreatePosterPicker={openCreatePosterPicker}
+              openCreatePaymentQrPicker={openCreatePaymentQrPicker}
               newPosterFile={newPosterFile}
               newPosterPreview={newPosterPreview}
+              newPaymentQrFile={newPaymentQrFile}
+              newPaymentQrPreview={newPaymentQrPreview}
             />
           </Suspense>
         ) : (
@@ -1862,6 +1994,66 @@ const ClubsDashboard = () => {
                       placeholder="e.g. https://rzp.io/l/..."
                       className="border-none" />
                   </div>
+                  <div>
+                    <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary">Payment QR (Optional)</Label>
+                    <div
+                      className={`rounded-xl border-2 border-dashed p-4 transition-colors ${
+                        isEditPaymentQrDragActive
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border-subtle dark:border-border-strong bg-surface-muted dark:bg-[#0f1720]/40'
+                      }`}
+                      onDragEnter={(event) => handlePosterDragEnter(event, setIsEditPaymentQrDragActive, editPaymentQrDragCounterRef)}
+                      onDragOver={handlePosterDragOver}
+                      onDragLeave={(event) => handlePosterDragLeave(event, setIsEditPaymentQrDragActive, editPaymentQrDragCounterRef)}
+                      onDrop={(event) => handlePosterDrop(event, setIsEditPaymentQrDragActive, editPaymentQrDragCounterRef, setEditPaymentQrFile, setEditPaymentQrPreview, setEditError, 'Payment QR')}
+                    >
+                      <input
+                        ref={editPaymentQrInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={(event) => {
+                          const selectedFile = event.target.files?.[0] || null;
+                          setPosterSelection(selectedFile, setEditPaymentQrFile, setEditPaymentQrPreview, setEditError, 'Payment QR');
+                          event.target.value = '';
+                        }}
+                        className="hidden"
+                      />
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={openEditPaymentQrPicker}
+                        >
+                          <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
+                          Choose Payment QR
+                        </Button>
+                        <span className="text-xs text-text-secondary dark:text-text-dark-secondary truncate max-w-64">
+                          {editPaymentQrFile ? editPaymentQrFile.name : editEvent.payment_qr_url ? 'Using existing payment QR' : 'No payment QR selected'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2">or drag and drop a QR image here</p>
+                    </div>
+                    {editPaymentQrPreview ? (
+                      <div className="mt-3 w-full max-w-40 overflow-hidden rounded-lg border border-border-subtle bg-white dark:border-border-strong dark:bg-[#0f1720]">
+                        <img src={editPaymentQrPreview} alt="Updated payment QR preview" className="h-full w-full object-contain" />
+                      </div>
+                    ) : editEvent.payment_qr_url ? (
+                      <div className="mt-3 w-full max-w-40 overflow-hidden rounded-lg border border-border-subtle bg-white dark:border-border-strong dark:bg-[#0f1720]">
+                        <img src={editEvent.payment_qr_url} alt="Current payment QR" className="h-full w-full object-contain" />
+                      </div>
+                    ) : null}
+                    {editEvent.payment_qr_url && !editPaymentQrFile ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditEvent((previous) => ({ ...previous, payment_qr_url: '' }))}
+                        className="mt-2 h-8 px-0 text-xs font-semibold text-danger hover:bg-transparent hover:text-danger/80"
+                      >
+                        Remove existing payment QR
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               )}
               <div>
@@ -1947,9 +2139,9 @@ const ClubsDashboard = () => {
                 <Button type="button" variant="secondary" className="flex-1" onClick={closeEditModal}>
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1" disabled={editing || editingPoster}>
-                  {editing ? 'Saving...' : editingPoster ? 'Uploading poster...' : 'Save Changes'}
-                  {!(editing || editingPoster) && <span className="material-symbols-outlined text-[18px]">check</span>}
+                <Button type="submit" className="flex-1" disabled={editing || editingPoster || editingPaymentQr}>
+                  {editing ? 'Saving...' : editingPoster || editingPaymentQr ? 'Uploading assets...' : 'Save Changes'}
+                  {!(editing || editingPoster || editingPaymentQr) && <span className="material-symbols-outlined text-[18px]">check</span>}
                 </Button>
               </div>
             </form>

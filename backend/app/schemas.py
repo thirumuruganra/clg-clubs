@@ -182,6 +182,7 @@ class EventResponse(EventBase):
     id: UUID
     club_id: UUID
     club_name: Optional[str] = None
+    payment_qr_url: Optional[str] = None
     rsvp_count: Optional[int] = 0
     is_rsvped: Optional[bool] = False
 

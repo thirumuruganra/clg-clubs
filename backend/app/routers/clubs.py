@@ -324,6 +324,7 @@ def get_club_events(club_id: UUID, db: Session = Depends(get_db)):
             "is_paid": event.is_paid,
             "registration_fees": event.registration_fees,
             "payment_link": event.payment_link,
+            "payment_qr_url": event.payment_qr_url,
             "rsvp_count": rsvp_count,
             "attended_count": attended_count,
             "attendance_qr_open": bool(event.attendance_qr_open),

@@ -23,6 +23,7 @@ from app.services.event_posters import (
     replace_event_poster,
     clear_event_poster,
 )
+from app.services.event_payment_qrs import replace_event_payment_qr, clear_event_payment_qr
 from app.utils.common import safe_json_list
 from datetime import datetime, timedelta
 from typing import Optional, List
@@ -179,6 +180,7 @@ def get_all_events(search: Optional[str] = Query(None), db: Session = Depends(ge
             "image_url": event.image_url,
             "keywords": event.keywords,
             "payment_link": event.payment_link,
+            "payment_qr_url": event.payment_qr_url,
             "is_paid": event.is_paid,
             "registration_fees": event.registration_fees,
             "rsvp_count": rsvp_count,
@@ -276,6 +278,7 @@ def get_event_feed(
             "image_url": event.image_url,
             "keywords": event.keywords,
             "payment_link": event.payment_link,
+            "payment_qr_url": event.payment_qr_url,
             "is_paid": event.is_paid,
             "registration_fees": event.registration_fees,
             "rsvp_count": rsvp_count,
@@ -329,13 +332,14 @@ def get_event(
         "tag": event.tag,
         "image_url": event.image_url,
         "keywords": event.keywords,
-            "payment_link": event.payment_link,
-            "is_paid": event.is_paid,
-            "registration_fees": event.registration_fees,
+        "payment_link": event.payment_link,
+        "payment_qr_url": event.payment_qr_url,
+        "is_paid": event.is_paid,
+        "registration_fees": event.registration_fees,
         "rsvp_count": rsvp_count,
         "is_rsvped": is_rsvped,
         "recent_activity": recent_rsvps,
-            "attendance_qr_open": bool(event.attendance_qr_open),
+        "attendance_qr_open": bool(event.attendance_qr_open),
     }
 
 
@@ -364,6 +368,7 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
         image_url=event.image_url,
         keywords=event.keywords,
         payment_link=event.payment_link,
+        payment_qr_url=event.payment_qr_url,
         is_paid=event.is_paid,
         registration_fees=event.registration_fees,
     )
@@ -383,9 +388,10 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
         "tag": db_event.tag,
         "image_url": db_event.image_url,
         "keywords": db_event.keywords,
-            "payment_link": db_event.payment_link,
-            "is_paid": db_event.is_paid,
-            "registration_fees": db_event.registration_fees,
+        "payment_link": db_event.payment_link,
+        "payment_qr_url": db_event.payment_qr_url,
+        "is_paid": db_event.is_paid,
+        "registration_fees": db_event.registration_fees,
         "rsvp_count": 0,
         "attendance_qr_open": bool(db_event.attendance_qr_open),
     }
@@ -425,6 +431,65 @@ async def upload_event_poster(
         "poster_storage_path": poster_payload["poster_storage_path"],
         "max_size_bytes": MAX_POSTER_BYTES,
     }
+
+
+@router.post("/{event_id}/payment-qr")
+async def upload_event_payment_qr(
+    event_id: UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload or replace an event payment QR in Supabase Storage bucket."""
+    event = _require_admin_owned_event(event_id, db, current_user)
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Payment QR file is empty")
+
+    try:
+        qr_payload = replace_event_payment_qr(event, file_bytes, file.content_type or "")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Payment QR upload failed. Verify Supabase bucket settings. {exc}",
+        ) from exc
+
+    db.commit()
+    db.refresh(event)
+
+    return {
+        "status": "success",
+        "event_id": event.id,
+        "payment_qr_url": qr_payload["payment_qr_url"],
+        "payment_qr_storage_path": qr_payload["payment_qr_storage_path"],
+        "max_size_bytes": qr_payload["max_size_bytes"],
+    }
+
+
+@router.delete("/{event_id}/payment-qr")
+def delete_event_payment_qr(
+    event_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete an event payment QR from Supabase Storage bucket."""
+    event = _require_admin_owned_event(event_id, db, current_user)
+
+    if not event.payment_qr_storage_path and not event.payment_qr_url:
+        return {"status": "success", "event_id": event.id, "payment_qr_url": None}
+
+    try:
+        clear_event_payment_qr(event)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=f"Failed to delete payment QR: {exc}") from exc
+
+    db.commit()
+    db.refresh(event)
+
+    return {"status": "success", "event_id": event.id, "payment_qr_url": None}
 
 
 @router.put("/{event_id}")
@@ -497,9 +562,10 @@ def update_event(event_id: UUID, event_update: EventUpdate, db: Session = Depend
         "tag": event.tag,
         "image_url": event.image_url,
         "keywords": event.keywords,
-            "payment_link": event.payment_link,
-            "is_paid": event.is_paid,
-            "registration_fees": event.registration_fees,
+        "payment_link": event.payment_link,
+        "payment_qr_url": event.payment_qr_url,
+        "is_paid": event.is_paid,
+        "registration_fees": event.registration_fees,
         "rsvp_count": rsvp_count,
         "attendance_qr_open": bool(event.attendance_qr_open),
     }
@@ -675,6 +741,11 @@ def delete_event(event_id: UUID, db: Session = Depends(get_db), current_user: Us
             clear_event_poster(event)
         except RuntimeError as exc:
             raise HTTPException(status_code=502, detail=f"Failed to delete event poster from storage: {exc}") from exc
+    if event.payment_qr_storage_path or event.payment_qr_url:
+        try:
+            clear_event_payment_qr(event)
+        except RuntimeError as exc:
+            raise HTTPException(status_code=502, detail=f"Failed to delete payment QR from storage: {exc}") from exc
 
     # Delete associated RSVPs first
     db.query(RSVP).filter(RSVP.event_id == event_id).delete()

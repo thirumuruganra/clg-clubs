@@ -189,7 +189,7 @@ def ensure_event_attendance_qr_open_column() -> None:
 
 
 def ensure_event_poster_columns() -> None:
-    """Add poster metadata columns for Supabase Storage lifecycle if missing."""
+    """Add event asset metadata columns for Supabase Storage lifecycle if missing."""
     try:
         inspector = inspect(engine)
         if "events" not in inspector.get_table_names():
@@ -208,6 +208,18 @@ def ensure_event_poster_columns() -> None:
             statements.append("ALTER TABLE events ADD COLUMN poster_uploaded_at TIMESTAMP")
         if "poster_deleted_at" not in existing_columns:
             statements.append("ALTER TABLE events ADD COLUMN poster_deleted_at TIMESTAMP")
+        if "payment_qr_url" not in existing_columns:
+            statements.append("ALTER TABLE events ADD COLUMN payment_qr_url VARCHAR(500)")
+        if "payment_qr_storage_path" not in existing_columns:
+            statements.append("ALTER TABLE events ADD COLUMN payment_qr_storage_path VARCHAR(700)")
+        if "payment_qr_mime_type" not in existing_columns:
+            statements.append("ALTER TABLE events ADD COLUMN payment_qr_mime_type VARCHAR(100)")
+        if "payment_qr_size_bytes" not in existing_columns:
+            statements.append("ALTER TABLE events ADD COLUMN payment_qr_size_bytes INTEGER")
+        if "payment_qr_uploaded_at" not in existing_columns:
+            statements.append("ALTER TABLE events ADD COLUMN payment_qr_uploaded_at TIMESTAMP")
+        if "payment_qr_deleted_at" not in existing_columns:
+            statements.append("ALTER TABLE events ADD COLUMN payment_qr_deleted_at TIMESTAMP")
 
         if not statements:
             return
@@ -216,9 +228,9 @@ def ensure_event_poster_columns() -> None:
             for statement in statements:
                 conn.execute(text(statement))
 
-        print("ℹ️  Added missing poster metadata columns to events table")
+        print("ℹ️  Added missing event asset metadata columns to events table")
     except Exception as exc:
-        print(f"⚠️  Could not auto-add poster metadata columns: {exc}")
+        print(f"⚠️  Could not auto-add event asset metadata columns: {exc}")
 
 
 def normalize_legacy_cse_entries() -> None:

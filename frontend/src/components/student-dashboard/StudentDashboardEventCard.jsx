@@ -68,6 +68,12 @@ const StudentDashboardEventCard = ({ event, pendingRsvpId, onToggleRsvp }) => {
                 <span>Payment Link</span>
               </a>
             )}
+            {event.payment_qr_url && (
+              <a href={event.payment_qr_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary hover:underline" onClick={(eventObj) => eventObj.stopPropagation()}>
+                <span className="material-symbols-outlined text-secondary">qr_code_2</span>
+                <span>Payment QR</span>
+              </a>
+            )}
           </div>
         )}
 
