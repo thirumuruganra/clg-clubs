@@ -10,7 +10,7 @@ from app.database import engine, Base, SessionLocal
 from app.routers import auth, users, events, clubs, rsvp, follow
 from app.core.storage import is_supabase_storage_configured
 from app.core.rate_limit import InMemoryRateLimitMiddleware, RateLimitRule
-from app.services.event_posters import cleanup_expired_event_posters
+from app.services.event_posters import cleanup_event_poster_overflow
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -288,33 +288,6 @@ class ImmutableStaticFiles(StaticFiles):
         return response
 
 
-POSTER_CLEANUP_INTERVAL_MINUTES = max(1, int(os.getenv("POSTER_CLEANUP_INTERVAL_MINUTES", "15")))
-_poster_cleanup_task: asyncio.Task | None = None
-
-
-def _run_event_poster_cleanup_cycle() -> None:
-    db = SessionLocal()
-    try:
-        summary = cleanup_expired_event_posters(db)
-        if summary["checked"] > 0:
-            print(
-                "ℹ️  Event poster cleanup cycle: "
-                f"checked={summary['checked']} deleted={summary['deleted']} failed={summary['failed']}"
-            )
-    finally:
-        db.close()
-
-
-async def _event_poster_cleanup_loop() -> None:
-    while True:
-        try:
-            await asyncio.to_thread(_run_event_poster_cleanup_cycle)
-        except Exception as exc:
-            print(f"⚠️  Event poster cleanup cycle failed: {exc}")
-
-        await asyncio.sleep(POSTER_CLEANUP_INTERVAL_MINUTES * 60)
-
-
 def _parse_origins_env(var_name: str, default_origins: list[str]) -> list[str]:
     raw_value = os.getenv(var_name, "").strip()
     if not raw_value:
@@ -402,38 +375,24 @@ app.include_router(follow.router, prefix="/api/follow", tags=["follow"])
 
 
 @app.on_event("startup")
-async def start_event_poster_cleanup_scheduler() -> None:
-    global _poster_cleanup_task
-
+async def run_event_poster_overflow_cleanup_once() -> None:
     if not is_supabase_storage_configured():
         print(
-            "ℹ️  Event poster cleanup scheduler is disabled because Supabase Storage "
+            "ℹ️  Event poster overflow cleanup skipped because Supabase Storage "
             "environment variables are not fully configured."
         )
         return
 
-    if _poster_cleanup_task is None or _poster_cleanup_task.done():
-        _poster_cleanup_task = asyncio.create_task(_event_poster_cleanup_loop())
-        print(
-            "ℹ️  Event poster cleanup scheduler started "
-            f"(interval={POSTER_CLEANUP_INTERVAL_MINUTES} minutes)"
-        )
-
-
-@app.on_event("shutdown")
-async def stop_event_poster_cleanup_scheduler() -> None:
-    global _poster_cleanup_task
-
-    if _poster_cleanup_task is None:
-        return
-
-    _poster_cleanup_task.cancel()
+    db = SessionLocal()
     try:
-        await _poster_cleanup_task
-    except asyncio.CancelledError:
-        pass
-
-    _poster_cleanup_task = None
+        summary = cleanup_event_poster_overflow(db)
+        if summary["checked"] > 0 or summary["deleted"] > 0 or summary["failed"] > 0:
+            print(
+                "ℹ️  Event poster overflow cleanup: "
+                f"checked={summary['checked']} deleted={summary['deleted']} failed={summary['failed']}"
+            )
+    finally:
+        db.close()
 
 
 frontend_dist_dir = Path(__file__).resolve().parent / "static"

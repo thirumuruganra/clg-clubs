@@ -19,6 +19,7 @@ ALLOWED_POSTER_MIME_TYPES = {
     "image/webp": "webp",
 }
 MAX_POSTER_BYTES = int(os.getenv("EVENT_POSTER_MAX_BYTES", str(2 * 1024 * 1024)))
+MAX_POSTERS_PER_CLUB = max(1, int(os.getenv("EVENT_POSTER_MAX_PER_CLUB", "5")))
 
 
 def _normalize_content_type(content_type: Optional[str]) -> str:
@@ -45,7 +46,98 @@ def _build_object_path(event: Event) -> str:
     return f"clubs/{club_folder}/event-{event.id}/poster"
 
 
-def replace_event_poster(event: Event, file_bytes: bytes, content_type: str) -> dict[str, str]:
+def _event_poster_age_key(event: Event) -> tuple[datetime, datetime, datetime, str]:
+    return (
+        event.poster_uploaded_at or datetime.min,
+        event.start_time or datetime.min,
+        event.end_time or datetime.min,
+        str(event.id),
+    )
+
+
+def _query_club_poster_events(
+    db: Session,
+    club_id,
+    *,
+    exclude_event_id=None,
+) -> list[Event]:
+    query = db.query(Event).filter(
+        Event.club_id == club_id,
+        Event.poster_storage_path.isnot(None),
+    )
+    if exclude_event_id is not None:
+        query = query.filter(Event.id != exclude_event_id)
+    return query.all()
+
+
+def cleanup_club_event_poster_overflow(
+    db: Session,
+    club_id,
+    *,
+    max_posters: int = MAX_POSTERS_PER_CLUB,
+    exclude_event_id=None,
+) -> dict[str, int]:
+    events = sorted(
+        _query_club_poster_events(db, club_id, exclude_event_id=exclude_event_id),
+        key=_event_poster_age_key,
+    )
+    overflow_count = max(0, len(events) - max_posters)
+    deleted = 0
+    failed = 0
+
+    for event in events[:overflow_count]:
+        try:
+            clear_event_poster(event)
+            deleted += 1
+        except RuntimeError:
+            failed += 1
+
+    if deleted > 0:
+        db.flush()
+
+    return {
+        "checked": len(events),
+        "deleted": deleted,
+        "failed": failed,
+    }
+
+
+def cleanup_event_poster_overflow(db: Session) -> dict[str, int]:
+    poster_events = (
+        db.query(Event)
+        .filter(Event.poster_storage_path.isnot(None))
+        .all()
+    )
+
+    club_events: dict[object, list[Event]] = {}
+    for event in poster_events:
+        club_events.setdefault(event.club_id, []).append(event)
+
+    checked = len(poster_events)
+    deleted = 0
+    failed = 0
+
+    for events in club_events.values():
+        events.sort(key=_event_poster_age_key)
+        overflow_count = max(0, len(events) - MAX_POSTERS_PER_CLUB)
+        for event in events[:overflow_count]:
+            try:
+                clear_event_poster(event)
+                deleted += 1
+            except RuntimeError:
+                failed += 1
+
+    if deleted > 0:
+        db.commit()
+
+    return {
+        "checked": checked,
+        "deleted": deleted,
+        "failed": failed,
+    }
+
+
+def replace_event_poster(db: Session, event: Event, file_bytes: bytes, content_type: str) -> dict[str, str]:
     normalized_type = _normalize_content_type(content_type)
     if normalized_type not in ALLOWED_POSTER_MIME_TYPES:
         allowed = ", ".join(sorted(ALLOWED_POSTER_MIME_TYPES.keys()))
@@ -67,13 +159,20 @@ def replace_event_poster(event: Event, file_bytes: bytes, content_type: str) -> 
         upsert=True,
     )
 
-    old_object_path = previous_object_path
-    if old_object_path and old_object_path != new_object_path:
+    if not previous_object_path:
         try:
-            delete_storage_object(old_object_path)
+            cleanup_club_event_poster_overflow(
+                db,
+                event.club_id,
+                max_posters=MAX_POSTERS_PER_CLUB - 1,
+                exclude_event_id=event.id,
+            )
         except RuntimeError:
-            # Best-effort cleanup for replaced posters. The scheduled cleanup also catches leftovers.
-            pass
+            try:
+                delete_storage_object(new_object_path)
+            except RuntimeError:
+                pass
+            raise
 
     event.image_url = new_public_url
     event.poster_storage_path = new_object_path
@@ -103,34 +202,3 @@ def clear_event_poster(event: Event) -> bool:
     event.poster_deleted_at = datetime.utcnow()
 
     return True
-
-
-def cleanup_expired_event_posters(db: Session, now: Optional[datetime] = None, limit: int = 200) -> dict[str, int]:
-    current_time = now or datetime.utcnow()
-    events = (
-        db.query(Event)
-        .filter(Event.end_time <= current_time, Event.poster_storage_path.isnot(None))
-        .order_by(Event.end_time.asc())
-        .limit(limit)
-        .all()
-    )
-
-    checked = len(events)
-    deleted = 0
-    failed = 0
-
-    for event in events:
-        try:
-            clear_event_poster(event)
-            deleted += 1
-        except RuntimeError:
-            failed += 1
-
-    if deleted > 0:
-        db.commit()
-
-    return {
-        "checked": checked,
-        "deleted": deleted,
-        "failed": failed,
-    }

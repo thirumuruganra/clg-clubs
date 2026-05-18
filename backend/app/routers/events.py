@@ -412,7 +412,7 @@ async def upload_event_poster(
         raise HTTPException(status_code=400, detail="Poster file is empty")
 
     try:
-        poster_payload = replace_event_poster(event, file_bytes, file.content_type or "")
+        poster_payload = replace_event_poster(db, event, file_bytes, file.content_type or "")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except RuntimeError as exc:
