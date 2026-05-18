@@ -1,9 +1,11 @@
 import asyncio
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from app.database import engine, Base, SessionLocal
@@ -11,6 +13,7 @@ from app.routers import auth, users, events, clubs, rsvp, follow
 from app.core.storage import is_supabase_storage_configured
 from app.core.rate_limit import InMemoryRateLimitMiddleware, RateLimitRule
 from app.services.event_posters import cleanup_event_poster_overflow
+from app.services import no_service
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -372,6 +375,15 @@ app.include_router(events.router, prefix="/api/events", tags=["events"])
 app.include_router(clubs.router, prefix="/api/clubs", tags=["clubs"])
 app.include_router(rsvp.router, prefix="/api/rsvp", tags=["rsvp"])
 app.include_router(follow.router, prefix="/api/follow", tags=["follow"])
+
+
+@app.exception_handler(StarletteHTTPException)
+async def rewrite_access_denied_detail(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == 403 and no_service.should_use_no_service_message(exc.detail):
+        detail = await no_service.fetch_no_service_reason(fallback_detail=str(exc.detail))
+        return JSONResponse(status_code=exc.status_code, content={"detail": detail}, headers=exc.headers)
+
+    return await http_exception_handler(request, exc)
 
 
 @app.on_event("startup")
