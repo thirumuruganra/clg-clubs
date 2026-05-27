@@ -155,6 +155,24 @@ def ensure_rsvp_attended_marked_at_column() -> None:
         print(f"⚠️  Could not auto-add 'attended_marked_at' column: {exc}")
 
 
+def ensure_rsvp_attendance_role_column() -> None:
+    """Add the attendance_role column for older databases."""
+    try:
+        inspector = inspect(engine)
+        if "rsvps" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("rsvps")}
+        if "attendance_role" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE rsvps ADD COLUMN attendance_role VARCHAR(20)"))
+        print("ℹ️  Added missing 'attendance_role' column to rsvps table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'attendance_role' column: {exc}")
+
+
 def ensure_event_attendance_qr_code_column() -> None:
     """Add the attendance_qr_code column for older databases."""
     try:
@@ -271,6 +289,7 @@ ensure_user_degree_column()
 ensure_user_google_scopes_column()
 ensure_rsvp_attended_column()
 ensure_rsvp_attended_marked_at_column()
+ensure_rsvp_attendance_role_column()
 ensure_event_attendance_qr_code_column()
 ensure_event_attendance_qr_open_column()
 ensure_event_poster_columns()

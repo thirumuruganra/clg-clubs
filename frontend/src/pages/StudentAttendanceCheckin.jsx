@@ -15,6 +15,22 @@ const StudentAttendanceCheckin = () => {
   const [success, setSuccess] = useState('');
   const [eventTitle, setEventTitle] = useState('');
 
+  const buildSuccessMessage = (action, attendanceRole) => {
+    const roleLabel = attendanceRole === 'CLUB_MEMBER'
+      ? 'club member'
+      : attendanceRole === 'VOLUNTEER'
+        ? 'volunteer'
+        : 'student participant';
+
+    if (action === 'registered_and_marked_attended') {
+      return `You were registered as a ${roleLabel} and your attendance is marked.`;
+    }
+    if (action === 'already_attended') {
+      return `Your attendance was already marked as a ${roleLabel}.`;
+    }
+    return `Your attendance is marked successfully as a ${roleLabel}.`;
+  };
+
   const canAttemptCheckin = useMemo(() => {
     return Boolean(user && eventId && qrCode);
   }, [user, eventId, qrCode]);
@@ -50,13 +66,7 @@ const StudentAttendanceCheckin = () => {
         const data = await res.json();
         if (cancelled) return;
 
-        if (data.action === 'registered_and_marked_attended') {
-          setSuccess('You were registered for this event and your attendance is marked.');
-        } else if (data.action === 'already_attended') {
-          setSuccess('Your attendance was already marked for this event.');
-        } else {
-          setSuccess('Your attendance is marked successfully.');
-        }
+        setSuccess(buildSuccessMessage(data.action, data.attendance_role));
       } catch (err) {
         if (cancelled) return;
         setError(err.message || 'Unable to mark attendance.');

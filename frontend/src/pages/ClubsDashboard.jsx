@@ -1090,6 +1090,39 @@ const ClubsDashboard = () => {
     return romanYears[yearNumber] || '-';
   };
 
+  const getAttendanceRoleLabel = (attendanceRole) => {
+    if (attendanceRole === 'CLUB_MEMBER') return 'Club Member';
+    if (attendanceRole === 'VOLUNTEER') return 'Volunteer';
+    return 'Student';
+  };
+
+  const sortAttendanceRows = (rsvpList) => {
+    const roleRank = { CLUB_MEMBER: 0, VOLUNTEER: 1, PARTICIPANT: 2 };
+    const yearRank = { V: 5, IV: 4, III: 3, II: 2, I: 1, Alumni: 0, '-': -1 };
+
+    return [...rsvpList].sort((left, right) => {
+      const leftRoleRank = roleRank[left?.attendance_role || 'PARTICIPANT'] ?? 2;
+      const rightRoleRank = roleRank[right?.attendance_role || 'PARTICIPANT'] ?? 2;
+      if (leftRoleRank !== rightRoleRank) return leftRoleRank - rightRoleRank;
+
+      const leftUser = left?.user || {};
+      const rightUser = right?.user || {};
+
+      const leftDepartment = String(leftUser.department || '').trim().toLowerCase();
+      const rightDepartment = String(rightUser.department || '').trim().toLowerCase();
+      const departmentCompare = leftDepartment.localeCompare(rightDepartment);
+      if (departmentCompare !== 0) return departmentCompare;
+
+      const leftYear = yearRank[calculateYear(leftUser.batch, leftUser.degree, leftUser.register_number)] ?? -1;
+      const rightYear = yearRank[calculateYear(rightUser.batch, rightUser.degree, rightUser.register_number)] ?? -1;
+      if (leftYear !== rightYear) return rightYear - leftYear;
+
+      const leftName = String(leftUser.name || '').trim();
+      const rightName = String(rightUser.name || '').trim();
+      return leftName.localeCompare(rightName, undefined, { sensitivity: 'base' });
+    });
+  };
+
   const closeRsvpModal = () => {
     setRsvpModal({
       open: false,
@@ -1158,7 +1191,7 @@ const ClubsDashboard = () => {
         fetch(`${API}/api/events/${eventObj.id}/workforce`),
       ]);
 
-      const rsvps = rsvpRes.ok ? (await rsvpRes.json()).rsvps || [] : [];
+      const rsvps = rsvpRes.ok ? sortAttendanceRows((await rsvpRes.json()).rsvps || []) : [];
       const workforce = workforceRes.ok ? sortWorkforce((await workforceRes.json()).workers || []) : [];
 
       setRsvpModal(prev => ({
@@ -1585,31 +1618,15 @@ const ClubsDashboard = () => {
       return;
     }
 
-    const yearRank = { V: 5, IV: 4, III: 3, II: 2, I: 1, Alumni: 0, '-': -1 };
-    const sortedAttended = [...attended].sort((a, b) => {
-      const userA = a.user || {};
-      const userB = b.user || {};
-
-      const deptA = String(userA.department || '').trim().toLowerCase();
-      const deptB = String(userB.department || '').trim().toLowerCase();
-      const deptCompare = deptA.localeCompare(deptB);
-      if (deptCompare !== 0) return deptCompare;
-
-      const yearA = yearRank[calculateYear(userA.batch, userA.degree, userA.register_number)] ?? -1;
-      const yearB = yearRank[calculateYear(userB.batch, userB.degree, userB.register_number)] ?? -1;
-      if (yearA !== yearB) return yearB - yearA;
-
-      const nameA = String(userA.name || '').trim();
-      const nameB = String(userB.name || '').trim();
-      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-    });
+    const sortedAttended = sortAttendanceRows(attended);
 
     setRsvpError('');
-    const headers = ['S.NO', 'NAME', 'DEPARTMENT', 'YEAR', 'REGISTER NO'];
+    const headers = ['S.NO', 'ROLE', 'NAME', 'DEPARTMENT', 'YEAR', 'REGISTER NO'];
     const rows = sortedAttended.map((r, index) => {
       const u = r.user || {};
       return [
         index + 1,
+        getAttendanceRoleLabel(r.attendance_role),
         u.name || '-',
         u.department || '-',
         calculateYear(u.batch, u.degree, u.register_number),
@@ -2240,7 +2257,7 @@ const ClubsDashboard = () => {
                 <p className="mt-1 text-xs text-text-secondary dark:text-text-dark-secondary">
                   {rsvpModal.tab === 'team'
                     ? `${rsvpModal.workforce.length} Assigned Workers`
-                    : `${rsvpModal.rsvps.length} Students Registered`}
+                    : `${rsvpModal.rsvps.length} Attendance Records`}
                 </p>
               </div>
 
@@ -2263,7 +2280,7 @@ const ClubsDashboard = () => {
                       size="sm"
                       className="min-w-0 flex-1 px-3 enabled:hover:translate-y-0 md:min-w-26 md:flex-none md:whitespace-nowrap"
                     >
-                      Student OD
+                      Attendance
                     </Button>
                   )}
                   {rsvpModal.availableTabs.includes('payment') && (
@@ -2428,8 +2445,8 @@ const ClubsDashboard = () => {
               ) : rsvpModal.rsvps.length === 0 ? (
                 <EmptyState
                   icon="group_off"
-                  title="No RSVPs yet"
-                  description="Students who register for this event will appear here for attendance and payment tracking."
+                  title="No attendance records yet"
+                  description="Participants, club members, and volunteers will appear here for attendance and payment tracking."
                 />
               ) : (
                 <div className="flex flex-col gap-4">
@@ -2460,6 +2477,7 @@ const ClubsDashboard = () => {
                         <tr>
                           <th className="px-4 py-3">S.NO</th>
                           <th className="px-4 py-3">NAME</th>
+                          <th className="px-4 py-3">ROLE</th>
                           <th className="px-4 py-3">DEPARTMENT</th>
                           <th className="px-4 py-3">YEAR</th>
                           <th className="px-4 py-3">REGISTER NO</th>
@@ -2478,6 +2496,11 @@ const ClubsDashboard = () => {
                             <tr key={rsvp.id} className="transition-colors hover:bg-surface-muted dark:hover:bg-border-strong/30">
                               <td className="px-4 py-3 font-medium">{index + 1}</td>
                               <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{u.name || '-'}</td>
+                              <td className="px-4 py-3">
+                                <StatusBadge tone={rsvp.attendance_role === 'CLUB_MEMBER' ? 'info' : 'neutral'}>
+                                  {getAttendanceRoleLabel(rsvp.attendance_role)}
+                                </StatusBadge>
+                              </td>
                               <td className="px-4 py-3">{u.department || '-'}</td>
                               <td className="px-4 py-3">{calculateYear(u.batch, u.degree, u.register_number)}</td>
                               <td className="px-4 py-3 font-mono text-xs">{u.register_number || '-'}</td>
