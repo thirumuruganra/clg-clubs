@@ -1,5 +1,11 @@
 # WAVC (What's Active in Various Clubs)
 
+<div align="center">
+
+![WAVC Logo](./frontend/public/favicon-readme.png)
+
+</div>
+
 WAVC is a campus clubs platform for SSN students and club admins. It helps students discover what is happening across clubs, register for events, and stay connected, while giving club teams a single place to publish events and manage participation.
 
 ## App Features
