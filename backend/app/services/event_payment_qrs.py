@@ -5,8 +5,8 @@ from app.models.event import Event
 from app.services.event_posters import (
     ALLOWED_POSTER_MIME_TYPES,
     MAX_POSTER_BYTES,
-    _normalize_content_type,
     _slugify_segment,
+    sniff_image_mime_type,
 )
 
 
@@ -17,16 +17,17 @@ def _build_object_path(event: Event) -> str:
 
 
 def replace_event_payment_qr(event: Event, file_bytes: bytes, content_type: str) -> dict[str, str | int]:
-    normalized_type = _normalize_content_type(content_type)
-    if normalized_type not in ALLOWED_POSTER_MIME_TYPES:
-        allowed = ", ".join(sorted(ALLOWED_POSTER_MIME_TYPES.keys()))
-        raise ValueError(f"Unsupported payment QR type. Allowed types: {allowed}")
-
     file_size = len(file_bytes)
     if file_size <= 0:
         raise ValueError("Payment QR file is empty")
     if file_size > MAX_POSTER_BYTES:
         raise ValueError(f"Payment QR file must be {MAX_POSTER_BYTES // (1024 * 1024)} MB or smaller")
+
+    sniffed_type = sniff_image_mime_type(file_bytes)
+    if sniffed_type is None or sniffed_type not in ALLOWED_POSTER_MIME_TYPES:
+        allowed = ", ".join(sorted(ALLOWED_POSTER_MIME_TYPES.keys()))
+        raise ValueError(f"Unsupported payment QR type. Allowed types: {allowed}")
+    normalized_type = sniffed_type
 
     previous_object_path = (event.payment_qr_storage_path or "").strip()
     new_object_path = previous_object_path or _build_object_path(event)

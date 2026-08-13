@@ -28,6 +28,22 @@ def _normalize_content_type(content_type: Optional[str]) -> str:
     return content_type.split(";", 1)[0].strip().lower()
 
 
+def sniff_image_mime_type(file_bytes: bytes) -> Optional[str]:
+    """Identify an image's real type from its magic bytes.
+
+    The client-supplied Content-Type header is attacker-controlled and easy to
+    spoof (e.g. upload an HTML/SVG/script payload labeled image/png), so
+    upload validation must be based on the actual file content instead.
+    """
+    if file_bytes[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if file_bytes[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if file_bytes[:4] == b"RIFF" and file_bytes[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
 def _slugify_segment(raw_value: Optional[str], fallback: str) -> str:
     if not raw_value:
         return fallback
@@ -138,16 +154,19 @@ def cleanup_event_poster_overflow(db: Session) -> dict[str, int]:
 
 
 def replace_event_poster(db: Session, event: Event, file_bytes: bytes, content_type: str) -> dict[str, str]:
-    normalized_type = _normalize_content_type(content_type)
-    if normalized_type not in ALLOWED_POSTER_MIME_TYPES:
-        allowed = ", ".join(sorted(ALLOWED_POSTER_MIME_TYPES.keys()))
-        raise ValueError(f"Unsupported poster type. Allowed types: {allowed}")
-
     file_size = len(file_bytes)
     if file_size <= 0:
         raise ValueError("Poster file is empty")
     if file_size > MAX_POSTER_BYTES:
         raise ValueError(f"Poster file must be {MAX_POSTER_BYTES // (1024 * 1024)} MB or smaller")
+
+    # Validate against the file's real content, not the client-supplied
+    # (spoofable) Content-Type header.
+    sniffed_type = sniff_image_mime_type(file_bytes)
+    if sniffed_type is None or sniffed_type not in ALLOWED_POSTER_MIME_TYPES:
+        allowed = ", ".join(sorted(ALLOWED_POSTER_MIME_TYPES.keys()))
+        raise ValueError(f"Unsupported poster type. Allowed types: {allowed}")
+    normalized_type = sniffed_type
 
     previous_object_path = (event.poster_storage_path or "").strip()
     new_object_path = previous_object_path or _build_object_path(event)
