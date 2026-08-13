@@ -21,6 +21,7 @@ router = APIRouter()
 REGISTER_NUMBER_PATTERN = re.compile(r"^3122\d{9}$")
 PASSOUT_YEAR_PATTERN = re.compile(r"^\d{4}$")
 PASSOUT_YEAR_MAX_AHEAD = 6
+ACADEMIC_YEAR_ROLLOVER_MONTH = 5
 
 
 def _normalize_interest_values(interests: List[str]) -> List[str]:
@@ -51,9 +52,9 @@ def _validate_passout_year(value: str) -> str:
     if not PASSOUT_YEAR_PATTERN.fullmatch(normalized):
         raise HTTPException(status_code=422, detail="Passout year must be a 4-digit year")
 
-    current_year = datetime.now().year
-    min_passout_year = current_year
-    max_passout_year = current_year + PASSOUT_YEAR_MAX_AHEAD
+    academic_year = _get_effective_academic_year()
+    min_passout_year = academic_year
+    max_passout_year = academic_year + PASSOUT_YEAR_MAX_AHEAD
     year_value = int(normalized)
     if year_value < min_passout_year or year_value > max_passout_year:
         raise HTTPException(
@@ -78,6 +79,11 @@ def _get_degree_duration(degree_str) -> int | None:
     return None
 
 
+def _get_effective_academic_year(now: datetime | None = None) -> int:
+    current_date = now or datetime.now()
+    return current_date.year + 1 if current_date.month >= ACADEMIC_YEAR_ROLLOVER_MONTH else current_date.year
+
+
 def _get_admission_year_from_register_number(register_number) -> int | None:
     digits_only = "".join(ch for ch in str(register_number or "") if ch.isdigit())
     # Admission year can only be derived from canonical SSN register numbers.
@@ -97,11 +103,11 @@ def _get_admission_year_from_register_number(register_number) -> int | None:
     return admission_year
 
 
-def _calculate_year_from_admission(admission_year: int | None, duration: int | None, current_year: int) -> str | None:
+def _calculate_year_from_admission(admission_year: int | None, duration: int | None, academic_year: int) -> str | None:
     if not admission_year or not duration:
         return None
 
-    year_number = current_year - admission_year
+    year_number = academic_year - admission_year
     if year_number <= 0:
         year_number = 1
 
@@ -117,11 +123,9 @@ def _calculate_year_label(batch, degree, register_number) -> str:
     if not duration:
         return "-"
 
-    from datetime import datetime
-
-    current_year = datetime.now().year
+    academic_year = _get_effective_academic_year()
     admission_year = _get_admission_year_from_register_number(register_number)
-    year_from_register = _calculate_year_from_admission(admission_year, duration, current_year)
+    year_from_register = _calculate_year_from_admission(admission_year, duration, academic_year)
     if year_from_register:
         return year_from_register
 
@@ -130,7 +134,7 @@ def _calculate_year_label(batch, degree, register_number) -> str:
     except ValueError:
         return "-"
 
-    diff = passout_year - current_year
+    diff = passout_year - academic_year
     if diff < 0:
         return "Alumni"
 

@@ -150,11 +150,16 @@ def _attendance_year_rank(user: dict | None) -> int:
 
     year_value = ""
     if batch.isdigit():
-        current_year = datetime.now().year
-        start_year = int(batch)
+        current_date = datetime.now()
+        academic_year = current_date.year + 1 if current_date.month >= 5 else current_date.year
+        passout_year = int(batch)
         duration = 4 if degree.startswith("b.") else 2 if degree.startswith("m.") else 4
-        year_number = max(1, min(duration, current_year - start_year + 1))
-        year_value = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}.get(year_number, "-")
+        diff = passout_year - academic_year
+        if diff < 0:
+            year_value = "Alumni"
+        else:
+            year_number = duration - diff
+            year_value = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}.get(year_number, "-")
 
     return {"V": 5, "IV": 4, "III": 3, "II": 2, "I": 1, "Alumni": 0, "-": -1}.get(year_value or "-", -1)
 

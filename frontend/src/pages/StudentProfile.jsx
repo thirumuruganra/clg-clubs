@@ -56,6 +56,7 @@ const DEGREE_OPTIONS = [
 const REGISTER_NUMBER_PATTERN = /^3122\d{9}$/;
 const PASSOUT_YEAR_PATTERN = /^\d{4}$/;
 const PASSOUT_YEAR_MAX_AHEAD = 6;
+const ACADEMIC_YEAR_ROLLOVER_MONTH_INDEX = 4;
 const EMPTY_FIELD_ERRORS = {
   register_number: '',
   batch: '',
@@ -107,6 +108,11 @@ function hasStudentProfileErrors(errors) {
   return Object.values(errors).some(Boolean);
 }
 
+function getEffectiveAcademicYear() {
+  const currentDate = new Date();
+  return currentDate.getMonth() >= ACADEMIC_YEAR_ROLLOVER_MONTH_INDEX ? currentDate.getFullYear() + 1 : currentDate.getFullYear();
+}
+
 const StudentProfile = () => {
   const { user, loading, logout, refetchUser } = useAuth();
   const navigate = useNavigate();
@@ -120,9 +126,9 @@ const StudentProfile = () => {
   const [interestInput, setInterestInput] = useState('');
   const [fieldErrors, setFieldErrors] = useState(EMPTY_FIELD_ERRORS);
   const [saveError, setSaveError] = useState('');
-  const currentYear = new Date().getFullYear();
-  const minPassoutYear = currentYear;
-  const maxPassoutYear = currentYear + PASSOUT_YEAR_MAX_AHEAD;
+  const academicYear = getEffectiveAcademicYear();
+  const minPassoutYear = academicYear;
+  const maxPassoutYear = academicYear + PASSOUT_YEAR_MAX_AHEAD;
 
   const isIncomplete = user && (!user.batch || !user.department || !user.degree || !user.register_number || (user.interests || []).length < 3);
 

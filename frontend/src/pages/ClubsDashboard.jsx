@@ -1038,6 +1038,11 @@ const ClubsDashboard = () => {
     return null;
   };
 
+  const getEffectiveAcademicYear = () => {
+    const currentDate = new Date();
+    return currentDate.getMonth() >= 4 ? currentDate.getFullYear() + 1 : currentDate.getFullYear();
+  };
+
   const getAdmissionYearFromRegisterNumber = (registerNumber) => {
     const digitsOnly = String(registerNumber || '').replace(/\D/g, '');
     if (!VALID_REGISTER_NUMBER_PATTERN.test(digitsOnly)) return null;
@@ -1052,12 +1057,10 @@ const ClubsDashboard = () => {
     return admissionYear;
   };
 
-  const calculateYearFromAdmission = (admissionYear, duration, currentYear) => {
+  const calculateYearFromAdmission = (admissionYear, duration, academicYear) => {
     if (!admissionYear || !duration) return null;
 
-    // Year progression aligns with academic year rollover, so currentYear - admissionYear
-    // maps 2024 intake to II in 2026.
-    let yearNumber = currentYear - admissionYear;
+    let yearNumber = academicYear - admissionYear;
     if (yearNumber <= 0) yearNumber = 1;
 
     if (yearNumber > duration) return 'Alumni';
@@ -1070,17 +1073,17 @@ const ClubsDashboard = () => {
     const duration = getDegreeDuration(degreeStr);
     if (!duration) return '-';
 
-    const currentYear = new Date().getFullYear();
+    const academicYear = getEffectiveAcademicYear();
 
     const admissionYear = getAdmissionYearFromRegisterNumber(registerNumber);
-    const yearFromRegister = calculateYearFromAdmission(admissionYear, duration, currentYear);
+    const yearFromRegister = calculateYearFromAdmission(admissionYear, duration, academicYear);
     if (yearFromRegister) return yearFromRegister;
 
     if (!batchStr) return '-';
     const passout = parseInt(batchStr, 10);
     if (isNaN(passout)) return '-';
 
-    const diff = passout - currentYear;
+    const diff = passout - academicYear;
     if (diff < 0) return 'Alumni';
 
     const yearNumber = duration - diff;

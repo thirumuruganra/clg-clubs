@@ -32,6 +32,7 @@ CLUB_EMAIL_REGEX = re.compile(r'^[A-Za-z._%+-]*[A-Za-z][A-Za-z._%+-]*@ssn\.edu\.
 REGISTER_NUMBER_PATTERN = re.compile(r"^3122\d{9}$")
 PASSOUT_YEAR_PATTERN = re.compile(r"^\d{4}$")
 PASSOUT_YEAR_MAX_AHEAD = 6
+ACADEMIC_YEAR_ROLLOVER_MONTH = 5
 
 
 def _is_production_environment() -> bool:
@@ -64,14 +65,19 @@ def _is_valid_register_number(value: str | None) -> bool:
     return bool(REGISTER_NUMBER_PATTERN.fullmatch(normalized))
 
 
+def _get_effective_academic_year(now: datetime | None = None) -> int:
+    current_date = now or datetime.now()
+    return current_date.year + 1 if current_date.month >= ACADEMIC_YEAR_ROLLOVER_MONTH else current_date.year
+
+
 def _is_valid_passout_year(value: str | None) -> bool:
     normalized = str(value or "").strip()
     if not PASSOUT_YEAR_PATTERN.fullmatch(normalized):
         return False
 
-    current_year = datetime.now().year
-    min_passout_year = current_year
-    max_passout_year = current_year + PASSOUT_YEAR_MAX_AHEAD
+    academic_year = _get_effective_academic_year()
+    min_passout_year = academic_year
+    max_passout_year = academic_year + PASSOUT_YEAR_MAX_AHEAD
     year_value = int(normalized)
     return min_passout_year <= year_value <= max_passout_year
 
