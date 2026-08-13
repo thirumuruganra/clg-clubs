@@ -11,6 +11,7 @@ from app.core.security import (
     build_google_scope,
 )
 from app.services.payloads import auth_me_payload
+from app.seed_clubs import CLUBS as SEEDED_CLUBS
 from app.utils.common import safe_json_list
 from typing import Any, cast
 import re
@@ -26,17 +27,18 @@ logger = logging.getLogger(__name__)
 # Regex for student emails
 STUDENT_EMAIL_REGEX = re.compile(r'.*[0-9]{4,}@ssn\.edu\.in$')
 
-# Regex for club emails: must end with @ssn.edu.in and local-part must not contain digits
-CLUB_EMAIL_REGEX = re.compile(r'^[A-Za-z._%+-]*[A-Za-z][A-Za-z._%+-]*@ssn\.edu\.in$')
-
 REGISTER_NUMBER_PATTERN = re.compile(r"^3122\d{9}$")
 PASSOUT_YEAR_PATTERN = re.compile(r"^\d{4}$")
 PASSOUT_YEAR_MAX_AHEAD = 6
 ACADEMIC_YEAR_ROLLOVER_MONTH = 5
 
 
+_NON_PRODUCTION_APP_ENVS = {"development", "dev", "local", "test", "testing"}
+
+
 def _is_production_environment() -> bool:
-    return os.getenv("APP_ENV", "development").strip().lower() in {"prod", "production"}
+    # Fail closed: see the matching helper in app/main.py for rationale.
+    return os.getenv("APP_ENV", "production").strip().lower() not in _NON_PRODUCTION_APP_ENVS
 
 
 def _parse_allowed_testing_emails() -> set[str]:
@@ -52,10 +54,32 @@ def _is_dev_allowlisted_email(email: str) -> bool:
     return email.strip().lower() in _parse_allowed_testing_emails()
 
 
-def _resolve_user_role(email: str) -> str:
+# Known official club-admin mailboxes (single source of truth, shared with the
+# seed script) plus any operator-configured additions. Any @ssn.edu.in address
+# NOT on this list gets STUDENT by default rather than being auto-elevated to
+# CLUB_ADMIN just because its local-part happens to contain no digits.
+_SEEDED_CLUB_ADMIN_EMAILS = {club["email"].strip().lower() for club in SEEDED_CLUBS}
+
+
+def _parse_extra_club_admin_emails() -> set[str]:
+    raw_allowlist = os.getenv("CLUB_ADMIN_EMAIL_ALLOWLIST", "").strip()
+    if not raw_allowlist:
+        return set()
+    return {email.strip().lower() for email in raw_allowlist.split(",") if email.strip()}
+
+
+def _is_allowlisted_club_admin_email(email: str) -> bool:
+    normalized = email.strip().lower()
+    return normalized in _SEEDED_CLUB_ADMIN_EMAILS or normalized in _parse_extra_club_admin_emails()
+
+
+def _resolve_new_user_role(email: str) -> str:
+    """Resolve the role for a brand-new account. Only called at account creation
+    time — existing users keep whatever role they already have in the database,
+    so this never silently promotes or demotes an established account."""
     if STUDENT_EMAIL_REGEX.match(email):
         return "STUDENT"
-    if CLUB_EMAIL_REGEX.match(email) or _is_dev_allowlisted_email(email):
+    if _is_allowlisted_club_admin_email(email) or _is_dev_allowlisted_email(email):
         return "CLUB_ADMIN"
     return "STUDENT"
 
@@ -247,13 +271,15 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
     granted_scopes = sorted({scope for scope in str(raw_scopes).split() if scope})
     google_scopes_json = json.dumps(granted_scopes)
 
-    # Determine Role via regex
-    role = _resolve_user_role(email)
-
-    # Upsert user
+    # Upsert user. Role is only decided at account-creation time below —
+    # re-deriving it from the email pattern on every login would let an
+    # existing account's role flip (including auto-promoting to CLUB_ADMIN)
+    # if the university ever reissues/repurposes an address, and would
+    # silently demote a legitimate admin whose address isn't recognized.
     db_user = db.query(User).filter(User.email == email).first()
     user = cast(Any, db_user)
     if user is None:
+        role = _resolve_new_user_role(email)
         user = User(
             email=email,
             name=name,
@@ -270,7 +296,6 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         user.google_scopes = google_scopes_json
         user.name = name
         user.picture = picture
-        user.role = role
         db.commit()
 
     log_security_event("auth.oauth.login_success", user_id=user.id, email=user.email, role=user.role)

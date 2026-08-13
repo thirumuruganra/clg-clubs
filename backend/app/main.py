@@ -360,8 +360,15 @@ def _parse_csv_env(var_name: str, default_values: list[str]) -> list[str]:
     return [value.strip() for value in raw_value.split(",") if value.strip()]
 
 
+_NON_PRODUCTION_APP_ENVS = {"development", "dev", "local", "test", "testing"}
+
+
 def _is_production_environment() -> bool:
-    return os.getenv("APP_ENV", "development").strip().lower() in {"prod", "production"}
+    # Fail closed: anything other than an explicit non-production value is
+    # treated as production, so a missing/misconfigured APP_ENV config var
+    # on the deployment platform can't silently disable Secure cookies,
+    # HTTPS-only sessions, or the dev admin-email allowlist.
+    return os.getenv("APP_ENV", "production").strip().lower() not in _NON_PRODUCTION_APP_ENVS
 
 
 def _require_env(var_name: str) -> str:
