@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, String, Text
+from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
 
@@ -21,3 +21,4 @@ class User(Base):
     register_number = Column(String(50), nullable=True) # e.g. "3122XXXXXXXX"
     joined_clubs = Column(Text, default="[]")        # JSON string of club names
     interests = Column(Text, default="[]")           # JSON string of selected interests
+    token_version = Column(Integer, nullable=False, default=0)  # bump to revoke all outstanding JWTs

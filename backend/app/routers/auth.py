@@ -8,6 +8,7 @@ from app.core.security import (
     oauth,
     create_access_token,
     get_current_user,
+    get_optional_user,
     build_google_scope,
 )
 from app.services.payloads import auth_me_payload
@@ -305,6 +306,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
         "user_id": user.id,
         "email": user.email,
         "role": user.role,
+        "token_version": user.token_version or 0,
     })
 
     # Determine redirect URL
@@ -360,8 +362,16 @@ async def get_me(current_user: User = Depends(get_current_user)):
 
 
 @router.get('/logout')
-async def logout(request: Request):
-    """Clear the JWT cookie and redirect to landing."""
+async def logout(
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_optional_user),
+):
+    """Revoke the current token server-side and clear the JWT cookie."""
+    if current_user is not None:
+        current_user.token_version = (current_user.token_version or 0) + 1
+        db.commit()
+        log_security_event("auth.logout", user_id=current_user.id)
+
     response = RedirectResponse(url=f"{FRONTEND_DEFAULT_ORIGIN}/", status_code=302)
     response.delete_cookie("access_token", path="/")
     return response

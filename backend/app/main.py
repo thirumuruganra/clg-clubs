@@ -120,6 +120,24 @@ def ensure_user_google_scopes_column() -> None:
     except Exception as exc:
         print(f"⚠️  Could not auto-add 'google_scopes' column: {exc}")
 
+def ensure_user_token_version_column() -> None:
+    """Add the token_version column for older databases; used to revoke outstanding JWTs."""
+    try:
+        inspector = inspect(engine)
+        if "users" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("users")}
+        if "token_version" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0"))
+        print("ℹ️  Added missing 'token_version' column to users table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'token_version' column: {exc}")
+
+
 def ensure_rsvp_attended_column() -> None:
     """Add the attended column for older databases that were created before this field existed."""
     try:
@@ -285,6 +303,7 @@ def normalize_legacy_cse_entries() -> None:
 
 ensure_event_keywords_column()
 ensure_user_interests_column()
+ensure_user_token_version_column()
 ensure_user_register_number_column()
 ensure_user_degree_column()
 ensure_user_google_scopes_column()

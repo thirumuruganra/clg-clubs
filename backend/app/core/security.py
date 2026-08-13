@@ -1,6 +1,6 @@
+import jwt
 from authlib.integrations.starlette_client import OAuth
 from starlette.config import Config
-from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -48,7 +48,11 @@ def _require_env_value(var_name: str) -> str:
     return value
 
 
-SECRET_KEY = _require_env_value("SECRET_KEY")
+# Deliberately separate from the Starlette SessionMiddleware's SECRET_KEY
+# (used only for the short-lived OAuth-state session cookie) so the two trust
+# boundaries can be rotated independently and a leak of one doesn't
+# compromise the other.
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "").strip() or _require_env_value("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 7
 
@@ -61,16 +65,16 @@ def create_access_token(data: dict) -> str:
         to_encode["user_id"] = str(user_id)
     expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def verify_token(token: str) -> dict:
+def verify_token(token: str) -> dict | None:
     """Verify and decode a JWT token."""
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except JWTError:
+    except jwt.PyJWTError:
         logger.info("JWT decode failed")
         return None
 
@@ -94,7 +98,18 @@ def _resolve_user_from_token(token: str | None, db: Session):
     except ValueError:
         return None
 
-    return db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        return None
+
+    # Reject tokens minted before the user's last logout/revocation, so
+    # "logging out" (or a future forced revocation) actually invalidates the
+    # token server-side instead of only clearing the client's cookie.
+    token_version = payload.get("token_version", 0)
+    if token_version != (user.token_version or 0):
+        return None
+
+    return user
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
