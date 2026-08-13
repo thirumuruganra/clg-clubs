@@ -241,11 +241,11 @@ const ClubsCalendarTab = ({
       {selectedEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setSelectedEvent(null)}>
           <div
-            className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-2xl modal-panel overflow-y-auto border border-border-subtle dark:border-border-strong"
+            className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-6xl modal-panel overflow-y-auto border border-border-subtle dark:border-border-strong"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex h-full flex-col md:flex-row md:items-start">
-              <div className="w-full md:w-2/5 aspect-4/5 bg-[#0f1720] relative overflow-hidden">
+              <div className="w-full md:w-1/2 aspect-[4/5] bg-[#0f1720] relative overflow-hidden">
                 {selectedEvent.image_url ? (
                   <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-contain" />
                 ) : (
@@ -253,7 +253,7 @@ const ClubsCalendarTab = ({
                 )}
               </div>
 
-              <div className="w-full md:w-3/5 p-6 flex flex-col">
+              <div className="w-full md:w-1/2 p-6 flex flex-col">
                 <div className="flex justify-between items-start mb-1">
                   <span className="text-sm text-text-secondary dark:text-text-dark-secondary">
                     {selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}

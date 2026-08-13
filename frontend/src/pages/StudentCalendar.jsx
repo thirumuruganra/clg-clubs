@@ -415,11 +415,11 @@ const StudentCalendar = () => {
         {selectedEvent ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm safe-area-y" onClick={() => setSelectedEvent(null)}>
           <div
-            className="modal-panel w-full max-w-2xl overflow-y-auto rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632]"
+            className="modal-panel w-full max-w-6xl overflow-y-auto rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex h-full flex-col md:flex-row md:items-start">
-              <div className="relative aspect-4/5 w-full overflow-hidden bg-[#0f1720] md:w-2/5">
+              <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#0f1720] md:w-1/2">
                 {selectedEvent.image_url ? (
                   <img src={selectedEvent.image_url} alt={selectedEvent.title} loading="lazy" decoding="async" className="h-full w-full object-contain" />
                 ) : (
@@ -427,7 +427,7 @@ const StudentCalendar = () => {
                 )}
               </div>
 
-              <div className="flex w-full flex-col p-6 md:w-3/5">
+              <div className="flex w-full flex-col p-6 md:w-1/2">
                 <div className="mb-1 flex items-start justify-between">
                   <span className="text-sm text-text-secondary">
                     {selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
