@@ -419,7 +419,7 @@ const StudentCalendar = () => {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex h-full flex-col md:flex-row">
-              <div className="relative min-h-44 w-full overflow-hidden bg-[#0f1720] sm:min-h-52 md:min-h-88 md:w-2/5">
+              <div className="relative aspect-4/5 w-full overflow-hidden bg-[#0f1720] md:w-2/5">
                 {selectedEvent.image_url ? (
                   <img src={selectedEvent.image_url} alt={selectedEvent.title} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                 ) : (

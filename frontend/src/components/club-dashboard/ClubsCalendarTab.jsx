@@ -245,7 +245,7 @@ const ClubsCalendarTab = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex flex-col md:flex-row h-full">
-              <div className="w-full md:w-2/5 min-h-44 sm:min-h-52 md:min-h-87.5 bg-[#0f1720] relative overflow-hidden">
+              <div className="w-full md:w-2/5 aspect-4/5 bg-[#0f1720] relative overflow-hidden">
                 {selectedEvent.image_url ? (
                   <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-cover" />
                 ) : (

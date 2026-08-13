@@ -5,6 +5,7 @@
 !.vscode/extensions.json
 .github/
 performance_testing/
+.claude/
 
 # Logs
 logs
