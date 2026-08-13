@@ -368,7 +368,6 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
         image_url=event.image_url,
         keywords=event.keywords,
         payment_link=event.payment_link,
-        payment_qr_url=event.payment_qr_url,
         is_paid=event.is_paid,
         registration_fees=event.registration_fees,
     )
