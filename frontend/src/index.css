@@ -628,7 +628,7 @@
 }
 
 .modern-datepicker-popper {
-  z-index: 50;
+  z-index: var(--z-overlay);
 }
 
 .react-datepicker.modern-datepicker-calendar {
@@ -860,4 +860,3 @@ body,
     max-height: 82dvh;
   }
 }
-
