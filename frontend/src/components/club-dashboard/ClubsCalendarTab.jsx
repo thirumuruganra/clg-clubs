@@ -244,10 +244,10 @@ const ClubsCalendarTab = ({
             className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-2xl modal-panel overflow-y-auto border border-border-subtle dark:border-border-strong"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-col md:flex-row h-full">
+            <div className="flex h-full flex-col md:flex-row md:items-start">
               <div className="w-full md:w-2/5 aspect-4/5 bg-[#0f1720] relative overflow-hidden">
                 {selectedEvent.image_url ? (
-                  <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-cover" />
+                  <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-contain" />
                 ) : (
                   <EventPosterFallback title={selectedEvent.title} />
                 )}

@@ -418,10 +418,10 @@ const StudentCalendar = () => {
             className="modal-panel w-full max-w-2xl overflow-y-auto rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex h-full flex-col md:flex-row">
+            <div className="flex h-full flex-col md:flex-row md:items-start">
               <div className="relative aspect-4/5 w-full overflow-hidden bg-[#0f1720] md:w-2/5">
                 {selectedEvent.image_url ? (
-                  <img src={selectedEvent.image_url} alt={selectedEvent.title} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                  <img src={selectedEvent.image_url} alt={selectedEvent.title} loading="lazy" decoding="async" className="h-full w-full object-contain" />
                 ) : (
                   <EventPosterFallback title={selectedEvent.title} />
                 )}
