@@ -364,6 +364,11 @@ app.add_middleware(
         RateLimitRule(path_prefix="/api/rsvp/events/", limit=100, window_seconds=60, methods=frozenset({"GET", "DELETE"})),
         RateLimitRule(path_prefix="/api/rsvp/events/", limit=60, window_seconds=60, methods=frozenset({"POST"})),
         RateLimitRule(path_prefix="/api/rsvp/rsvps/", limit=30, window_seconds=60, methods=frozenset({"PATCH"})),
+        # Club/event mutation + file-upload endpoints were previously unlimited,
+        # allowing an authenticated account to hammer Supabase Storage or spam
+        # event/club creation with no throttle.
+        RateLimitRule(path_prefix="/api/events/", limit=40, window_seconds=60, methods=frozenset({"POST", "PUT", "DELETE"})),
+        RateLimitRule(path_prefix="/api/clubs/", limit=30, window_seconds=60, methods=frozenset({"POST", "PUT"})),
     ],
 )
 
