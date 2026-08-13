@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.gzip import GZipMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from app.database import engine, Base, SessionLocal
 from app.routers import auth, users, events, clubs, rsvp, follow
@@ -302,6 +303,41 @@ app = FastAPI(
 )
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Attach baseline security headers to every response."""
+
+    _CSP = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "script-src-attr 'unsafe-inline'; "
+        "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; "
+        "img-src 'self' data: https://lh3.googleusercontent.com https://*.supabase.co; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "connect-src 'self'; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "frame-ancestors 'none'"
+    )
+
+    def __init__(self, app, *, https_only: bool) -> None:
+        super().__init__(app)
+        self._https_only = https_only
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy", "geolocation=(), camera=(), microphone=()")
+        response.headers.setdefault("Content-Security-Policy", self._CSP)
+        if self._https_only:
+            response.headers.setdefault(
+                "Strict-Transport-Security", "max-age=63072000; includeSubDomains"
+            )
+        return response
+
+
 class ImmutableStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
         response = await super().get_response(path, scope)
@@ -391,6 +427,10 @@ app.add_middleware(
     same_site=session_same_site,
     https_only=is_production_environment,
 )
+
+# Outermost middleware so headers land on every response, including
+# rate-limit 429s, CORS preflights, and error responses.
+app.add_middleware(SecurityHeadersMiddleware, https_only=is_production_environment)
 
 # Register all routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
