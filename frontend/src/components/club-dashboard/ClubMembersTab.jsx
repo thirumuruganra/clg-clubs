@@ -27,16 +27,28 @@ const ClubMembersTab = ({
 }) => {
   const [memberQuery, setMemberQuery] = useState('');
 
+  const yearRank = { I: 1, II: 2, III: 3, IV: 4, V: 5, Alumni: 6, '-': 7 };
+
   const filteredMembers = useMemo(() => {
     const normalized = memberQuery.trim().toLowerCase();
-    if (!normalized) return members;
+    const matched = normalized
+      ? members.filter((member) =>
+          [member.name, member.email, member.department, member.register_number]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(normalized)),
+        )
+      : members;
 
-    return members.filter((member) =>
-      [member.name, member.email, member.department, member.register_number]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalized)),
-    );
-  }, [members, memberQuery]);
+    return [...matched].sort((left, right) => {
+      const leftYear = yearRank[calculateYear(left.batch, left.degree, left.register_number)] ?? 7;
+      const rightYear = yearRank[calculateYear(right.batch, right.degree, right.register_number)] ?? 7;
+      if (leftYear !== rightYear) return leftYear - rightYear;
+
+      const leftName = String(left.name || left.email || '').trim();
+      const rightName = String(right.name || right.email || '').trim();
+      return leftName.localeCompare(rightName, undefined, { sensitivity: 'base' });
+    });
+  }, [members, memberQuery, calculateYear]);
 
   const visibleMembers = filteredMembers.length;
 
