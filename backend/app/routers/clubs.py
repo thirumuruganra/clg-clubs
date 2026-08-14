@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.club import Club
 from app.models.club_member import ClubMember
+from app.models.event import Event
+from app.models.event_worker import EventWorker
 from app.models.follow import Follow
 from app.models.user import User
 from app.schemas import ClubCreate, ClubMemberCreate, ClubUpdate
@@ -187,6 +189,12 @@ def remove_club_member(
 
     student = db.query(User).filter(User.id == user_id).first()
     db.delete(membership)
+
+    club_event_ids = db.query(Event.id).filter(Event.club_id == club_id).subquery()
+    db.query(EventWorker).filter(
+        EventWorker.user_id == user_id,
+        EventWorker.event_id.in_(club_event_ids),
+    ).delete(synchronize_session=False)
 
     if student:
         sync_user_joined_clubs_projection(db, student)
