@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth-context';
 import { warmPosterCacheForEvents, warmPosterImageCache } from '../../lib/utils';
 import { Button } from '../ui/button';
@@ -26,12 +27,14 @@ const ClubsCalendarTab = ({
   onOpenCreateModal = () => {},
 }) => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [allEvents, setAllEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [loadingEventDetail, setLoadingEventDetail] = useState(false);
   const [dayEventsModal, setDayEventsModal] = useState({ open: false, day: null, events: [] });
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -51,7 +54,7 @@ const ClubsCalendarTab = ({
     finally { setLoadingEvents(false); }
   };
 
-  const openEventDetail = async (eventId, isOwnClub = false) => {
+  const openEventDetail = async (eventId) => {
     if (!user?.id) return;
 
     try {
@@ -60,12 +63,35 @@ const ClubsCalendarTab = ({
       if (res.ok) {
         const eventDetail = await res.json();
         warmPosterImageCache(eventDetail?.image_url);
-        setSelectedEvent({ ...eventDetail, __isOwnClub: isOwnClub });
+        setSelectedEvent({ ...eventDetail, __isOwnClub: eventDetail.club_id === club?.id });
       }
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingEventDetail(false);
+    }
+  };
+
+  useEffect(() => {
+    const sharedEventId = searchParams.get('event');
+    if (sharedEventId && user) {
+      void openEventDetail(sharedEventId);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('event');
+      setSearchParams(nextParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const shareEvent = async (event) => {
+    if (!event) return;
+    const url = `${window.location.origin}/club/calendar?event=${event.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -188,7 +214,7 @@ const ClubsCalendarTab = ({
                         key={e.id} 
                         onClick={(ev) => {
                           ev.stopPropagation(); // so it doesn't click the day
-                          void openEventDetail(e.id, isOwnClub);
+                          void openEventDetail(e.id);
                         }}
                         className={`mb-0.5 w-full truncate rounded px-1.5 py-0.5 text-left text-xs font-medium transition-colors
                           ${!isOwnClub ? 'bg-gray-500/10 text-gray-500 hover:bg-gray-500/20 cursor-pointer' : 
@@ -239,7 +265,7 @@ const ClubsCalendarTab = ({
       )}
 
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => setSelectedEvent(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={() => { setSelectedEvent(null); setShareCopied(false); }}>
           <div
             className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-2xl modal-panel overflow-y-auto md:overflow-hidden border border-border-subtle dark:border-border-strong"
             onClick={(e) => e.stopPropagation()}
@@ -262,7 +288,7 @@ const ClubsCalendarTab = ({
                   </span>
                   <button
                     aria-label="Close event details"
-                    onClick={() => setSelectedEvent(null)}
+                    onClick={() => { setSelectedEvent(null); setShareCopied(false); }}
                     className="touch-target flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-surface-muted dark:hover:bg-border-strong"
                   >
                     <span className="material-symbols-outlined text-[20px]">close</span>
@@ -356,7 +382,7 @@ const ClubsCalendarTab = ({
                   </div>
                 </div>
 
-                <div className="pt-5 mt-5 border-t border-border-subtle dark:border-border-strong">
+                <div className="pt-5 mt-5 border-t border-border-subtle dark:border-border-strong space-y-3">
                   {selectedEvent.__isOwnClub ? (
                     <Button
                       type="button"
@@ -373,6 +399,10 @@ const ClubsCalendarTab = ({
                       View-only event details for other clubs. Use your event management tab to edit your own events.
                     </p>
                   )}
+                  <Button type="button" variant="secondary" onClick={() => shareEvent(selectedEvent)} className="w-full border border-border-subtle">
+                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{shareCopied ? 'check' : 'share'}</span>
+                    {shareCopied ? 'Link Copied!' : 'Share Event'}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -398,9 +428,8 @@ const ClubsCalendarTab = ({
                   key={event.id}
                   type="button"
                   onClick={() => {
-                    const isOwnClub = event.club_id === club?.id;
                     setDayEventsModal({ open: false, day: null, events: [] });
-                    void openEventDetail(event.id, isOwnClub);
+                    void openEventDetail(event.id);
                   }}
                   className="w-full rounded-xl border border-border-subtle bg-surface-muted px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-surface-muted/80 dark:border-border-strong"
                 >

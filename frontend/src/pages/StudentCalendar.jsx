@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial, warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
 import StudentSidebar from '../components/student-dashboard/StudentSidebar';
@@ -25,6 +25,7 @@ const eventMatchesSearch = (event, rawQuery) => {
 const StudentCalendar = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -34,6 +35,7 @@ const StudentCalendar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [clubs, setClubs] = useState([]);
   const [dayEventsModal, setDayEventsModal] = useState({ open: false, day: null, events: [] });
+  const [shareCopied, setShareCopied] = useState(false);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -96,6 +98,29 @@ const StudentCalendar = () => {
         warmPosterImageCache(eventDetail?.image_url);
         setSelectedEvent(eventDetail);
       }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    const sharedEventId = searchParams.get('event');
+    if (sharedEventId && user) {
+      void openEventDetail(sharedEventId);
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('event');
+      setSearchParams(nextParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const shareEvent = async (event) => {
+    if (!event) return;
+    const url = `${window.location.origin}/student/calendar?event=${event.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
     } catch (err) {
       console.error(err);
     }
@@ -413,7 +438,7 @@ const StudentCalendar = () => {
         </section>
 
         {selectedEvent ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm safe-area-y" onClick={() => setSelectedEvent(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm safe-area-y" onClick={() => { setSelectedEvent(null); setShareCopied(false); }}>
           <div
             className="modal-panel w-full max-w-2xl overflow-y-auto rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632] md:overflow-hidden"
             onClick={(event) => event.stopPropagation()}
@@ -434,7 +459,7 @@ const StudentCalendar = () => {
                     {' • '}
                     {selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleDateString('en-US', { weekday: 'long' }) : ''}
                   </span>
-                  <IconButton ariaLabel="Close event details" variant="soft" size="sm" onClick={() => setSelectedEvent(null)}>
+                  <IconButton ariaLabel="Close event details" variant="soft" size="sm" onClick={() => { setSelectedEvent(null); setShareCopied(false); }}>
                     <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
                   </IconButton>
                 </div>
@@ -534,6 +559,10 @@ const StudentCalendar = () => {
                   <Button type="button" variant="secondary" onClick={addToGoogleCalendar} className="w-full border border-border-subtle">
                     <span className="material-symbols-outlined text-[20px]" aria-hidden="true">calendar_month</span>
                     Add to Google Calendar
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => shareEvent(selectedEvent)} className="w-full border border-border-subtle">
+                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{shareCopied ? 'check' : 'share'}</span>
+                    {shareCopied ? 'Link Copied!' : 'Share Event'}
                   </Button>
                 </div>
               </div>
