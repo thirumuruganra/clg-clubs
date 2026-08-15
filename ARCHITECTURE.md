@@ -83,7 +83,7 @@ The backend is a FastAPI application organized around routers, models, and servi
 - JWT cookie authentication.
 - GZip compression.
 - Baseline security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP, HSTS in production) set on every response, including error pages.
-- Rate limiting for sensitive routes, event/club create, and file-upload endpoints. Redis-backed sliding window when `REDIS_URL` is set (shared across dynos), falls back to in-memory and fails open if Redis is unreachable. Client IP resolved from `request.client.host`, not the spoofable `X-Forwarded-For` header.
+- Rate limiting for sensitive routes, event/club create, and file-upload endpoints. In-memory sliding window per process today (`REDIS_URL` unset, no Redis add-on provisioned) — correct only as long as production runs a single dyno/worker, since state isn't shared across processes. Code supports switching to a Redis-backed sliding window by setting `REDIS_URL`, with fail-open if Redis becomes unreachable. Client IP resolved from `request.client.host`, not the spoofable `X-Forwarded-For` header.
 - SPA fallback routing for the built frontend.
 
 ### Runtime Schema Compatibility
