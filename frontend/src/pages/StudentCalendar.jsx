@@ -150,11 +150,17 @@ const StudentCalendar = () => {
     { label: 'Non-Tech Clubs', value: 'nontech', color: 'bg-green-500' },
   ];
 
-  const getEventPillClass = (tag) => (
-    tag === 'TECH'
+  const isEventFinished = (event) => {
+    const end = event.end_time || event.start_time;
+    return end ? new Date(end) < today : false;
+  };
+
+  const getEventPillClass = (event) => {
+    if (isEventFinished(event)) return 'bg-border-strong/40 text-text-secondary hover:bg-border-strong/50';
+    return event.tag === 'TECH'
       ? 'bg-primary/20 text-primary hover:bg-primary/30'
-      : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-  );
+      : 'bg-green-500/20 text-green-400 hover:bg-green-500/30';
+  };
 
   const getMiniCalendarDotClass = (dayEvents) => {
     const hasTech = dayEvents.some((event) => event.tag === 'TECH');
@@ -400,7 +406,7 @@ const StudentCalendar = () => {
                     key={event.id}
                     type="button"
                     onClick={() => openEventDetail(event.id)}
-                    className={`mb-0.5 w-full truncate rounded px-1.5 py-0.5 text-left text-xs font-medium transition-colors ${getEventPillClass(event.tag)}`}
+                    className={`mb-0.5 w-full truncate rounded px-1.5 py-0.5 text-left text-xs font-medium transition-colors ${getEventPillClass(event)}`}
                   >
                     {event.title}
                   </button>
