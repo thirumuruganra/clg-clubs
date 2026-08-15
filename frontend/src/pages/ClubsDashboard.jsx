@@ -1624,13 +1624,14 @@ const ClubsDashboard = () => {
     const sortedAttended = sortAttendanceRows(attended);
 
     setRsvpError('');
-    const headers = ['S.NO', 'ROLE', 'NAME', 'DEPARTMENT', 'YEAR', 'REGISTER NO'];
+    const headers = ['S.NO', 'ROLE', 'NAME', 'DEGREE', 'DEPARTMENT', 'YEAR', 'REGISTER NO'];
     const rows = sortedAttended.map((r, index) => {
       const u = r.user || {};
       return [
         index + 1,
         getAttendanceRoleLabel(r.attendance_role),
         u.name || '-',
+        u.degree || '-',
         u.department || '-',
         calculateYear(u.batch, u.degree, u.register_number),
         u.register_number || '-'
