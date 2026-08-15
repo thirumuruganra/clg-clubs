@@ -28,7 +28,7 @@ jobs:
             -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
             -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
             -H "Content-Type: application/json" \
-            -d '{"limit":1}')
+            -d '{"limit":1,"prefix":""}')
 
           echo "HTTP status: $status"
           cat /tmp/resp.json
