@@ -17,11 +17,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
       - name: Push to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
           HEROKU_APP: wavc
         run: |
           set -euo pipefail
-          git remote add heroku "https://heroku:${HEROKU_API_KEY}@git.heroku.com/${HEROKU_APP}.git"
+          heroku git:remote -a "${HEROKU_APP}"
           git push heroku "HEAD:refs/heads/main"
