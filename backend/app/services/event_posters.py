@@ -71,53 +71,6 @@ def _event_poster_age_key(event: Event) -> tuple[datetime, datetime, datetime, s
     )
 
 
-def _query_club_poster_events(
-    db: Session,
-    club_id,
-    *,
-    exclude_event_id=None,
-) -> list[Event]:
-    query = db.query(Event).filter(
-        Event.club_id == club_id,
-        Event.poster_storage_path.isnot(None),
-    )
-    if exclude_event_id is not None:
-        query = query.filter(Event.id != exclude_event_id)
-    return query.all()
-
-
-def cleanup_club_event_poster_overflow(
-    db: Session,
-    club_id,
-    *,
-    max_posters: int = MAX_POSTERS_PER_CLUB,
-    exclude_event_id=None,
-) -> dict[str, int]:
-    events = sorted(
-        _query_club_poster_events(db, club_id, exclude_event_id=exclude_event_id),
-        key=_event_poster_age_key,
-    )
-    overflow_count = max(0, len(events) - max_posters)
-    deleted = 0
-    failed = 0
-
-    for event in events[:overflow_count]:
-        try:
-            clear_event_poster(event)
-            deleted += 1
-        except RuntimeError:
-            failed += 1
-
-    if deleted > 0:
-        db.flush()
-
-    return {
-        "checked": len(events),
-        "deleted": deleted,
-        "failed": failed,
-    }
-
-
 def cleanup_event_poster_overflow(db: Session) -> dict[str, int]:
     poster_events = (
         db.query(Event)
@@ -153,7 +106,7 @@ def cleanup_event_poster_overflow(db: Session) -> dict[str, int]:
     }
 
 
-def replace_event_poster(db: Session, event: Event, file_bytes: bytes, content_type: str) -> dict[str, str]:
+def replace_event_poster(event: Event, file_bytes: bytes, content_type: str) -> dict[str, str]:
     file_size = len(file_bytes)
     if file_size <= 0:
         raise ValueError("Poster file is empty")
@@ -177,21 +130,6 @@ def replace_event_poster(db: Session, event: Event, file_bytes: bytes, content_t
         cache_control_seconds=31536000,
         upsert=True,
     )
-
-    if not previous_object_path:
-        try:
-            cleanup_club_event_poster_overflow(
-                db,
-                event.club_id,
-                max_posters=MAX_POSTERS_PER_CLUB - 1,
-                exclude_event_id=event.id,
-            )
-        except RuntimeError:
-            try:
-                delete_storage_object(new_object_path)
-            except RuntimeError:
-                pass
-            raise
 
     event.image_url = new_public_url
     event.poster_storage_path = new_object_path

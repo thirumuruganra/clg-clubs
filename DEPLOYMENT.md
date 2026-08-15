@@ -70,6 +70,14 @@ heroku config:set ACCESS_TOKEN_SAMESITE=lax -a your-app-name
 heroku config:set SESSION_COOKIE_NAME=wavc_oauth_session -a your-app-name
 ```
 
+Required for the scheduled poster-cleanup cron (see `.github/workflows/poster-cleanup.yml`):
+
+```bash
+heroku config:set INTERNAL_CRON_SECRET=$(openssl rand -hex 32) -a your-app-name
+```
+
+Set the same value, plus `BACKEND_PUBLIC_BASE_URL` (e.g. `https://your-app-name.herokuapp.com`), as GitHub Actions repo secrets so the workflow can authenticate to `POST /api/internal/cleanup-posters`.
+
 ## 4. Configure Google OAuth
 
 In Google Cloud Console, add:

@@ -1,0 +1,35 @@
+name: Event poster cleanup
+
+# Purges event posters beyond the per-club retention limit
+# (EVENT_POSTER_MAX_PER_CLUB), independent of app restarts/uploads.
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  cleanup-posters:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger poster cleanup endpoint
+        env:
+          BACKEND_PUBLIC_BASE_URL: ${{ secrets.BACKEND_PUBLIC_BASE_URL }}
+          INTERNAL_CRON_SECRET: ${{ secrets.INTERNAL_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BACKEND_PUBLIC_BASE_URL:-}" ] || [ -z "${INTERNAL_CRON_SECRET:-}" ]; then
+            echo "Missing BACKEND_PUBLIC_BASE_URL / INTERNAL_CRON_SECRET secrets." >&2
+            exit 1
+          fi
+
+          status=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -X POST "${BACKEND_PUBLIC_BASE_URL%/}/api/internal/cleanup-posters" \
+            -H "X-Internal-Cron-Secret: ${INTERNAL_CRON_SECRET}")
+
+          echo "HTTP status: $status"
+          cat /tmp/resp.json
+
+          if [ "$status" -ge 400 ]; then
+            echo "Poster cleanup request failed." >&2
+            exit 1
+          fi

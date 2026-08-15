@@ -9,11 +9,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from app.database import engine, Base, SessionLocal
-from app.routers import auth, users, events, clubs, rsvp, follow
-from app.core.storage import is_supabase_storage_configured
+from app.database import engine, Base
+from app.routers import auth, users, events, clubs, rsvp, follow, internal
 from app.core.rate_limit import InMemoryRateLimitMiddleware, RateLimitRule
-from app.services.event_posters import cleanup_event_poster_overflow
 from app.services import no_service
 import os
 from pathlib import Path
@@ -465,6 +463,7 @@ app.include_router(events.router, prefix="/api/events", tags=["events"])
 app.include_router(clubs.router, prefix="/api/clubs", tags=["clubs"])
 app.include_router(rsvp.router, prefix="/api/rsvp", tags=["rsvp"])
 app.include_router(follow.router, prefix="/api/follow", tags=["follow"])
+app.include_router(internal.router, prefix="/api/internal", tags=["internal"])
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -474,27 +473,6 @@ async def rewrite_access_denied_detail(request: Request, exc: StarletteHTTPExcep
         return JSONResponse(status_code=exc.status_code, content={"detail": detail}, headers=exc.headers)
 
     return await http_exception_handler(request, exc)
-
-
-@app.on_event("startup")
-async def run_event_poster_overflow_cleanup_once() -> None:
-    if not is_supabase_storage_configured():
-        print(
-            "ℹ️  Event poster overflow cleanup skipped because Supabase Storage "
-            "environment variables are not fully configured."
-        )
-        return
-
-    db = SessionLocal()
-    try:
-        summary = cleanup_event_poster_overflow(db)
-        if summary["checked"] > 0 or summary["deleted"] > 0 or summary["failed"] > 0:
-            print(
-                "ℹ️  Event poster overflow cleanup: "
-                f"checked={summary['checked']} deleted={summary['deleted']} failed={summary['failed']}"
-            )
-    finally:
-        db.close()
 
 
 frontend_dist_dir = Path(__file__).resolve().parent / "static"
