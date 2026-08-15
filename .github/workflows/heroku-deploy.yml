@@ -17,6 +17,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Build frontend
+        run: npm run postbuild
+
       - name: Install Heroku CLI
         run: curl https://cli-assets.heroku.com/install.sh | sh
 
@@ -26,5 +34,9 @@ jobs:
           HEROKU_APP: wavc
         run: |
           set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f backend/app/static
+          git commit -m "Deploy: bundle frontend build" --allow-empty
           heroku git:remote -a "${HEROKU_APP}"
-          git push heroku "HEAD:refs/heads/main"
+          git push heroku "HEAD:refs/heads/main" --force
