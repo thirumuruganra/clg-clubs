@@ -467,22 +467,26 @@ const StudentCalendar = () => {
                 <p className="mb-1 text-sm font-semibold text-primary">{selectedEvent.club_name || 'Club Event'}</p>
                 <h2 className="mb-4 text-2xl font-bold text-text-primary">{selectedEvent.title}</h2>
 
-                {selectedEvent.description ? (
-                  <p className="mb-4 whitespace-pre-wrap text-sm text-text-secondary">{selectedEvent.description}</p>
-                ) : null}
-
-                {selectedEvent.keywords ? (
-                  <div className="mb-4 flex flex-wrap gap-2">
-                    {selectedEvent.keywords.split(',').map((keyword, index) => (
-                      <span
-                        key={`${keyword}-${index}`}
-                        className="rounded-lg border border-border-subtle bg-gray-100 px-2.5 py-1 text-xs font-medium text-text-secondary dark:border-[#34485c] dark:bg-border-strong"
-                      >
-                        {keyword.trim()}
-                      </span>
-                    ))}
+                <div className="mb-4 space-y-3">
+                  <Button
+                    type="button"
+                    variant={selectedEvent.is_rsvped ? 'danger' : 'primary'}
+                    onClick={() => handleRSVP(selectedEvent.id, selectedEvent.is_rsvped)}
+                    className={selectedEvent.is_rsvped ? 'w-full bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'w-full'}
+                  >
+                    {selectedEvent.is_rsvped ? 'Unregister' : 'Register'}
+                  </Button>
+                  <div className="flex items-center gap-3">
+                    <Button type="button" variant="secondary" onClick={addToGoogleCalendar} className="flex-1 border border-border-subtle">
+                      <span className="material-symbols-outlined text-[20px]" aria-hidden="true">calendar_month</span>
+                      Add to Google Calendar
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={() => shareEvent(selectedEvent)} className="flex-1 border border-border-subtle">
+                      <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{shareCopied ? 'check' : 'share'}</span>
+                      {shareCopied ? 'Link Copied!' : 'Share Event'}
+                    </Button>
                   </div>
-                ) : null}
+                </div>
 
                 {selectedEvent.is_paid ? (
                   <div className="mb-4 rounded-xl border border-orange-100 bg-orange-50 px-4 py-2.5 dark:border-orange-500/20 dark:bg-orange-500/5">
@@ -547,24 +551,22 @@ const StudentCalendar = () => {
                   ) : null}
                 </div>
 
-                <div className="space-y-3">
-                  <Button
-                    type="button"
-                    variant={selectedEvent.is_rsvped ? 'danger' : 'primary'}
-                    onClick={() => handleRSVP(selectedEvent.id, selectedEvent.is_rsvped)}
-                    className={selectedEvent.is_rsvped ? 'w-full bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'w-full'}
-                  >
-                    {selectedEvent.is_rsvped ? 'Unregister' : 'Register'}
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={addToGoogleCalendar} className="w-full border border-border-subtle">
-                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">calendar_month</span>
-                    Add to Google Calendar
-                  </Button>
-                  <Button type="button" variant="secondary" onClick={() => shareEvent(selectedEvent)} className="w-full border border-border-subtle">
-                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{shareCopied ? 'check' : 'share'}</span>
-                    {shareCopied ? 'Link Copied!' : 'Share Event'}
-                  </Button>
-                </div>
+                {selectedEvent.description ? (
+                  <p className="mb-4 whitespace-pre-wrap text-sm text-text-secondary">{selectedEvent.description}</p>
+                ) : null}
+
+                {selectedEvent.keywords ? (
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {selectedEvent.keywords.split(',').map((keyword, index) => (
+                      <span
+                        key={`${keyword}-${index}`}
+                        className="rounded-lg border border-border-subtle bg-gray-100 px-2.5 py-1 text-xs font-medium text-text-secondary dark:border-[#34485c] dark:bg-border-strong"
+                      >
+                        {keyword.trim()}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>

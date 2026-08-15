@@ -299,21 +299,28 @@ const ClubsCalendarTab = ({
 
                 <h2 className="text-2xl font-bold mb-4">{selectedEvent.title}</h2>
 
-                {selectedEvent.description && (
-                  <p className="text-sm text-text-secondary dark:text-text-dark-secondary mb-4 whitespace-pre-wrap">{selectedEvent.description}</p>
-                )}
-
-                {selectedEvent.keywords && (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {selectedEvent.keywords.split(',').map((kw, i) => (
-                      <span
-                        key={i}
-                        className="px-2.5 py-1 bg-gray-100 dark:bg-border-strong text-text-secondary dark:text-text-dark-secondary text-xs font-medium rounded-lg border border-border-subtle dark:border-border-strong"
-                      >
-                        {kw.trim()}
-                      </span>
-                    ))}
-                  </div>
+                <div className="flex items-center gap-3 mb-4">
+                  {selectedEvent.__isOwnClub && (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        onOpenEditModal(selectedEvent);
+                        setSelectedEvent(null);
+                      }}
+                      className="flex-1 text-sm font-bold"
+                    >
+                      Edit Event
+                    </Button>
+                  )}
+                  <Button type="button" variant="secondary" onClick={() => shareEvent(selectedEvent)} className="flex-1 border border-border-subtle">
+                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{shareCopied ? 'check' : 'share'}</span>
+                    {shareCopied ? 'Link Copied!' : 'Share Event'}
+                  </Button>
+                </div>
+                {!selectedEvent.__isOwnClub && (
+                  <p className="text-xs text-text-secondary dark:text-text-dark-secondary mb-4">
+                    View-only event details for other clubs. Use your event management tab to edit your own events.
+                  </p>
                 )}
 
                 {selectedEvent.is_paid && (
@@ -382,28 +389,22 @@ const ClubsCalendarTab = ({
                   </div>
                 </div>
 
-                <div className="pt-5 mt-5 border-t border-border-subtle dark:border-border-strong space-y-3">
-                  {selectedEvent.__isOwnClub ? (
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        onOpenEditModal(selectedEvent);
-                        setSelectedEvent(null);
-                      }}
-                      className="w-full text-sm font-bold"
-                    >
-                      Edit Event
-                    </Button>
-                  ) : (
-                    <p className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                      View-only event details for other clubs. Use your event management tab to edit your own events.
-                    </p>
-                  )}
-                  <Button type="button" variant="secondary" onClick={() => shareEvent(selectedEvent)} className="w-full border border-border-subtle">
-                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{shareCopied ? 'check' : 'share'}</span>
-                    {shareCopied ? 'Link Copied!' : 'Share Event'}
-                  </Button>
-                </div>
+                {selectedEvent.description && (
+                  <p className="text-sm text-text-secondary dark:text-text-dark-secondary mt-5 whitespace-pre-wrap">{selectedEvent.description}</p>
+                )}
+
+                {selectedEvent.keywords && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {selectedEvent.keywords.split(',').map((kw, i) => (
+                      <span
+                        key={i}
+                        className="px-2.5 py-1 bg-gray-100 dark:bg-border-strong text-text-secondary dark:text-text-dark-secondary text-xs font-medium rounded-lg border border-border-subtle dark:border-border-strong"
+                      >
+                        {kw.trim()}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
