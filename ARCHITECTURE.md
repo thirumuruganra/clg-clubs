@@ -82,7 +82,8 @@ The backend is a FastAPI application organized around routers, models, and servi
 - Session middleware for OAuth state.
 - JWT cookie authentication.
 - GZip compression.
-- In-memory rate limiting for sensitive routes.
+- Baseline security headers (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP, HSTS in production) set on every response, including error pages.
+- Rate limiting for sensitive routes, event/club create, and file-upload endpoints. Redis-backed sliding window when `REDIS_URL` is set (shared across dynos), falls back to in-memory and fails open if Redis is unreachable. Client IP resolved from `request.client.host`, not the spoofable `X-Forwarded-For` header.
 - SPA fallback routing for the built frontend.
 
 ### Runtime Schema Compatibility
@@ -94,7 +95,8 @@ The backend currently includes startup-time schema compatibility helpers in `app
 ### `auth`
 
 - Google OAuth login and callback.
-- JWT cookie issuance.
+- JWT cookie issuance, signed with PyJWT (HS256) using a dedicated `JWT_SECRET_KEY`, falling back to the session `SECRET_KEY` if unset.
+- Server-side JWT revocation via a per-user `token_version` column: logout increments it, and token verification rejects tokens minted before the current version.
 - Current-user lookup and logout.
 - Role assignment based on SSN email patterns.
 
@@ -174,9 +176,16 @@ Core entities:
 ### Asset Flow
 
 1. Club logos, event posters, and payment QR images are uploaded through API endpoints.
-2. The backend stores them in Supabase Storage.
-3. Public asset URLs are saved in PostgreSQL.
-4. FastAPI returns those URLs for frontend rendering.
+2. The backend validates uploads by inspecting file content, not the client-supplied `Content-Type` header.
+3. The backend stores them in Supabase Storage.
+4. Public asset URLs are saved in PostgreSQL.
+5. FastAPI returns those URLs for frontend rendering.
+
+### Poster Cleanup Flow
+
+1. A daily GitHub Actions workflow calls `POST /api/internal/cleanup-posters`, authenticated with a constant-time-compared `X-Internal-Cron-Secret` header.
+2. The endpoint runs per-club poster retention, keeping the newest `EVENT_POSTER_MAX_PER_CLUB` and deleting older ones.
+3. This replaces the previous inline cleanup on upload and on dyno boot, neither of which was a real periodic sweep.
 
 ## Production Serving Model
 
@@ -187,3 +196,9 @@ Production uses a single-app deployment model:
 - FastAPI serves static assets and falls back to `index.html` for SPA routes.
 
 This keeps the frontend and backend on the same origin in production, which simplifies cookie auth, routing, and deployment.
+
+## CI/CD and Scheduled Jobs
+
+- `.github/workflows/heroku-deploy.yml` auto-deploys to Heroku on push to `main`: builds the frontend via the `postbuild` script (renamed from Heroku's implicit `heroku-postbuild` hook ahead of a future host migration), force-commits the built static output, then pushes to Heroku using the Heroku CLI git credential helper (`HEROKU_API_KEY`).
+- `.github/workflows/supabase-keepalive.yml` runs daily and lists the Supabase storage bucket, preventing the free-tier project from auto-pausing after 7 days of inactivity.
+- The poster cleanup cron workflow calls the internal cleanup endpoint; see Poster Cleanup Flow above.
