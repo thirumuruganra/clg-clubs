@@ -3,7 +3,8 @@
 .idea
 .vscode/*
 !.vscode/extensions.json
-.github/
+.github/prompts/
+.github/copilot-instructions.md
 performance_testing/
 .claude/
 

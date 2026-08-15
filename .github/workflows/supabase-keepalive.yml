@@ -1,0 +1,39 @@
+name: Supabase storage keepalive
+
+# Free-tier Supabase projects pause after 7 days with zero API activity.
+# Polling the storage bucket daily keeps the project active with a 6-day buffer.
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  poll-bucket:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List objects in Supabase storage bucket
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_STORAGE_BUCKET: ${{ secrets.SUPABASE_STORAGE_BUCKET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ] || [ -z "${SUPABASE_STORAGE_BUCKET:-}" ]; then
+            echo "Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_STORAGE_BUCKET secrets." >&2
+            exit 1
+          fi
+
+          status=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -X POST "${SUPABASE_URL%/}/storage/v1/object/list/${SUPABASE_STORAGE_BUCKET}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"limit":1}')
+
+          echo "HTTP status: $status"
+          cat /tmp/resp.json
+
+          if [ "$status" -ge 400 ]; then
+            echo "Supabase storage poll failed." >&2
+            exit 1
+          fi
