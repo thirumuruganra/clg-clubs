@@ -17,7 +17,7 @@ const StudentDashboardDiscoverItem = ({ event, onMoreInfo }) => {
   const { month, day } = formatEventDate(event.start_time);
 
   return (
-    <Card interactive className="flex min-h-40 flex-col overflow-hidden border-border-subtle/90 bg-surface-panel/95 p-0 sm:flex-row">
+    <Card interactive onClick={onMoreInfo} className="flex min-h-40 flex-col overflow-hidden border-border-subtle/90 bg-surface-panel/95 p-0 sm:flex-row">
       <div className="h-32 w-full overflow-hidden bg-background-dark sm:h-auto sm:w-1/3">
         {event.image_url ? (
           <img
@@ -46,7 +46,15 @@ const StudentDashboardDiscoverItem = ({ event, onMoreInfo }) => {
           )}
         </div>
         <div className="flex items-center justify-end">
-          <Button onClick={onMoreInfo} variant="secondary" size="sm" className="h-9">
+          <Button
+            onClick={(eventObj) => {
+              eventObj.stopPropagation();
+              onMoreInfo();
+            }}
+            variant="secondary"
+            size="sm"
+            className="h-9"
+          >
             More Info
           </Button>
         </div>

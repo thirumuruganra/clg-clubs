@@ -431,7 +431,7 @@ const StudentDashboard = () => {
                   <StudentDashboardDiscoverItem
                     key={event.id}
                     event={event}
-                    onMoreInfo={() => navigate('/student/calendar')}
+                    onMoreInfo={() => navigate(`/student/calendar?event=${event.id}`)}
                   />
                 ))}
               </div>

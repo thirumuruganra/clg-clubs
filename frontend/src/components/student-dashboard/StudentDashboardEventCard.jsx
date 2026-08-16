@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { EventPosterFallback } from '../ui/event-poster-fallback';
@@ -15,11 +16,16 @@ const formatEventDate = (iso) => {
 };
 
 const StudentDashboardEventCard = ({ event, pendingRsvpId, onToggleRsvp }) => {
+  const navigate = useNavigate();
   const { month, day } = formatEventDate(event.start_time);
   const isPending = pendingRsvpId === event.id;
 
   return (
-    <Card interactive className="flex flex-col overflow-hidden border-border-subtle/90 bg-surface-panel/95 p-0">
+    <Card
+      interactive
+      onClick={() => navigate(`/student/calendar?event=${event.id}`)}
+      className="flex flex-col overflow-hidden border-border-subtle/90 bg-surface-panel/95 p-0"
+    >
       <div className="relative h-36 overflow-hidden bg-background-dark sm:h-40">
         {event.image_url ? (
           <img
@@ -85,7 +91,10 @@ const StudentDashboardEventCard = ({ event, pendingRsvpId, onToggleRsvp }) => {
             <span className="text-xs font-semibold leading-none tracking-[0.01em]">{event.rsvp_count || 0} registered</span>
           </div>
           <Button
-            onClick={() => onToggleRsvp(event.id, event.is_rsvped)}
+            onClick={(eventObj) => {
+              eventObj.stopPropagation();
+              onToggleRsvp(event.id, event.is_rsvped);
+            }}
             disabled={isPending}
             size="sm"
             variant={event.is_rsvped ? 'danger' : 'primary'}
