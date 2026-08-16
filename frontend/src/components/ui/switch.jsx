@@ -15,7 +15,7 @@ export const Switch = React.forwardRef(function Switch(
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        'touch-target relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+        'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
         checked ? 'bg-primary' : 'bg-surface-muted dark:bg-border-strong',
         className,
       )}
