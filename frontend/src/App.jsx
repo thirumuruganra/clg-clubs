@@ -13,6 +13,7 @@ const ClubsDashboard = lazy(() => import('./pages/ClubsDashboard'));
 const ClubsSetup = lazy(() => import('./pages/ClubsSetup'));
 const ClubsProfile = lazy(() => import('./pages/ClubsProfile'));
 const ClubsCalendar = lazy(() => import('./pages/ClubsCalendar'));
+const EventRedirect = lazy(() => import('./pages/EventRedirect'));
 
 const ROUTE_TITLES = {
   '/': 'WAVC - Stay in the loop',
@@ -26,6 +27,7 @@ const ROUTE_TITLES = {
   '/club/setup': 'WAVC - Club Setup',
   '/club/profile': 'WAVC - Club Profile',
   '/club/calendar': 'WAVC - Club Calendar',
+  '/event': 'WAVC - Event',
 };
 
 function LoadingRouteFallback() {
@@ -220,6 +222,14 @@ function AppRoutes() {
           element={(
             <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
               <ClubsCalendar />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/event"
+          element={(
+            <ProtectedRoute>
+              <EventRedirect />
             </ProtectedRoute>
           )}
         />

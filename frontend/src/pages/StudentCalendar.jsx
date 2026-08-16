@@ -116,7 +116,7 @@ const StudentCalendar = () => {
 
   const shareEvent = async (event) => {
     if (!event) return;
-    const url = `${window.location.origin}/student/calendar?event=${event.id}`;
+    const url = `${window.location.origin}/event?id=${event.id}`;
     try {
       await navigator.clipboard.writeText(url);
       setShareCopied(true);
