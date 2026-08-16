@@ -225,14 +225,7 @@ function AppRoutes() {
             </ProtectedRoute>
           )}
         />
-        <Route
-          path="/event"
-          element={(
-            <ProtectedRoute>
-              <EventRedirect />
-            </ProtectedRoute>
-          )}
-        />
+        <Route path="/event" element={<EventRedirect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
