@@ -26,7 +26,7 @@ export const Button = React.forwardRef(function Button(
       type={type}
       disabled={isDisabled}
       className={cn(
-        'interactive-press inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-[background-color,color,border-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
+        'interactive-press inline-flex items-center justify-center gap-2 rounded-full font-medium transition-[background-color,color,border-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
         variants[variant],
         sizes[size],
         className,

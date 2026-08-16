@@ -80,7 +80,7 @@ const ClubMembersTab = ({
           <button
             type="button"
             onClick={onOpenAddMember}
-            className="relative z-10 mt-5 touch-target inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100 sm:mt-6 sm:w-auto"
+            className="relative z-10 mt-5 touch-target inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100 sm:mt-6 sm:w-auto"
           >
             <span className="material-symbols-outlined text-[18px]">person_add</span>
             Add Member
@@ -134,7 +134,7 @@ const ClubMembersTab = ({
                         <button
                           type="button"
                           onClick={() => onRemoveMember(member)}
-                          className="rounded-lg border border-red-500/25 px-2.5 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
+                          className="rounded-full border border-red-500/25 px-2.5 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
                         >
                           Remove
                         </button>
@@ -231,7 +231,7 @@ const ClubMembersTab = ({
                             <button
                               type="button"
                               onClick={() => onRemoveMember(member)}
-                              className="inline-flex min-w-22 items-center justify-center rounded-lg border border-red-500/25 px-3 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
+                              className="inline-flex min-w-22 items-center justify-center rounded-full border border-red-500/25 px-3 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
                             >
                               Remove
                             </button>
@@ -335,7 +335,7 @@ const ClubMembersTab = ({
                             <button
                               type="button"
                               onClick={() => onAddMember(student.id)}
-                              className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary/90"
+                              className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary/90"
                             >
                               Add
                             </button>
@@ -404,7 +404,7 @@ const ClubMembersTab = ({
                                 <button
                                   type="button"
                                   onClick={() => onAddMember(student.id)}
-                                  className="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary/90"
+                                  className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary/90"
                                 >
                                   Add
                                 </button>

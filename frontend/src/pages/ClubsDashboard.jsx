@@ -1779,6 +1779,7 @@ const ClubsDashboard = () => {
       clubIconUrl={clubIconUrl}
       clubInitial={clubInitial}
       user={user}
+      isClubHead={club?.admin_id === user?.id}
       navigate={navigate}
       logout={logout}
     />

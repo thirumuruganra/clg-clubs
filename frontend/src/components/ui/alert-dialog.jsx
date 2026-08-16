@@ -57,7 +57,7 @@ export function AlertDialogCancel({ className, ...props }) {
   return (
     <AlertDialogPrimitive.Cancel
       className={cn(
-        'rounded-xl border border-border-subtle px-4 py-2 text-sm font-bold text-text-secondary transition-colors hover:bg-surface-muted dark:border-border-strong dark:text-text-dark-secondary dark:hover:bg-border-strong',
+        'rounded-full border border-border-subtle px-4 py-2 text-sm font-bold text-text-secondary transition-colors hover:bg-surface-muted dark:border-border-strong dark:text-text-dark-secondary dark:hover:bg-border-strong',
         className,
       )}
       {...props}
@@ -68,7 +68,7 @@ export function AlertDialogCancel({ className, ...props }) {
 export function AlertDialogAction({ className, ...props }) {
   return (
     <AlertDialogPrimitive.Action
-      className={cn('rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700', className)}
+      className={cn('rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700', className)}
       {...props}
     />
   );

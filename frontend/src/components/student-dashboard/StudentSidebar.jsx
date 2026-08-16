@@ -21,7 +21,12 @@ const StudentSidebar = ({ mobileMenuOpen, onClose, children }) => {
     if (onClose) onClose();
   };
 
-  const mappedNavItems = sideNavItems.map((item) => ({
+  const hasClubAdminAccess = user?.role === 'CLUB_ADMIN' || Boolean(user?.managed_club_id);
+  const navItemsWithClubAdmin = hasClubAdminAccess
+    ? [...sideNavItems, { label: 'Club Admin', icon: 'admin_panel_settings', path: '/club/dashboard' }]
+    : sideNavItems;
+
+  const mappedNavItems = navItemsWithClubAdmin.map((item) => ({
     key: item.path,
     label: item.label,
     icon: item.icon,
