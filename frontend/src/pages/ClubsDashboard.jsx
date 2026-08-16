@@ -1100,21 +1100,11 @@ const ClubsDashboard = () => {
   };
 
   const sortAttendanceRows = (rsvpList) => {
-    const roleRank = { CLUB_MEMBER: 0, VOLUNTEER: 1, PARTICIPANT: 2 };
     const yearRank = { V: 5, IV: 4, III: 3, II: 2, I: 1, Alumni: 0, '-': -1 };
 
     return [...rsvpList].sort((left, right) => {
-      const leftRoleRank = roleRank[left?.attendance_role || 'PARTICIPANT'] ?? 2;
-      const rightRoleRank = roleRank[right?.attendance_role || 'PARTICIPANT'] ?? 2;
-      if (leftRoleRank !== rightRoleRank) return leftRoleRank - rightRoleRank;
-
       const leftUser = left?.user || {};
       const rightUser = right?.user || {};
-
-      const leftDepartment = String(leftUser.department || '').trim().toLowerCase();
-      const rightDepartment = String(rightUser.department || '').trim().toLowerCase();
-      const departmentCompare = leftDepartment.localeCompare(rightDepartment);
-      if (departmentCompare !== 0) return departmentCompare;
 
       const leftYear = yearRank[calculateYear(leftUser.batch, leftUser.degree, leftUser.register_number)] ?? -1;
       const rightYear = yearRank[calculateYear(rightUser.batch, rightUser.degree, rightUser.register_number)] ?? -1;
@@ -2256,7 +2246,7 @@ const ClubsDashboard = () => {
       {/* RSVP / Attendance Modal */}
       {rsvpModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={closeRsvpModal}>
-          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-4xl border border-border-subtle dark:border-border-strong flex flex-col modal-panel" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-6xl border border-border-subtle dark:border-border-strong flex flex-col modal-panel" onClick={e => e.stopPropagation()}>
             <div className="flex flex-col gap-4 border-b border-border-subtle p-6 dark:border-border-strong lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
                 <h2 className="text-xl font-bold wrap-break-word">{rsvpModal.event?.title || 'Event'}</h2>
@@ -2478,19 +2468,19 @@ const ClubsDashboard = () => {
                   {rsvpError ? <Toast tone="error" title="Export failed" description={rsvpError} /> : null}
 
                   <div className="border border-border-subtle dark:border-border-strong rounded-xl overflow-hidden table-scroll">
-                    <table className="w-full min-w-205 text-sm text-left">
-                      <thead className="bg-surface-muted dark:bg-[#111a22] border-b border-border-subtle dark:border-border-strong text-xs uppercase text-text-secondary dark:text-text-dark-secondary font-bold">
+                    <table className="w-full min-w-205 text-xs text-left">
+                      <thead className="bg-surface-muted dark:bg-[#111a22] border-b border-border-subtle dark:border-border-strong text-[11px] uppercase text-text-secondary dark:text-text-dark-secondary font-bold">
                         <tr>
-                          <th className="px-4 py-3">S.NO</th>
-                          <th className="px-4 py-3">NAME</th>
-                          <th className="px-4 py-3">ROLE</th>
-                          <th className="px-4 py-3">DEPARTMENT</th>
-                          <th className="px-4 py-3">YEAR</th>
-                          <th className="px-4 py-3">REGISTER NO</th>
+                          <th className="px-2.5 py-2">S.NO</th>
+                          <th className="px-2.5 py-2">NAME</th>
+                          <th className="px-2.5 py-2">ROLE</th>
+                          <th className="px-2.5 py-2">DEPARTMENT</th>
+                          <th className="px-2.5 py-2">YEAR</th>
+                          <th className="px-2.5 py-2">REGISTER NO</th>
                           {rsvpModal.tab !== 'payment' && (
-                            <th className="px-4 py-3">ATTENDANCE MARKED AT</th>
+                            <th className="px-2.5 py-2">ATTENDANCE MARKED AT</th>
                           )}
-                          <th className="px-4 py-3 text-center border-l border-border-subtle dark:border-border-strong">
+                          <th className="px-2.5 py-2 text-center border-l border-border-subtle dark:border-border-strong">
                               {rsvpModal.tab === 'payment' ? 'PAID' : 'ATTENDED'}
                           </th>
                         </tr>
@@ -2500,35 +2490,35 @@ const ClubsDashboard = () => {
                           const u = rsvp.user || {};
                           return (
                             <tr key={rsvp.id} className="transition-colors hover:bg-surface-muted dark:hover:bg-border-strong/30">
-                              <td className="px-4 py-3 font-medium">{index + 1}</td>
-                              <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{u.name || '-'}</td>
-                              <td className="px-4 py-3">
+                              <td className="px-2.5 py-1.5 font-medium">{index + 1}</td>
+                              <td className="px-2.5 py-1.5 font-bold text-slate-800 dark:text-white">{u.name || '-'}</td>
+                              <td className="px-2.5 py-1.5">
                                 <StatusBadge tone={rsvp.attendance_role === 'CLUB_MEMBER' ? 'info' : 'neutral'}>
                                   {getAttendanceRoleLabel(rsvp.attendance_role)}
                                 </StatusBadge>
                               </td>
-                              <td className="px-4 py-3">{u.department || '-'}</td>
-                              <td className="px-4 py-3">{calculateYear(u.batch, u.degree, u.register_number)}</td>
-                              <td className="px-4 py-3 font-mono text-xs">{u.register_number || '-'}</td>
+                              <td className="px-2.5 py-1.5">{u.department || '-'}</td>
+                              <td className="px-2.5 py-1.5">{calculateYear(u.batch, u.degree, u.register_number)}</td>
+                              <td className="px-2.5 py-1.5 font-mono text-[11px]">{u.register_number || '-'}</td>
                               {rsvpModal.tab !== 'payment' && (
-                                <td className="px-4 py-3 text-xs whitespace-nowrap">
+                                <td className="px-2.5 py-1.5 text-[11px] whitespace-nowrap">
                                   {formatAttendanceMarkedAt(rsvp.attended_marked_at)}
                                 </td>
                               )}
-                              <td className="px-4 py-3 text-center border-l border-border-subtle dark:border-border-strong">
+                              <td className="px-2.5 py-1.5 text-center border-l border-border-subtle dark:border-border-strong">
                                 {rsvpModal.tab === 'payment' ? (
                                     <input
                                       type="checkbox"
                                       checked={rsvp.is_paid || false}
                                       onChange={() => handleTogglePayment(rsvp.id, rsvp.is_paid)}
-                                      className="size-5 rounded border border-border-subtle bg-surface-muted text-primary focus:ring-primary cursor-pointer"
+                                      className="size-4 rounded border border-border-subtle bg-surface-muted text-primary focus:ring-primary cursor-pointer"
                                     />
                                 ) : (
                                     <input
                                       type="checkbox"
                                       checked={rsvp.attended || false}
                                       onChange={() => handleToggleAttendance(rsvp.id, rsvp.attended)}
-                                      className="size-5 rounded border border-border-subtle bg-surface-muted text-primary focus:ring-primary cursor-pointer"
+                                      className="size-4 rounded border border-border-subtle bg-surface-muted text-primary focus:ring-primary cursor-pointer"
                                     />
                                 )}
                               </td>
