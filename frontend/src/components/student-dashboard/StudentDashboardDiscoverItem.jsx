@@ -40,7 +40,7 @@ const StudentDashboardDiscoverItem = ({ event, onMoreInfo }) => {
           <h3 className="text-lg font-bold leading-tight text-text-primary dark:text-white">{event.title}</h3>
           {event.location && (
             <div className="mt-2 flex items-center gap-1 text-text-secondary dark:text-text-dark-secondary">
-              <span className="material-symbols-outlined text-[16px]">location_on</span>
+              <span className="material-symbols-outlined text-body">location_on</span>
               <span className="text-xs">{event.location}</span>
             </div>
           )}
