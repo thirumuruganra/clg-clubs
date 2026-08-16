@@ -43,20 +43,21 @@ const ClubDashboardSidebar = ({
           <p className="text-xs text-text-secondary">Operations and events</p>
         </div>
       </div>
-      {!isClubHead && (
-        <button
-          type="button"
-          onClick={() => {
-            navigate('/student/dashboard');
-            setMobileMenuOpen(false);
-          }}
-          className="interactive-press touch-target flex w-full items-center gap-2 rounded-full border border-border-subtle px-4 py-2 text-left text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-border-strong dark:text-text-dark-secondary dark:hover:bg-border-strong"
-        >
-          <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>
-          Back to Student Dashboard
-        </button>
-      )}
     </div>
+  );
+
+  const sidebarBody = !isClubHead && (
+    <button
+      type="button"
+      onClick={() => {
+        navigate('/student/dashboard');
+        setMobileMenuOpen(false);
+      }}
+      className="interactive-press touch-target flex w-full items-center gap-2 rounded-full border border-border-subtle px-4 py-2 text-left text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-border-strong dark:text-text-dark-secondary dark:hover:bg-border-strong"
+    >
+      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span>
+      Back to Student Dashboard
+    </button>
   );
 
   const sidebarFooter = (
@@ -81,6 +82,7 @@ const ClubDashboardSidebar = ({
         setMobileMenuOpen(false);
       }}
       header={sidebarHeader}
+      bodyContent={sidebarBody}
       footer={sidebarFooter}
       mobileOnly={false}
     />
