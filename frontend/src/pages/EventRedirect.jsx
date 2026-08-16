@@ -59,8 +59,8 @@ function GuestEventCard({ eventId }) {
         ) : null}
 
         {status === 'ready' && event ? (
-          <div className="flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632] md:aspect-2/1 md:flex-row">
-            <div className="relative aspect-4/5 w-full overflow-hidden bg-[#0f1720] md:h-full md:w-2/5 md:shrink-0">
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632] md:flex-row">
+            <div className="relative aspect-4/5 w-full overflow-hidden bg-[#0f1720] md:w-2/5 md:shrink-0">
               {event.image_url ? (
                 <img src={event.image_url} alt={event.title} className="h-full w-full object-contain" />
               ) : (
@@ -68,7 +68,7 @@ function GuestEventCard({ eventId }) {
               )}
             </div>
 
-            <div className="w-full min-h-0 p-6 md:h-full md:w-3/5 md:overflow-y-auto">
+            <div className="w-full p-6 md:w-3/5">
               <span className="text-sm text-text-secondary">
                 {event.start_time ? new Date(event.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
                 {' • '}
