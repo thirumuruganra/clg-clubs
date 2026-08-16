@@ -38,11 +38,11 @@ function GuestEventCard({ eventId }) {
 
   return (
     <div className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-slate-50 px-4 py-10 dark:bg-surface-panel">
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl">
         {status === 'loading' ? (
-          <div className="overflow-hidden rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632]">
-            <Skeleton className="h-64 w-full rounded-none" />
-            <div className="space-y-3 p-6">
+          <div className="overflow-hidden rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632] md:flex md:aspect-2/1">
+            <Skeleton className="h-64 w-full rounded-none md:h-full md:w-2/5 md:shrink-0" />
+            <div className="space-y-3 p-6 md:w-3/5">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-7 w-2/3" />
               <Skeleton className="h-11 w-full" />
@@ -59,8 +59,8 @@ function GuestEventCard({ eventId }) {
         ) : null}
 
         {status === 'ready' && event ? (
-          <div className="overflow-hidden rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632]">
-            <div className="relative aspect-video w-full overflow-hidden bg-[#0f1720]">
+          <div className="flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632] md:aspect-2/1 md:flex-row">
+            <div className="relative aspect-4/5 w-full overflow-hidden bg-[#0f1720] md:h-full md:w-2/5 md:shrink-0">
               {event.image_url ? (
                 <img src={event.image_url} alt={event.title} className="h-full w-full object-contain" />
               ) : (
@@ -68,7 +68,7 @@ function GuestEventCard({ eventId }) {
               )}
             </div>
 
-            <div className="p-6">
+            <div className="w-full min-h-0 p-6 md:h-full md:w-3/5 md:overflow-y-auto">
               <span className="text-sm text-text-secondary">
                 {event.start_time ? new Date(event.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
                 {' • '}
