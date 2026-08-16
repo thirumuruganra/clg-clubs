@@ -9,6 +9,7 @@ const ClubMembersTab = ({
   calculateYear,
   memberActionError,
   memberActionSuccess,
+  memberActionTone = 'success',
   isClubHead = false,
   onOpenAddMember,
   onRemoveMember,
@@ -103,7 +104,15 @@ const ClubMembersTab = ({
         <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{memberActionError}</p>
       )}
       {memberActionSuccess && (
-        <p className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400">{memberActionSuccess}</p>
+        <p
+          className={
+            memberActionTone === 'danger'
+              ? 'mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500'
+              : 'mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400'
+          }
+        >
+          {memberActionSuccess}
+        </p>
       )}
 
       <div className="table-scroll overflow-hidden rounded-xl border border-border-subtle bg-surface-panel shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">
