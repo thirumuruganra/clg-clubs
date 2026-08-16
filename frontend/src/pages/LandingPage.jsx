@@ -19,8 +19,8 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="relative flex min-h-dvh w-full flex-col overflow-x-hidden bg-surface-canvas font-body text-text-primary">
-      <div className="pointer-events-none absolute inset-0 z-0">
+    <div className="relative isolate flex min-h-dvh w-full flex-col overflow-x-hidden bg-surface-canvas font-body text-text-primary">
+      <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="atmosphere-grid"></div>
       </div>
 

@@ -142,8 +142,8 @@ const StudentClubs = () => {
       mobileMenuOpen={mobileMenuOpen}
       onCloseMenu={() => setMobileMenuOpen(false)}
     >
-      <div className="relative flex w-full flex-col font-body text-text-primary dark:text-white">
-        <div className="pointer-events-none absolute inset-0 opacity-55">
+      <div className="relative isolate flex w-full flex-col font-body text-text-primary dark:text-white">
+        <div className="pointer-events-none absolute inset-0 -z-10 opacity-55">
           <div className="atmosphere-grid"></div>
         </div>
 

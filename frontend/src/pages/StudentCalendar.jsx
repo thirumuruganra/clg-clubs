@@ -371,8 +371,8 @@ const StudentCalendar = () => {
       mobileMenuOpen={mobileMenuOpen}
       onCloseMenu={() => setMobileMenuOpen(false)}
     >
-      <div className="relative flex h-full w-full flex-col overflow-hidden font-body text-text-primary dark:text-white">
-        <div className="pointer-events-none absolute inset-0 opacity-55">
+      <div className="relative isolate flex h-full w-full flex-col overflow-hidden font-body text-text-primary dark:text-white">
+        <div className="pointer-events-none absolute inset-0 -z-10 opacity-55">
           <div className="atmosphere-grid"></div>
         </div>
 
