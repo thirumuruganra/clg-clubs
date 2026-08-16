@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial, warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
@@ -443,7 +444,7 @@ const StudentCalendar = () => {
         ) : null}
         </section>
 
-        {selectedEvent ? (
+        {selectedEvent ? createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm safe-area-y" onClick={() => { setSelectedEvent(null); setShareCopied(false); }}>
           <div
             className="modal-panel w-full max-w-2xl overflow-y-auto rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632] md:overflow-hidden"
@@ -483,11 +484,11 @@ const StudentCalendar = () => {
                     {selectedEvent.is_rsvped ? 'Unregister' : 'Register'}
                   </Button>
                   <div className="flex items-center gap-3">
-                    <Button type="button" variant="secondary" onClick={addToGoogleCalendar} className="flex-1 border border-border-subtle">
+                    <Button type="button" variant="secondary" onClick={addToGoogleCalendar} className="h-auto min-h-11 flex-1 border border-border-subtle py-2 text-center leading-tight">
                       <span className="material-symbols-outlined text-[20px]" aria-hidden="true">calendar_month</span>
-                      Add to Google Calendar
+                      Add to Calendar
                     </Button>
-                    <Button type="button" variant="secondary" onClick={() => shareEvent(selectedEvent)} className="flex-1 border border-border-subtle">
+                    <Button type="button" variant="secondary" onClick={() => shareEvent(selectedEvent)} className="h-auto min-h-11 flex-1 border border-border-subtle py-2 text-center leading-tight">
                       <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{shareCopied ? 'check' : 'share'}</span>
                       {shareCopied ? 'Link Copied!' : 'Share Event'}
                     </Button>
@@ -576,10 +577,11 @@ const StudentCalendar = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
         ) : null}
 
-        {dayEventsModal.open ? (
+        {dayEventsModal.open ? createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm safe-area-y" onClick={() => setDayEventsModal({ open: false, day: null, events: [] })}>
           <div
             className="w-full max-w-md rounded-2xl border border-border-subtle bg-white p-4 shadow-2xl dark:border-border-strong dark:bg-[#1a2632]"
@@ -610,7 +612,8 @@ const StudentCalendar = () => {
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
         ) : null}
       </div>
     </AppShell>
