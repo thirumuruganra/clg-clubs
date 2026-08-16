@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth-context';
-import { warmPosterCacheForEvents, warmPosterImageCache } from '../../lib/utils';
+import { getShortEventLink, warmPosterCacheForEvents, warmPosterImageCache } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { EmptyState } from '../ui/empty-state';
 import { EventPosterFallback } from '../ui/event-poster-fallback';
@@ -85,7 +85,7 @@ const ClubsCalendarTab = ({
 
   const shareEvent = async (event) => {
     if (!event) return;
-    const url = `${window.location.origin}/event?id=${event.id}`;
+    const url = await getShortEventLink(event.id);
     try {
       await navigator.clipboard.writeText(url);
       setShareCopied(true);
@@ -270,8 +270,8 @@ const ClubsCalendarTab = ({
             className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-2xl modal-panel overflow-y-auto md:overflow-hidden border border-border-subtle dark:border-border-strong"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-col md:aspect-[2/1] md:flex-row">
-              <div className="w-full md:h-full md:w-2/5 md:shrink-0 aspect-[4/5] bg-[#0f1720] relative overflow-hidden">
+            <div className="flex flex-col md:aspect-2/1 md:flex-row">
+              <div className="w-full md:h-full md:w-2/5 md:shrink-0 aspect-4/5 bg-[#0f1720] relative overflow-hidden">
                 {selectedEvent.image_url ? (
                   <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-contain" />
                 ) : (

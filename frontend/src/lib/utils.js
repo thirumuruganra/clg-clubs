@@ -20,6 +20,19 @@ export function getClubIconUrl(club) {
   return '';
 }
 
+export async function getShortEventLink(eventId) {
+  const fallbackUrl = `${window.location.origin}/event?id=${eventId}`;
+  try {
+    const res = await fetch(`/api/events/${eventId}/short-link`, { method: 'POST' });
+    if (!res.ok) return fallbackUrl;
+    const data = await res.json();
+    if (!data.short_code) return fallbackUrl;
+    return `${window.location.origin}/e/${data.short_code}`;
+  } catch {
+    return fallbackUrl;
+  }
+}
+
 export function getClubInitial(club) {
   const name = typeof club?.name === 'string' ? club.name.trim() : '';
   return name ? name.charAt(0).toUpperCase() : 'C';

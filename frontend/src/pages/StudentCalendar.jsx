@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth-context';
-import { getClubIconUrl, getClubInitial, warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
+import { getClubIconUrl, getClubInitial, getShortEventLink, warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
 import StudentSidebar from '../components/student-dashboard/StudentSidebar';
 import AppShell from '../components/layout/AppShell';
 import AppTopBar from '../components/layout/AppTopBar';
@@ -117,7 +117,7 @@ const StudentCalendar = () => {
 
   const shareEvent = async (event) => {
     if (!event) return;
-    const url = `${window.location.origin}/event?id=${event.id}`;
+    const url = await getShortEventLink(event.id);
     try {
       await navigator.clipboard.writeText(url);
       setShareCopied(true);

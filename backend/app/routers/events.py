@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 import re
 import os
+import secrets
+import string
 import uuid
 from urllib.parse import urlencode, urlparse
 from uuid import UUID
@@ -82,6 +84,18 @@ def _tokenize_text(raw_text: Optional[str]) -> set[str]:
 def _build_attendance_checkin_url(event_id: UUID, qr_code: str) -> str:
     query = urlencode({"event_id": event_id, "qr": qr_code})
     return f"{FRONTEND_CHECKIN_BASE_URL}/student/attendance-checkin?{query}"
+
+
+_SHORT_CODE_ALPHABET = string.ascii_letters + string.digits
+_SHORT_CODE_LENGTH = 7
+
+
+def _generate_short_code(db: Session) -> str:
+    for _ in range(10):
+        candidate = "".join(secrets.choice(_SHORT_CODE_ALPHABET) for _ in range(_SHORT_CODE_LENGTH))
+        if not db.query(Event).filter(Event.short_code == candidate).first():
+            return candidate
+    raise HTTPException(status_code=500, detail="Could not generate short link")
 
 
 def _require_admin_owned_event(event_id: UUID, db: Session, current_user: User) -> Event:
@@ -567,6 +581,25 @@ def update_event(event_id: UUID, event_update: EventUpdate, db: Session = Depend
         "registration_fees": event.registration_fees,
         "rsvp_count": rsvp_count,
         "attendance_qr_open": bool(event.attendance_qr_open),
+    }
+
+
+@router.post("/{event_id}/short-link")
+def get_event_short_link(event_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get (or lazily generate) a short share link for an event."""
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if not event.short_code:
+        event.short_code = _generate_short_code(db)
+        db.commit()
+        db.refresh(event)
+
+    return {
+        "event_id": event.id,
+        "short_code": event.short_code,
+        "short_url": f"{FRONTEND_CHECKIN_BASE_URL}/e/{event.short_code}",
     }
 
 

@@ -1,15 +1,16 @@
 import asyncio
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
+from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from app.database import engine, Base
+from app.database import engine, Base, get_db
 from app.routers import auth, users, events, clubs, rsvp, follow, internal
 from app.core.rate_limit import InMemoryRateLimitMiddleware, RateLimitRule
 from app.services import no_service
@@ -208,6 +209,28 @@ def ensure_event_attendance_qr_code_column() -> None:
         print(f"⚠️  Could not auto-add 'attendance_qr_code' column: {exc}")
 
 
+def ensure_event_short_code_column() -> None:
+    """Add the short_code column (for short share links) for older databases."""
+    try:
+        inspector = inspect(engine)
+        if "events" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("events")}
+        if "short_code" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE events ADD COLUMN short_code VARCHAR(10)"))
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_events_short_code "
+                "ON events (short_code) WHERE short_code IS NOT NULL"
+            ))
+        print("ℹ️  Added missing 'short_code' column to events table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'short_code' column: {exc}")
+
+
 def ensure_event_attendance_qr_open_column() -> None:
     """Add the attendance_qr_open column for older databases."""
     try:
@@ -310,6 +333,7 @@ ensure_rsvp_attended_marked_at_column()
 ensure_rsvp_attendance_role_column()
 ensure_event_attendance_qr_code_column()
 ensure_event_attendance_qr_open_column()
+ensure_event_short_code_column()
 ensure_event_poster_columns()
 normalize_legacy_cse_entries()
 
@@ -464,6 +488,13 @@ app.include_router(clubs.router, prefix="/api/clubs", tags=["clubs"])
 app.include_router(rsvp.router, prefix="/api/rsvp", tags=["rsvp"])
 app.include_router(follow.router, prefix="/api/follow", tags=["follow"])
 app.include_router(internal.router, prefix="/api/internal", tags=["internal"])
+
+
+@app.get("/e/{code}", include_in_schema=False)
+def short_link_redirect(code: str, db: Session = Depends(get_db)):
+    event = db.query(Event).filter(Event.short_code == code).first()
+    event_id = event.id if event else code
+    return RedirectResponse(url=f"/event?id={event_id}", status_code=302)
 
 
 @app.exception_handler(StarletteHTTPException)
