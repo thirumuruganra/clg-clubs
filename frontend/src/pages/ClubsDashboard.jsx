@@ -1005,6 +1005,9 @@ const ClubsDashboard = () => {
     tab: 'team',
     availableTabs: ['team', 'attendance'],
   });
+  useEffect(() => {
+    setRsvpModal((prev) => (prev.open ? { ...prev, open: false } : prev));
+  }, [activeTab]);
   const [workforceActionError, setWorkforceActionError] = useState('');
   const [workforceActionSuccess, setWorkforceActionSuccess] = useState('');
   const [workforceMemberUserId, setWorkforceMemberUserId] = useState('');
@@ -1094,7 +1097,7 @@ const ClubsDashboard = () => {
   };
 
   const getAttendanceRoleLabel = (attendanceRole) => {
-    if (attendanceRole === 'CLUB_MEMBER') return 'Club Member';
+    if (attendanceRole === 'CLUB_MEMBER') return 'Member';
     if (attendanceRole === 'VOLUNTEER') return 'Volunteer';
     return 'Student';
   };
@@ -2413,7 +2416,7 @@ const ClubsDashboard = () => {
                                 <td className="px-4 py-3 font-bold text-slate-800 dark:text-white">{worker.name || worker.email || '-'}</td>
                                 <td className="px-4 py-3">
                                   <StatusBadge tone={worker.role === 'CLUB_MEMBER' ? 'info' : 'neutral'}>
-                                    {worker.role === 'CLUB_MEMBER' ? 'Club Member' : 'Volunteer'}
+                                    {worker.role === 'CLUB_MEMBER' ? 'Member' : 'Volunteer'}
                                   </StatusBadge>
                                 </td>
                                 <td className="px-4 py-3">{worker.department || '-'}</td>

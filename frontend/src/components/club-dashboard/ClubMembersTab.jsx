@@ -42,7 +42,7 @@ const ClubMembersTab = ({
     return [...matched].sort((left, right) => {
       const leftYear = yearRank[calculateYear(left.batch, left.degree, left.register_number)] ?? 7;
       const rightYear = yearRank[calculateYear(right.batch, right.degree, right.register_number)] ?? 7;
-      if (leftYear !== rightYear) return leftYear - rightYear;
+      if (leftYear !== rightYear) return rightYear - leftYear;
 
       const leftName = String(left.name || left.email || '').trim();
       const rightName = String(right.name || right.email || '').trim();

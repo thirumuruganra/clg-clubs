@@ -167,9 +167,11 @@ def _attendance_year_rank(user: dict | None) -> int:
 def _sorted_rsvp_rows(rsvps: list[RSVP], db: Session) -> list[dict]:
     rows = []
     for rsvp in rsvps:
-        attendance_role = rsvp.attendance_role
-        if not attendance_role and rsvp.event is not None:
-            attendance_role = _infer_attendance_role(rsvp.event, rsvp.user_id, db)
+        attendance_role = (
+            _infer_attendance_role(rsvp.event, rsvp.user_id, db)
+            if rsvp.event is not None
+            else rsvp.attendance_role
+        )
         rows.append(_serialize_rsvp(rsvp, attendance_role))
 
     def sort_key(row: dict) -> tuple[int, str, int, str]:
