@@ -622,11 +622,15 @@ const ClubsDashboard = () => {
 
     try {
       setTableError('');
-      const clubsRes = await fetch(`${API}/api/clubs/`);
-      if (clubsRes.ok) {
-        const clubs = await clubsRes.json();
-        let myClub = clubs.find(c => c.admin_id === user.id);
-        if (!myClub) { navigate('/club/setup'); return; }
+
+      if (!user.managed_club_id) {
+        navigate(user.role === 'CLUB_ADMIN' ? '/club/setup' : '/student/dashboard');
+        return;
+      }
+
+      const clubRes = await fetch(`${API}/api/clubs/${user.managed_club_id}`);
+      if (clubRes.ok) {
+        const myClub = await clubRes.json();
 
         setClub(myClub);
         setFollowers([]);
@@ -658,7 +662,6 @@ const ClubsDashboard = () => {
 
   useEffect(() => {
     if (!loading && !user) { navigate('/login'); return; }
-    if (user && user.role !== 'CLUB_ADMIN') { navigate('/student/dashboard'); return; }
     if (user) void fetchData();
   }, [user, loading, navigate, fetchData]);
 
@@ -783,6 +786,32 @@ const ClubsDashboard = () => {
       await fetchMembers(club.id, { force: true });
     } catch (err) {
       setMemberActionError(err?.message || 'Failed to remove club member.');
+    }
+  };
+
+  const handleToggleAdminAccess = async (member) => {
+    if (!club?.id) return;
+
+    setMemberActionError('');
+    setMemberActionSuccess('');
+
+    try {
+      const response = await fetch(`${API}/api/clubs/${club.id}/members/${member.user_id}/admin-access`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_delegated_admin: !member.is_delegated_admin }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || 'Failed to update admin access.');
+      }
+
+      const updated = await response.json();
+      setMembers((prev) => prev.map((existing) => (existing.user_id === updated.user_id ? { ...existing, is_delegated_admin: updated.is_delegated_admin } : existing)));
+      setMemberActionSuccess(updated.is_delegated_admin ? 'Admin access granted.' : 'Admin access revoked.');
+    } catch (err) {
+      setMemberActionError(err?.message || 'Failed to update admin access.');
     }
   };
 
@@ -1834,8 +1863,10 @@ const ClubsDashboard = () => {
               calculateYear={calculateYear}
               memberActionError={memberActionError}
               memberActionSuccess={memberActionSuccess}
+              isClubHead={club?.admin_id === user?.id}
               onOpenAddMember={openAddMemberModal}
               onRemoveMember={handleRemoveMember}
+              onToggleAdminAccess={handleToggleAdminAccess}
               addMemberOpen={addMemberOpen}
               onCloseAddMember={closeAddMemberModal}
               memberSearch={memberSearch}

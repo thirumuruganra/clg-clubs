@@ -150,7 +150,7 @@ const EventRedirect = () => {
   if (loading) return null;
 
   if (user) {
-    const target = user.role === 'CLUB_ADMIN' ? '/club/calendar' : '/student/calendar';
+    const target = user.role === 'CLUB_ADMIN' || user.managed_club_id ? '/club/calendar' : '/student/calendar';
     return <Navigate to={`${target}?event=${eventId}`} replace />;
   }
 

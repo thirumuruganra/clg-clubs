@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { SearchBar } from '../ui/search-bar';
+import { Switch } from '../ui/switch';
 
 const ClubMembersTab = ({
   members,
@@ -8,8 +9,10 @@ const ClubMembersTab = ({
   calculateYear,
   memberActionError,
   memberActionSuccess,
+  isClubHead = false,
   onOpenAddMember,
   onRemoveMember,
+  onToggleAdminAccess,
   addMemberOpen,
   onCloseAddMember,
   memberSearch,
@@ -73,14 +76,16 @@ const ClubMembersTab = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenAddMember}
-          className="relative z-10 mt-5 touch-target inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100 sm:mt-6 sm:w-auto"
-        >
-          <span className="material-symbols-outlined text-[18px]">person_add</span>
-          Add Member
-        </button>
+        {isClubHead && (
+          <button
+            type="button"
+            onClick={onOpenAddMember}
+            className="relative z-10 mt-5 touch-target inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100 sm:mt-6 sm:w-auto"
+          >
+            <span className="material-symbols-outlined text-[18px]">person_add</span>
+            Add Member
+          </button>
+        )}
       </div>
 
       <div className="mb-4">
@@ -125,13 +130,15 @@ const ClubMembersTab = ({
                           <p className="truncate text-xs text-text-secondary dark:text-text-dark-secondary" title={member.email || '-'}>{member.email || '-'}</p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => onRemoveMember(member)}
-                        className="rounded-lg border border-red-500/25 px-2.5 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
-                      >
-                        Remove
-                      </button>
+                      {isClubHead && (
+                        <button
+                          type="button"
+                          onClick={() => onRemoveMember(member)}
+                          className="rounded-lg border border-red-500/25 px-2.5 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                       <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
@@ -147,6 +154,16 @@ const ClubMembersTab = ({
                         <p className="mt-1 truncate font-semibold" title={member.register_number || '-'}>{member.register_number || '-'}</p>
                       </div>
                     </div>
+                    {isClubHead && (
+                      <div className="mt-3 flex items-center justify-between rounded-lg bg-surface-muted px-2.5 py-2 dark:bg-border-strong/55">
+                        <p className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">Admin Access</p>
+                        <Switch
+                          checked={Boolean(member.is_delegated_admin)}
+                          onCheckedChange={() => onToggleAdminAccess(member)}
+                          ariaLabel={`Toggle admin access for ${member.name || member.email || 'member'}`}
+                        />
+                      </div>
+                    )}
                   </article>
                 );
               })}
@@ -155,19 +172,20 @@ const ClubMembersTab = ({
             <div className="hidden md:block">
               <table className="w-full min-w-184 table-fixed">
                 <colgroup>
-                  <col className="w-[24%]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[18%]" />
-                  <col className="w-[10%]" />
+                  <col className="w-[22%]" />
+                  <col className="w-[20%]" />
                   <col className="w-[14%]" />
-                  <col className="w-[10%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[13%]" />
+                  {isClubHead && <col className="w-[12%]" />}
+                  {isClubHead && <col className="w-[10%]" />}
                 </colgroup>
                 <thead className="bg-surface-muted dark:bg-border-strong/55">
                   <tr className="border-b border-border-subtle dark:border-border-strong">
-                    {['Student', 'Email', 'Department', 'Year', 'Register No', 'Actions'].map((header) => (
+                    {['Student', 'Email', 'Department', 'Year', 'Register No', ...(isClubHead ? ['Admin Access', 'Actions'] : [])].map((header) => (
                       <th
                         key={header}
-                        className={`px-5 py-3.5 text-xs font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary ${header === 'Actions' ? 'text-center' : 'text-left'}`}
+                        className={`px-5 py-3.5 text-xs font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary ${header === 'Actions' || header === 'Admin Access' ? 'text-center' : 'text-left'}`}
                       >
                         {header}
                       </th>
@@ -198,15 +216,27 @@ const ClubMembersTab = ({
                         <td className="px-5 py-4 align-middle text-sm">
                           <span className="block truncate" title={member.register_number || '-'}>{member.register_number || '-'}</span>
                         </td>
-                        <td className="px-5 py-4 align-middle text-center">
-                          <button
-                            type="button"
-                            onClick={() => onRemoveMember(member)}
-                            className="inline-flex min-w-22 items-center justify-center rounded-lg border border-red-500/25 px-3 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
-                          >
-                            Remove
-                          </button>
-                        </td>
+                        {isClubHead && (
+                          <td className="px-5 py-4 align-middle text-center">
+                            <Switch
+                              checked={Boolean(member.is_delegated_admin)}
+                              onCheckedChange={() => onToggleAdminAccess(member)}
+                              ariaLabel={`Toggle admin access for ${member.name || member.email || 'member'}`}
+                              className="mx-auto"
+                            />
+                          </td>
+                        )}
+                        {isClubHead && (
+                          <td className="px-5 py-4 align-middle text-center">
+                            <button
+                              type="button"
+                              onClick={() => onRemoveMember(member)}
+                              className="inline-flex min-w-22 items-center justify-center rounded-lg border border-red-500/25 px-3 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

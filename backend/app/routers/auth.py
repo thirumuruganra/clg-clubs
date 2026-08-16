@@ -356,9 +356,9 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get('/me')
-async def get_me(current_user: User = Depends(get_current_user)):
+async def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get the currently authenticated user's info."""
-    return auth_me_payload(current_user)
+    return auth_me_payload(current_user, db)
 
 
 @router.get('/logout')

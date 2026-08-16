@@ -20,6 +20,7 @@ from app.schemas import EventCreate, EventUpdate, EventWorkforceCreate
 from app.core.audit import log_security_event
 from app.core.security import get_current_user, get_optional_user
 from app.services.authz_rules import resolve_personalization_user_id
+from app.services.club_admin_access import require_club_admin_access
 from app.services.event_posters import (
     MAX_POSTER_BYTES,
     replace_event_poster,
@@ -103,12 +104,7 @@ def _require_admin_owned_event(event_id: UUID, db: Session, current_user: User) 
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    if current_user.role != "CLUB_ADMIN":
-        raise HTTPException(status_code=403, detail="Only club admins can manage attendance QR")
-
-    club = db.query(Club).filter(Club.id == event.club_id).first()
-    if not club or club.admin_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You can only manage attendance QR for your own club events")
+    require_club_admin_access(event.club_id, current_user, db)
 
     return event
 
@@ -362,14 +358,7 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
     """Create a new event. Only CLUB_ADMIN users who own the club can create events."""
     _validate_short_description(event.description)
 
-    if current_user.role != "CLUB_ADMIN":
-        raise HTTPException(status_code=403, detail="Only club admins can create events")
-    # Verify the club exists
-    club = db.query(Club).filter(Club.id == event.club_id).first()
-    if not club:
-        raise HTTPException(status_code=404, detail="Club not found")
-    if club.admin_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You can only create events for your own club")
+    club = require_club_admin_access(event.club_id, current_user, db)
 
     db_event = Event(
         club_id=event.club_id,
@@ -513,9 +502,7 @@ def update_event(event_id: UUID, event_update: EventUpdate, db: Session = Depend
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    club = db.query(Club).filter(Club.id == event.club_id).first()
-    if not club or club.admin_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You can only update events for your own club")
+    club = require_club_admin_access(event.club_id, current_user, db)
 
     if event_update.title is not None:
         event.title = event_update.title
@@ -764,9 +751,7 @@ def delete_event(event_id: UUID, db: Session = Depends(get_db), current_user: Us
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    club = db.query(Club).filter(Club.id == event.club_id).first()
-    if not club or club.admin_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You can only delete events for your own club")
+    club = require_club_admin_access(event.club_id, current_user, db)
 
     if event.poster_storage_path or event.image_url:
         try:

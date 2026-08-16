@@ -196,7 +196,7 @@ function AppRoutes() {
         <Route
           path="/club/dashboard"
           element={(
-            <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
+            <ProtectedRoute allowRoles={['CLUB_ADMIN', 'STUDENT']}>
               <ClubsDashboard />
             </ProtectedRoute>
           )}
@@ -220,7 +220,7 @@ function AppRoutes() {
         <Route
           path="/club/calendar"
           element={(
-            <ProtectedRoute allowRoles={['CLUB_ADMIN']}>
+            <ProtectedRoute allowRoles={['CLUB_ADMIN', 'STUDENT']}>
               <ClubsCalendar />
             </ProtectedRoute>
           )}

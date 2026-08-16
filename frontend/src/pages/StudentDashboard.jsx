@@ -219,7 +219,7 @@ const StudentDashboard = () => {
 
   const sidebarNode = <StudentSidebar mobileMenuOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />;
 
-  const topbarActions = user?.role === 'CLUB_ADMIN'
+  const topbarActions = (user?.role === 'CLUB_ADMIN' || user?.managed_club_id)
     ? (
       <Button onClick={() => navigate('/club/dashboard')} size="sm" className="h-10">
         Club Admin

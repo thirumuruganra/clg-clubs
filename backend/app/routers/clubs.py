@@ -7,8 +7,9 @@ from app.models.event import Event
 from app.models.event_worker import EventWorker
 from app.models.follow import Follow
 from app.models.user import User
-from app.schemas import ClubCreate, ClubMemberCreate, ClubUpdate
+from app.schemas import ClubCreate, ClubMemberAdminAccessUpdate, ClubMemberCreate, ClubUpdate
 from app.core.security import get_current_user
+from app.services.club_admin_access import require_club_admin_access, require_club_head
 from app.services.club_logos import MAX_LOGO_BYTES, replace_club_logo
 from app.services.membership_sync import sync_user_joined_clubs_projection
 from app.utils.common import normalize_text
@@ -34,17 +35,6 @@ def _club_payload(club: Club, follower_count: int, is_following: bool = False):
         "follower_count": follower_count,
         "is_following": is_following,
     }
-
-def _get_owned_club(club_id: UUID, current_user: User, db: Session) -> Club:
-    club = db.query(Club).filter(Club.id == club_id).first()
-    if not club:
-        raise HTTPException(status_code=404, detail="Club not found")
-
-    if current_user.role != "CLUB_ADMIN" or club.admin_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You can only manage members for your own club")
-
-    return club
-
 
 @router.get("/")
 def get_all_clubs(user_id: Optional[UUID] = Query(None), db: Session = Depends(get_db)):
@@ -86,8 +76,8 @@ def get_club_members(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get all club members. Only the owning CLUB_ADMIN can access this."""
-    _get_owned_club(club_id, current_user, db)
+    """Get all club members. Accessible by the owning CLUB_ADMIN or a delegated admin member."""
+    require_club_admin_access(club_id, current_user, db)
 
     member_rows = (
         db.query(ClubMember, User)
@@ -111,6 +101,7 @@ def get_club_members(
                 "degree": student.degree,
                 "batch": student.batch,
                 "register_number": student.register_number,
+                "is_delegated_admin": bool(membership.is_delegated_admin),
             }
         )
 
@@ -131,7 +122,7 @@ def add_club_member(
     current_user: User = Depends(get_current_user),
 ):
     """Add a student as a club member. Only the owning CLUB_ADMIN can access this."""
-    club = _get_owned_club(club_id, current_user, db)
+    club = require_club_head(club_id, current_user, db)
 
     student = db.query(User).filter(User.id == payload.user_id).first()
     if not student:
@@ -166,6 +157,7 @@ def add_club_member(
         "degree": student.degree,
         "batch": student.batch,
         "register_number": student.register_number,
+        "is_delegated_admin": False,
     }
 
 
@@ -177,7 +169,7 @@ def remove_club_member(
     current_user: User = Depends(get_current_user),
 ):
     """Remove a student from club members. Only the owning CLUB_ADMIN can access this."""
-    club = _get_owned_club(club_id, current_user, db)
+    club = require_club_head(club_id, current_user, db)
 
     membership = (
         db.query(ClubMember)
@@ -201,6 +193,47 @@ def remove_club_member(
 
     db.commit()
     return None
+
+
+@router.patch("/{club_id}/members/{user_id}/admin-access")
+def set_club_member_admin_access(
+    club_id: UUID,
+    user_id: UUID,
+    payload: ClubMemberAdminAccessUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Grant or revoke delegated admin access for a club member. Only the owning CLUB_ADMIN can access this."""
+    require_club_head(club_id, current_user, db)
+
+    membership = (
+        db.query(ClubMember)
+        .filter(ClubMember.club_id == club_id, ClubMember.user_id == user_id)
+        .first()
+    )
+    if not membership:
+        raise HTTPException(status_code=404, detail="Student is not a member of this club")
+
+    membership.is_delegated_admin = payload.is_delegated_admin
+    db.commit()
+    db.refresh(membership)
+
+    student = db.query(User).filter(User.id == user_id).first()
+
+    return {
+        "id": membership.id,
+        "club_id": membership.club_id,
+        "user_id": membership.user_id,
+        "created_at": membership.created_at.isoformat() if membership.created_at else None,
+        "name": student.name if student else None,
+        "email": student.email if student else None,
+        "picture": student.picture if student else None,
+        "department": student.department if student else None,
+        "degree": student.degree if student else None,
+        "batch": student.batch if student else None,
+        "register_number": student.register_number if student else None,
+        "is_delegated_admin": bool(membership.is_delegated_admin),
+    }
 
 
 @router.post("/")

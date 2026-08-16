@@ -191,6 +191,24 @@ def ensure_rsvp_attendance_role_column() -> None:
         print(f"⚠️  Could not auto-add 'attendance_role' column: {exc}")
 
 
+def ensure_club_member_admin_access_column() -> None:
+    """Add the is_delegated_admin column for older databases that were created before this field existed."""
+    try:
+        inspector = inspect(engine)
+        if "club_members" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("club_members")}
+        if "is_delegated_admin" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE club_members ADD COLUMN is_delegated_admin BOOLEAN NOT NULL DEFAULT FALSE"))
+        print("ℹ️  Added missing 'is_delegated_admin' column to club_members table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'is_delegated_admin' column: {exc}")
+
+
 def ensure_event_attendance_qr_code_column() -> None:
     """Add the attendance_qr_code column for older databases."""
     try:
@@ -331,6 +349,7 @@ ensure_user_google_scopes_column()
 ensure_rsvp_attended_column()
 ensure_rsvp_attended_marked_at_column()
 ensure_rsvp_attendance_role_column()
+ensure_club_member_admin_access_column()
 ensure_event_attendance_qr_code_column()
 ensure_event_attendance_qr_open_column()
 ensure_event_short_code_column()

@@ -254,6 +254,10 @@ class ClubMemberCreate(BaseModel):
     user_id: UUID
 
 
+class ClubMemberAdminAccessUpdate(BaseModel):
+    is_delegated_admin: bool
+
+
 class ClubMemberResponse(BaseModel):
     id: UUID
     club_id: UUID
@@ -266,6 +270,7 @@ class ClubMemberResponse(BaseModel):
     degree: Optional[str] = None
     batch: Optional[str] = None
     register_number: Optional[str] = None
+    is_delegated_admin: bool = False
 
 
 class ClubMembersListResponse(BaseModel):

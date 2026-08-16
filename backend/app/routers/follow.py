@@ -7,6 +7,7 @@ from app.models.user import User
 from app.core.audit import log_security_event
 from app.core.security import get_current_user
 from app.services.authz_rules import require_self_access
+from app.services.club_admin_access import require_club_admin_access
 from uuid import UUID
 
 router = APIRouter()
@@ -95,18 +96,17 @@ def get_club_followers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get all followers for a club. Only the owning CLUB_ADMIN can access this."""
-    club = db.query(Club).filter(Club.id == club_id).first()
-    if not club:
-        raise HTTPException(status_code=404, detail="Club not found")
-
-    if current_user.role != "CLUB_ADMIN" or club.admin_id != current_user.id:
-        log_security_event(
-            "authz.club_followers.denied",
-            actor_user_id=current_user.id,
-            club_id=club_id,
-        )
-        raise HTTPException(status_code=403, detail="You can only view followers for your own club")
+    """Get all followers for a club. Accessible by the owning CLUB_ADMIN or a delegated admin member."""
+    try:
+        require_club_admin_access(club_id, current_user, db)
+    except HTTPException as exc:
+        if exc.status_code == 403:
+            log_security_event(
+                "authz.club_followers.denied",
+                actor_user_id=current_user.id,
+                club_id=club_id,
+            )
+        raise
 
     follows = db.query(Follow).filter(Follow.club_id == club_id).all()
 
