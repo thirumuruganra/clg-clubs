@@ -1729,6 +1729,7 @@ const ClubsDashboard = () => {
 
   // Stats
   const totalEvents = events.length;
+  const upcomingEventsCount = events.filter((e) => e.start_time && new Date(e.start_time).getTime() >= Date.now()).length;
   const totalRSVPs = events.reduce((sum, e) => sum + (e.rsvp_count || 0), 0);
   const totalAttended = events.reduce((sum, e) => sum + (e.attended_count || 0), 0);
   const attendanceRate = totalRSVPs > 0 ? Math.round((totalAttended / totalRSVPs) * 100) : 0;
@@ -1904,6 +1905,7 @@ const ClubsDashboard = () => {
             <EventManagementTab
               setActiveTab={setActiveTab}
               totalEvents={totalEvents}
+              upcomingEventsCount={upcomingEventsCount}
               totalRSVPs={totalRSVPs}
               attendanceRate={attendanceRate}
               tableError={tableError}

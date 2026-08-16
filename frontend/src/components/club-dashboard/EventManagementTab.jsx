@@ -41,6 +41,7 @@ const EventDateBadgeAvatar = ({ startTime }) => {
 const EventManagementTab = ({
   setActiveTab,
   totalEvents,
+  upcomingEventsCount,
   totalRSVPs,
   attendanceRate,
   tableError,
@@ -103,7 +104,7 @@ const EventManagementTab = ({
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-black/24 px-3 py-2 text-sm text-white/84 backdrop-blur-sm">
             <span className="material-symbols-outlined text-[18px]">insights</span>
-            <span>{totalEvents} active events</span>
+            <span>{totalEvents} total events</span>
           </div>
         </div>
         <Button onClick={() => setActiveTab('create-event')} className="relative z-10 mt-5 w-full sm:mt-6 sm:w-auto">
@@ -113,7 +114,7 @@ const EventManagementTab = ({
 
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6">
         {[
-          { label: 'Upcoming Events', value: totalEvents, icon: 'event_available' },
+          { label: 'Upcoming Events', value: upcomingEventsCount, icon: 'event_available' },
           { label: 'Total Registrations', value: totalRSVPs, icon: 'group' },
           { label: 'Attendance Rate', value: `${attendanceRate}%`, icon: 'analytics' },
         ].map((stat, index) => (
