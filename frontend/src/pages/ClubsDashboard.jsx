@@ -1917,7 +1917,7 @@ const ClubsDashboard = () => {
 
       {/* Edit Event Modal */}
       {editEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={closeEditModal}>
+        <div className="fixed inset-y-0 left-0 right-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y lg:left-64" onClick={closeEditModal}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-border-subtle dark:border-border-strong overflow-y-auto modal-panel" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-6 border-b border-border-subtle dark:border-border-strong">
               <h2 className="text-xl font-bold">Edit Event</h2>
@@ -2166,7 +2166,7 @@ const ClubsDashboard = () => {
       )}
 
       {qrModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={closeQrModal}>
+        <div className="fixed inset-y-0 left-0 right-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y lg:left-64" onClick={closeQrModal}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg border border-border-subtle dark:border-border-strong flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-border-subtle dark:border-border-strong">
               <div>
@@ -2248,7 +2248,7 @@ const ClubsDashboard = () => {
 
       {/* RSVP / Attendance Modal */}
       {rsvpModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y" onClick={closeRsvpModal}>
+        <div className="fixed inset-y-0 left-0 right-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y lg:left-64" onClick={closeRsvpModal}>
           <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-6xl border border-border-subtle dark:border-border-strong flex flex-col modal-panel" onClick={e => e.stopPropagation()}>
             <div className="flex flex-col gap-4 border-b border-border-subtle p-6 dark:border-border-strong lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
