@@ -2294,6 +2294,9 @@ const ClubsDashboard = () => {
                   {rsvpModal.tab === 'team'
                     ? `${rsvpModal.workforce.length} Assigned Workers`
                     : `${rsvpModal.rsvps.length} Attendance Records`}
+                  {rsvpModal.tab === 'attendance' && (
+                    <span> &middot; {rsvpModal.rsvps.filter((rsvp) => getAttendanceRoleLabel(rsvp.attendance_role) === 'Student').length} Student Attendees</span>
+                  )}
                 </p>
               </div>
 
