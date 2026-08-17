@@ -246,7 +246,7 @@ def get_event_feed(
             query = _apply_event_search(query, search)
             events = query.order_by(Event.start_time.asc()).all()
         else:  # recommended
-            query = db.query(Event)
+            query = db.query(Event).filter(Event.end_time >= datetime.utcnow())
             query = _apply_event_search(query, search)
             events = query.all()
             events = sorted(
