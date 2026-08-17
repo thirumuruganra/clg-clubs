@@ -6,10 +6,10 @@ from app.models.rsvp import RSVP
 from app.models.event import Event
 from app.models.event_worker import EventWorker
 from app.models.club_member import ClubMember
-from app.models.club import Club
 from app.models.user import User
 from app.core.audit import log_security_event
 from app.core.security import get_current_user
+from app.services.club_admin_access import require_club_admin_access
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from uuid import UUID
@@ -35,14 +35,16 @@ def _verify_admin_owns_event(event_id: UUID, db: Session, current_user: User) ->
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    club = db.query(Club).filter(Club.id == event.club_id).first()
-    if not club or club.admin_id != current_user.id:
-        log_security_event(
-            "authz.rsvp.denied",
-            actor_user_id=current_user.id,
-            event_id=event_id,
-        )
-        raise HTTPException(status_code=403, detail="You can only update RSVP data for your own club events")
+    try:
+        require_club_admin_access(event.club_id, current_user, db)
+    except HTTPException as exc:
+        if exc.status_code == 403:
+            log_security_event(
+                "authz.rsvp.denied",
+                actor_user_id=current_user.id,
+                event_id=event_id,
+            )
+        raise
 
 
 def _resolve_attendance_role(event: Event, user_id: UUID, db: Session) -> str:
@@ -285,16 +287,13 @@ class AttendanceCheckinRequest(BaseModel):
 
 @router.patch("/rsvps/{rsvp_id}")
 def update_rsvp_attendance(rsvp_id: UUID, update_data: RSVPAttendUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Update RSVP attendance status. Typically requires Club Admin."""
-    if current_user.role != "CLUB_ADMIN":
-        raise HTTPException(status_code=403, detail="Not authorized")
-        
+    """Update RSVP attendance status. Requires club admin access (head or delegated admin)."""
     rsvp = db.query(RSVP).filter(RSVP.id == rsvp_id).first()
     if not rsvp:
         raise HTTPException(status_code=404, detail="RSVP not found")
 
     _verify_admin_owns_event(rsvp.event_id, db, current_user)
-    
+
     if update_data.attended is not None:
         rsvp.attended = update_data.attended
         if update_data.attended:
@@ -319,9 +318,6 @@ class BulkRSVPUpdate(BaseModel):
 
 @router.post("/events/{event_id}/bulk-payment")
 def bulk_update_payments(event_id: UUID, update_data: BulkRSVPUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != "CLUB_ADMIN":
-        raise HTTPException(status_code=403, detail="Not authorized")
-
     _verify_admin_owns_event(event_id, db, current_user)
     
     db.query(RSVP).filter(
