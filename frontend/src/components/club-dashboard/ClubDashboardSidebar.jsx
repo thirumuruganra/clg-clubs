@@ -29,8 +29,8 @@ const ClubDashboardSidebar = ({
   }));
 
   const sidebarHeader = (
-    <div className="space-y-2">
-      <div className="aura-panel mb-1 flex items-center gap-3 rounded-xl border border-border-subtle bg-surface-panel p-3 shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">
+    <div className="space-y-4">
+      <div className="aura-panel flex items-center gap-3 rounded-xl border border-border-subtle bg-surface-panel p-3 shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">
         {clubIconUrl ? (
           <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/30 bg-primary/10">
             <img src={clubIconUrl} alt={club?.name || 'Club'} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
