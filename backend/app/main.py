@@ -371,7 +371,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         "script-src 'self'; "
         "script-src-attr 'unsafe-inline'; "
         "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; "
-        "img-src 'self' data: https://lh3.googleusercontent.com https://*.supabase.co; "
+        "img-src 'self' data: blob: https://lh3.googleusercontent.com https://*.supabase.co; "
         "font-src 'self' https://fonts.gstatic.com data:; "
         "connect-src 'self'; "
         "object-src 'none'; "
