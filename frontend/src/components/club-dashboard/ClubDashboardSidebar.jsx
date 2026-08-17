@@ -40,23 +40,22 @@ const ClubDashboardSidebar = ({
         )}
         <div className="min-w-0 flex-1">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">Club Admin Portal</p>
-          {managedClubs.length > 1 ? (
-            <Dropdown
-              id="club-switcher"
-              ariaLabel="Switch club"
-              value={club?.id}
-              onChange={onSwitchClub}
-              options={managedClubs.map((c) => ({ value: c.id, label: c.name }))}
-              buttonClassName="h-8 px-2 text-sm font-display font-bold border-primary/30"
-            />
-          ) : (
-            <span className="block truncate font-display text-lg font-bold" title={club?.name || 'WAVC'}>
-              {club?.name || 'WAVC'}
-            </span>
-          )}
+          <span className="block truncate font-display text-lg font-bold" title={club?.name || 'WAVC'}>
+            {club?.name || 'WAVC'}
+          </span>
           <p className="text-xs text-text-secondary">Operations and events</p>
         </div>
       </div>
+
+      {managedClubs.length > 1 && (
+        <Dropdown
+          id="club-switcher"
+          ariaLabel="Switch club"
+          value={club?.id}
+          onChange={onSwitchClub}
+          options={managedClubs.map((c) => ({ value: c.id, label: c.name }))}
+        />
+      )}
     </div>
   );
 
