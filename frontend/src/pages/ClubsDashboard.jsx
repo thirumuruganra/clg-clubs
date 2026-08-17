@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
 import ClubDashboardSidebar from '../components/club-dashboard/ClubDashboardSidebar';
@@ -323,6 +323,7 @@ const evaluatePaymentMatch = (user, payment, calculatedYear) => {
 const ClubsDashboard = () => {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
+  const { clubId: routeClubId } = useParams();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [club, setClub] = useState(null);
   const [events, setEvents] = useState([]);
@@ -624,12 +625,21 @@ const ClubsDashboard = () => {
     try {
       setTableError('');
 
-      if (!user.managed_club_id) {
+      const managedClubs = user.managed_clubs || [];
+      if (managedClubs.length === 0) {
         navigate(user.role === 'CLUB_ADMIN' ? '/club/setup' : '/student/dashboard');
         return;
       }
 
-      const clubRes = await fetch(`${API}/api/clubs/${user.managed_club_id}`);
+      const isValidRouteClub = routeClubId && managedClubs.some((c) => c.id === routeClubId);
+      const targetClubId = isValidRouteClub ? routeClubId : managedClubs[0].id;
+
+      if (targetClubId !== routeClubId) {
+        navigate(`/club/dashboard/${targetClubId}`, { replace: true });
+        return;
+      }
+
+      const clubRes = await fetch(`${API}/api/clubs/${targetClubId}`);
       if (clubRes.ok) {
         const myClub = await clubRes.json();
 
@@ -659,7 +669,7 @@ const ClubsDashboard = () => {
     finally {
       setLoadingData(false);
     }
-  }, [navigate, user]);
+  }, [navigate, user, routeClubId]);
 
   useEffect(() => {
     if (!loading && !user) { navigate('/login'); return; }
@@ -1786,6 +1796,8 @@ const ClubsDashboard = () => {
       isClubHead={club?.admin_id === user?.id}
       navigate={navigate}
       logout={logout}
+      managedClubs={user?.managed_clubs || []}
+      onSwitchClub={(newClubId) => navigate(`/club/dashboard/${newClubId}`)}
     />
   );
 

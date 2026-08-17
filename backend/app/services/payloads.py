@@ -23,27 +23,41 @@ def user_profile_payload(user: User) -> dict:
     }
 
 
-def _resolve_managed_club_id(user: User, db: Session):
-    club = db.query(Club).filter(Club.admin_id == user.id).first()
-    if club:
-        return club.id
+def _resolve_managed_clubs(user: User, db: Session) -> list[dict]:
+    head_clubs = db.query(Club).filter(Club.admin_id == user.id).all()
 
-    membership = (
-        db.query(ClubMember)
+    delegated_club_ids = [
+        row.club_id
+        for row in db.query(ClubMember)
         .filter(ClubMember.user_id == user.id, ClubMember.is_delegated_admin == True)
-        .first()
+        .all()
+    ]
+    delegated_clubs = (
+        db.query(Club).filter(Club.id.in_(delegated_club_ids)).all()
+        if delegated_club_ids
+        else []
     )
-    return membership.club_id if membership else None
+
+    managed = [
+        {"id": club.id, "name": club.name, "logo_url": club.logo_url, "is_head": True}
+        for club in head_clubs
+    ] + [
+        {"id": club.id, "name": club.name, "logo_url": club.logo_url, "is_head": False}
+        for club in delegated_clubs
+    ]
+    return managed
 
 
 def auth_me_payload(user: User, db: Session) -> dict:
     payload = user_profile_payload(user)
     granted_scopes_list = safe_json_list(user.google_scopes)
+    managed_clubs = _resolve_managed_clubs(user, db)
     payload.update(
         {
             "google_scopes": granted_scopes_list,
             "has_google_calendar_access": GOOGLE_CALENDAR_SCOPE in granted_scopes_list,
-            "managed_club_id": _resolve_managed_club_id(user, db),
+            "managed_club_id": managed_clubs[0]["id"] if managed_clubs else None,
+            "managed_clubs": managed_clubs,
         }
     )
     return payload

@@ -132,7 +132,10 @@ function RouteMetadata() {
   const location = useLocation();
 
   useEffect(() => {
-    document.title = ROUTE_TITLES[location.pathname] || 'WAVC - Campus Clubs';
+    const basePath = location.pathname.startsWith('/club/dashboard')
+      ? '/club/dashboard'
+      : location.pathname;
+    document.title = ROUTE_TITLES[basePath] || 'WAVC - Campus Clubs';
   }, [location.pathname]);
 
   return null;
@@ -194,7 +197,7 @@ function AppRoutes() {
           )}
         />
         <Route
-          path="/club/dashboard"
+          path="/club/dashboard/:clubId?"
           element={(
             <ProtectedRoute allowRoles={['CLUB_ADMIN', 'STUDENT']}>
               <ClubsDashboard />
