@@ -351,6 +351,8 @@ const StudentCalendar = () => {
     </>
   );
 
+  const isSelectedEventFinished = selectedEvent?.end_time ? new Date(selectedEvent.end_time) < new Date() : false;
+
   return (
     <AppShell
       sidebar={(
@@ -479,9 +481,10 @@ const StudentCalendar = () => {
                     type="button"
                     variant={selectedEvent.is_rsvped ? 'danger' : 'primary'}
                     onClick={() => handleRSVP(selectedEvent.id, selectedEvent.is_rsvped)}
+                    disabled={isSelectedEventFinished && !selectedEvent.is_rsvped}
                     className={selectedEvent.is_rsvped ? 'w-full bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'w-full'}
                   >
-                    {selectedEvent.is_rsvped ? 'Unregister' : 'Register'}
+                    {selectedEvent.is_rsvped ? 'Unregister' : isSelectedEventFinished ? 'Event Ended' : 'Register'}
                   </Button>
                   <div className="flex items-center gap-3">
                     <Button type="button" variant="secondary" onClick={addToGoogleCalendar} className="h-auto min-h-11 flex-1 border border-border-subtle py-2 text-center leading-tight">

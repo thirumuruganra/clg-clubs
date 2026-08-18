@@ -36,6 +36,8 @@ function GuestEventCard({ eventId }) {
     window.location.href = `/api/auth/login?next=${encodeURIComponent(`/event?id=${eventId}`)}`;
   };
 
+  const isFinished = event?.end_time ? new Date(event.end_time) < new Date() : false;
+
   return (
     <div className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-slate-50 px-4 py-10 dark:bg-surface-panel">
       <div className="w-full max-w-3xl">
@@ -78,8 +80,8 @@ function GuestEventCard({ eventId }) {
               <p className="mb-1 mt-2 text-sm font-semibold text-primary">{event.club_name || 'Club Event'}</p>
               <h1 className="mb-4 text-2xl font-bold text-text-primary">{event.title}</h1>
 
-              <Button type="button" onClick={handleLogin} className="mb-4 w-full">
-                Register
+              <Button type="button" onClick={handleLogin} disabled={isFinished} className="mb-4 w-full">
+                {isFinished ? 'Event Ended' : 'Register'}
               </Button>
 
               {event.is_paid ? (

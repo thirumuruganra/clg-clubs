@@ -19,6 +19,7 @@ const StudentDashboardEventCard = ({ event, pendingRsvpId, onToggleRsvp }) => {
   const navigate = useNavigate();
   const { month, day } = formatEventDate(event.start_time);
   const isPending = pendingRsvpId === event.id;
+  const isFinished = event.end_time ? new Date(event.end_time) < new Date() : false;
 
   return (
     <Card
@@ -95,11 +96,11 @@ const StudentDashboardEventCard = ({ event, pendingRsvpId, onToggleRsvp }) => {
               eventObj.stopPropagation();
               onToggleRsvp(event.id, event.is_rsvped);
             }}
-            disabled={isPending}
+            disabled={isPending || (isFinished && !event.is_rsvped)}
             size="sm"
             variant={event.is_rsvped ? 'danger' : 'primary'}
           >
-            {isPending ? 'Updating...' : event.is_rsvped ? 'Unregister' : 'Register'}
+            {isPending ? 'Updating...' : event.is_rsvped ? 'Unregister' : isFinished ? 'Event Ended' : 'Register'}
           </Button>
         </CardFooter>
       </CardContent>
