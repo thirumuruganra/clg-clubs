@@ -12,7 +12,7 @@ const CLUB_LOGO_MAX_SIZE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const ClubsSetup = () => {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, refetchUser } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -156,11 +156,13 @@ const ClubsSetup = () => {
             await uploadClubLogo(createdClub.id, logoFile);
           } catch (error) {
             console.error(error);
+            await refetchUser();
             navigate('/club/profile');
             return;
           }
         }
 
+        await refetchUser();
         navigate('/club/dashboard');
       } else {
         const data = await res.json();
