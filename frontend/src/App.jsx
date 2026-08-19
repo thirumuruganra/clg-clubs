@@ -62,7 +62,7 @@ function ProtectedRoute({ children, allowRoles }) {
   if (allowRoles?.length && !allowRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
-  if (user.role === 'STUDENT' && !user.section && location.pathname !== '/student/profile') {
+  if (user.role === 'STUDENT' && !user.section && user.degree !== 'M.Tech' && location.pathname !== '/student/profile') {
     return <Navigate to="/student/profile" state={{ from: `${location.pathname}${location.search}` }} replace />;
   }
 

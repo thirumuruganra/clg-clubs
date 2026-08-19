@@ -55,6 +55,7 @@ const DEGREE_OPTIONS = [
 ];
 
 const SECTION_OPTIONS = ['A', 'B', 'C'];
+const DEGREES_WITHOUT_SECTIONS = ['M.Tech'];
 
 const REGISTER_NUMBER_PATTERN = /^3122\d{9}$/;
 const PASSOUT_YEAR_PATTERN = /^\d{4}$/;
@@ -101,7 +102,7 @@ function getStudentProfileErrors(formData, minPassoutYear, maxPassoutYear) {
   }
 
   const section = String(formData.section || '').trim();
-  if (!section) {
+  if (!section && !DEGREES_WITHOUT_SECTIONS.includes(degree)) {
     errors.section = 'Section is required.';
   }
 
@@ -135,7 +136,7 @@ const StudentProfile = () => {
   const minPassoutYear = academicYear;
   const maxPassoutYear = academicYear + PASSOUT_YEAR_MAX_AHEAD;
 
-  const isIncomplete = user && (!user.batch || !user.department || !user.degree || !user.register_number || !user.section || (user.interests || []).length < 3);
+  const isIncomplete = user && (!user.batch || !user.department || !user.degree || !user.register_number || (!user.section && !DEGREES_WITHOUT_SECTIONS.includes(user.degree)) || (user.interests || []).length < 3);
 
   // Check if the user has a valid picture URL
   const hasValidPicture = user?.picture && user.picture.trim() !== '' && !pictureError;
@@ -177,6 +178,12 @@ const StudentProfile = () => {
     if (name === 'batch') {
       const digitsOnly = String(value || '').replace(/\D/g, '').slice(0, 4);
       setFormData((prev) => ({ ...prev, batch: digitsOnly }));
+      return;
+    }
+
+    if (name === 'degree' && DEGREES_WITHOUT_SECTIONS.includes(value)) {
+      setFieldErrors((prev) => ({ ...prev, section: '' }));
+      setFormData((prev) => ({ ...prev, degree: value, section: '' }));
       return;
     }
 
@@ -467,27 +474,29 @@ const StudentProfile = () => {
                 </Select>
                 <FieldMessage id="profile-degree-error" tone="error">{fieldErrors.degree}</FieldMessage>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="profile-section" required>Section</Label>
-                <Select
-                  id="profile-section"
-                  name="section"
-                  value={formData.section}
-                  onChange={handleChange}
-                  onBlur={handleFieldBlur}
-                  required
-                  aria-required="true"
-                  aria-invalid={fieldErrors.section ? 'true' : 'false'}
-                  aria-describedby={fieldErrors.section ? 'profile-section-error' : undefined}
-                  className={fieldErrors.section ? 'border-danger focus-visible:ring-danger' : undefined}
-                >
-                  <option value="" disabled>Select your section</option>
-                  {SECTION_OPTIONS.map((section) => (
-                    <option key={section} value={section}>{section}</option>
-                  ))}
-                </Select>
-                <FieldMessage id="profile-section-error" tone="error">{fieldErrors.section}</FieldMessage>
-              </div>
+              {!DEGREES_WITHOUT_SECTIONS.includes(formData.degree) && (
+                <div className="space-y-1">
+                  <Label htmlFor="profile-section" required>Section</Label>
+                  <Select
+                    id="profile-section"
+                    name="section"
+                    value={formData.section}
+                    onChange={handleChange}
+                    onBlur={handleFieldBlur}
+                    required
+                    aria-required="true"
+                    aria-invalid={fieldErrors.section ? 'true' : 'false'}
+                    aria-describedby={fieldErrors.section ? 'profile-section-error' : undefined}
+                    className={fieldErrors.section ? 'border-danger focus-visible:ring-danger' : undefined}
+                  >
+                    <option value="" disabled>Select your section</option>
+                    {SECTION_OPTIONS.map((section) => (
+                      <option key={section} value={section}>{section}</option>
+                    ))}
+                  </Select>
+                  <FieldMessage id="profile-section-error" tone="error">{fieldErrors.section}</FieldMessage>
+                </div>
+              )}
             </div>
 
             {/* Clubs you're a part of section */}
