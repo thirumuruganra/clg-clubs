@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useState, useEffect, useCallback, useMemo, useRe
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
+import { calculateYear, YEAR_RANK } from '../lib/academicYear';
 import ClubDashboardSidebar from '../components/club-dashboard/ClubDashboardSidebar';
 import AppShell from '../components/layout/AppShell';
 import {
@@ -72,7 +73,6 @@ const STUDENT_DEPARTMENT_OPTIONS = [
 ];
 
 const STUDENT_YEAR_OPTIONS = ['I', 'II', 'III', 'IV', 'V', 'Alumni'];
-const VALID_REGISTER_NUMBER_PATTERN = /^3122\d{9}$/;
 
 const countWords = (value = '') => {
   const trimmed = value.trim();
@@ -1077,78 +1077,6 @@ const ClubsDashboard = () => {
     error: '',
   });
 
-  const getDegreeDuration = (degreeStr) => {
-    const normalizedDegree = normalizeCompact(degreeStr);
-    if (!normalizedDegree) return null;
-
-    if (normalizedDegree.includes('mtech') && normalizedDegree.includes('integrated')) {
-      return 5;
-    }
-    if (normalizedDegree === 'be' || normalizedDegree.includes('btech')) {
-      return 4;
-    }
-    if (normalizedDegree === 'me' || normalizedDegree.includes('mtech')) {
-      return 2;
-    }
-
-    return null;
-  };
-
-  const getEffectiveAcademicYear = () => {
-    const currentDate = new Date();
-    return currentDate.getMonth() >= 4 ? currentDate.getFullYear() + 1 : currentDate.getFullYear();
-  };
-
-  const getAdmissionYearFromRegisterNumber = (registerNumber) => {
-    const digitsOnly = String(registerNumber || '').replace(/\D/g, '');
-    if (!VALID_REGISTER_NUMBER_PATTERN.test(digitsOnly)) return null;
-
-    // SSN register numbers usually encode admission year as the 5th and 6th digits.
-    const admissionYearCode = parseInt(digitsOnly.slice(4, 6), 10);
-    if (Number.isNaN(admissionYearCode)) return null;
-
-    const admissionYear = 2000 + admissionYearCode;
-    if (admissionYear > new Date().getFullYear()) return null;
-
-    return admissionYear;
-  };
-
-  const calculateYearFromAdmission = (admissionYear, duration, academicYear) => {
-    if (!admissionYear || !duration) return null;
-
-    let yearNumber = academicYear - admissionYear;
-    if (yearNumber <= 0) yearNumber = 1;
-
-    if (yearNumber > duration) return 'Alumni';
-
-    const romanYears = ['', 'I', 'II', 'III', 'IV', 'V'];
-    return romanYears[yearNumber] || '-';
-  };
-
-  const calculateYear = (batchStr, degreeStr, registerNumber) => {
-    const duration = getDegreeDuration(degreeStr);
-    if (!duration) return '-';
-
-    const academicYear = getEffectiveAcademicYear();
-
-    const admissionYear = getAdmissionYearFromRegisterNumber(registerNumber);
-    const yearFromRegister = calculateYearFromAdmission(admissionYear, duration, academicYear);
-    if (yearFromRegister) return yearFromRegister;
-
-    if (!batchStr) return '-';
-    const passout = parseInt(batchStr, 10);
-    if (isNaN(passout)) return '-';
-
-    const diff = passout - academicYear;
-    if (diff < 0) return 'Alumni';
-
-    const yearNumber = duration - diff;
-    if (yearNumber < 1 || yearNumber > duration) return '-';
-
-    const romanYears = ['', 'I', 'II', 'III', 'IV', 'V'];
-    return romanYears[yearNumber] || '-';
-  };
-
   const getAttendanceRoleLabel = (attendanceRole) => {
     if (attendanceRole === 'CLUB_MEMBER') return 'Member';
     if (attendanceRole === 'VOLUNTEER') return 'Volunteer';
@@ -1156,14 +1084,12 @@ const ClubsDashboard = () => {
   };
 
   const sortAttendanceRows = (rsvpList) => {
-    const yearRank = { V: 5, IV: 4, III: 3, II: 2, I: 1, Alumni: 0, '-': -1 };
-
     return [...rsvpList].sort((left, right) => {
       const leftUser = left?.user || {};
       const rightUser = right?.user || {};
 
-      const leftYear = yearRank[calculateYear(leftUser.batch, leftUser.degree, leftUser.register_number)] ?? -1;
-      const rightYear = yearRank[calculateYear(rightUser.batch, rightUser.degree, rightUser.register_number)] ?? -1;
+      const leftYear = YEAR_RANK[calculateYear(leftUser.batch, leftUser.degree, leftUser.register_number)] ?? -1;
+      const rightYear = YEAR_RANK[calculateYear(rightUser.batch, rightUser.degree, rightUser.register_number)] ?? -1;
       if (leftYear !== rightYear) return rightYear - leftYear;
 
       const leftName = String(leftUser.name || '').trim();

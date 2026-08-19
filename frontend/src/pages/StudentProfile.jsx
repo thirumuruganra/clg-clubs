@@ -9,6 +9,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { SearchBar } from '../components/ui/search-bar';
 import { Select } from '../components/ui/select';
+import { getEffectiveAcademicYear } from '../lib/academicYear';
 
 const API = '';
 
@@ -56,7 +57,6 @@ const DEGREE_OPTIONS = [
 const REGISTER_NUMBER_PATTERN = /^3122\d{9}$/;
 const PASSOUT_YEAR_PATTERN = /^\d{4}$/;
 const PASSOUT_YEAR_MAX_AHEAD = 6;
-const ACADEMIC_YEAR_ROLLOVER_MONTH_INDEX = 4;
 const EMPTY_FIELD_ERRORS = {
   register_number: '',
   batch: '',
@@ -106,11 +106,6 @@ function getStudentProfileErrors(formData, minPassoutYear, maxPassoutYear) {
 
 function hasStudentProfileErrors(errors) {
   return Object.values(errors).some(Boolean);
-}
-
-function getEffectiveAcademicYear() {
-  const currentDate = new Date();
-  return currentDate.getMonth() >= ACADEMIC_YEAR_ROLLOVER_MONTH_INDEX ? currentDate.getFullYear() + 1 : currentDate.getFullYear();
 }
 
 const StudentProfile = () => {

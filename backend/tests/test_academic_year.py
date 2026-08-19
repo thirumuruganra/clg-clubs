@@ -12,13 +12,13 @@ class AcademicYearTests(unittest.TestCase):
         self.assertEqual(users._get_effective_academic_year(datetime(2026, 5, 1)), 2027)
 
     def test_2027_passout_is_third_year_before_may(self) -> None:
-        with patch("app.routers.users._get_effective_academic_year", return_value=2026):
+        with patch("app.utils.academic_year.get_effective_academic_year", return_value=2026):
             year = users._calculate_year_label("2027", "B.E.", None)
 
         self.assertEqual(year, "III")
 
     def test_2027_passout_is_fourth_year_from_may(self) -> None:
-        with patch("app.routers.users._get_effective_academic_year", return_value=2027):
+        with patch("app.utils.academic_year.get_effective_academic_year", return_value=2027):
             year = users._calculate_year_label("2027", "B.E.", None)
 
         self.assertEqual(year, "IV")
@@ -29,13 +29,8 @@ class AcademicYearTests(unittest.TestCase):
             self.assertTrue(auth._is_valid_passout_year("2027"))
 
     def test_attendance_year_rank_uses_passout_year_after_may(self) -> None:
-        class _MayDateTime:
-            @classmethod
-            def now(cls):
-                return datetime(2026, 5, 1)
-
         user = {"batch": "2027", "degree": "B.E.", "register_number": ""}
-        with patch("app.routers.rsvp.datetime", _MayDateTime):
+        with patch("app.utils.academic_year.get_effective_academic_year", return_value=2027):
             self.assertEqual(_attendance_year_rank(user), 4)
 
 

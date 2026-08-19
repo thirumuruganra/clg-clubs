@@ -10,6 +10,7 @@ from app.models.user import User
 from app.core.audit import log_security_event
 from app.core.security import get_current_user
 from app.services.club_admin_access import require_club_admin_access
+from app.utils.academic_year import calculate_year_label, calculate_year_rank
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from uuid import UUID
@@ -143,27 +144,16 @@ def _attendance_year_rank(user: dict | None) -> int:
     if not user:
         return -1
 
-    batch = str(user.get("batch") or "").strip()
-    degree = str(user.get("degree") or "").strip().lower()
     register_number = str(user.get("register_number") or "").strip()
-
     if register_number.lower() == "alumni":
         return 0
 
-    year_value = ""
-    if batch.isdigit():
-        current_date = datetime.now()
-        academic_year = current_date.year + 1 if current_date.month >= 5 else current_date.year
-        passout_year = int(batch)
-        duration = 4 if degree.startswith("b.") else 2 if degree.startswith("m.") else 4
-        diff = passout_year - academic_year
-        if diff < 0:
-            year_value = "Alumni"
-        else:
-            year_number = duration - diff
-            year_value = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V"}.get(year_number, "-")
+    batch = str(user.get("batch") or "").strip()
+    degree = str(user.get("degree") or "").strip()
+    if not batch.isdigit():
+        return -1
 
-    return {"V": 5, "IV": 4, "III": 3, "II": 2, "I": 1, "Alumni": 0, "-": -1}.get(year_value or "-", -1)
+    return calculate_year_rank(calculate_year_label(batch, degree, register_number))
 
 
 def _sorted_rsvp_rows(rsvps: list[RSVP], db: Session) -> list[dict]:
