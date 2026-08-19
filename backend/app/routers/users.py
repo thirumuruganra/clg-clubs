@@ -206,7 +206,11 @@ def update_user(
     if user_update.register_number is not None:
         user.register_number = _validate_register_number(user_update.register_number)
     if user_update.section is not None:
-        user.section = _validate_section(user_update.section)
+        effective_degree = user_update.degree if user_update.degree is not None else user.degree
+        if effective_degree == "M.Tech Integrated":
+            user.section = None if not str(user_update.section).strip() else _validate_section(user_update.section)
+        else:
+            user.section = _validate_section(user_update.section)
     if user_update.joined_clubs is not None:
         add_missing_memberships_for_requested_clubs(db, user, user_update.joined_clubs)
         sync_user_joined_clubs_projection(db, user)
