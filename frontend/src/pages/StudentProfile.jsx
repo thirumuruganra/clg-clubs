@@ -55,7 +55,7 @@ const DEGREE_OPTIONS = [
 ];
 
 const SECTION_OPTIONS = ['A', 'B', 'C'];
-const DEGREES_WITHOUT_SECTIONS = ['M.Tech'];
+const DEGREES_WITHOUT_SECTIONS = ['M.Tech Integrated'];
 
 const REGISTER_NUMBER_PATTERN = /^3122\d{9}$/;
 const PASSOUT_YEAR_PATTERN = /^\d{4}$/;

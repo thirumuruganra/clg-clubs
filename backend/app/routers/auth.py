@@ -325,7 +325,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
                 or user_department in (None, "")
                 or user_degree in (None, "")
                 or user_register_number in (None, "")
-                or (user_section in (None, "") and user_degree != "M.Tech")
+                or (user_section in (None, "") and user_degree != "M.Tech Integrated")
                 or not _is_valid_passout_year(user_batch)
                 or not _is_valid_register_number(user_register_number)
                 or len(user_interests) < 3
