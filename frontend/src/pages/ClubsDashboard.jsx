@@ -2331,7 +2331,7 @@ const ClubsDashboard = () => {
 
       {feedbackModal.open && (
         <div className="fixed inset-y-0 left-0 right-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y lg:left-64" onClick={closeFeedbackModal}>
-          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] border border-border-subtle dark:border-border-strong flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] border border-border-subtle dark:border-border-strong flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-border-subtle dark:border-border-strong">
               <div>
                 <h2 className="text-lg font-bold">Attendee Feedback</h2>
@@ -2354,12 +2354,26 @@ const ClubsDashboard = () => {
                   description="Responses will appear here as attendees check in."
                 />
               ) : (
-                feedbackModal.responses.map((entry) => (
-                  <div key={entry.rsvp_id} className="rounded-xl border border-border-subtle dark:border-border-strong bg-surface-muted dark:bg-[#111a22] p-3">
-                    <p className="text-sm">{entry.feedback_text}</p>
-                    <p className="mt-2 text-xs text-text-secondary dark:text-text-dark-secondary">{entry.name || entry.email}</p>
-                  </div>
-                ))
+                <div className="border border-border-subtle dark:border-border-strong rounded-xl overflow-hidden table-scroll">
+                  <table className="w-full min-w-130 text-sm text-left">
+                    <thead className="bg-surface-muted dark:bg-[#111a22] border-b border-border-subtle dark:border-border-strong text-xs uppercase text-text-secondary dark:text-text-dark-secondary font-bold">
+                      <tr>
+                        <th className="px-4 py-3">NAME</th>
+                        <th className="px-4 py-3">YEAR</th>
+                        <th className="px-4 py-3">FEEDBACK</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-subtle dark:divide-border-strong">
+                      {feedbackModal.responses.map((entry) => (
+                        <tr key={entry.rsvp_id} className="transition-colors hover:bg-surface-muted dark:hover:bg-border-strong/30">
+                          <td className="px-4 py-3 font-bold text-slate-800 dark:text-white whitespace-nowrap">{entry.name || entry.email}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">{calculateYear(entry.batch, entry.degree, entry.register_number)}</td>
+                          <td className="px-4 py-3">{entry.feedback_text}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>

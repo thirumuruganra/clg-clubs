@@ -669,6 +669,9 @@ def get_event_feedback(event_id: UUID, db: Session = Depends(get_db), current_us
             "user_id": rsvp.user_id,
             "name": user.name,
             "email": user.email,
+            "degree": user.degree,
+            "batch": user.batch,
+            "register_number": user.register_number,
             "feedback_text": rsvp.feedback_text,
             "attended_marked_at": rsvp.attended_marked_at,
         }

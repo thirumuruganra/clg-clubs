@@ -241,6 +241,9 @@ class EventFeedbackEntryResponse(BaseModel):
     user_id: UUID
     name: Optional[str] = None
     email: str
+    degree: Optional[str] = None
+    batch: Optional[str] = None
+    register_number: Optional[str] = None
     feedback_text: str
     attended_marked_at: Optional[datetime] = None
 
