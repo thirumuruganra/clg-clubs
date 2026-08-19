@@ -18,6 +18,7 @@ def user_profile_payload(user: User) -> dict:
         "department": user.department,
         "degree": user.degree,
         "register_number": user.register_number,
+        "section": user.section,
         "joined_clubs": safe_json_list(user.joined_clubs),
         "interests": safe_json_list(user.interests),
     }

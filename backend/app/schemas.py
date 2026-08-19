@@ -57,6 +57,7 @@ class UserBase(BaseModel):
     department: Optional[str] = None
     degree: Optional[str] = None
     register_number: Optional[str] = None
+    section: Optional[str] = None
     joined_clubs: Optional[List[str]] = []
     interests: Optional[List[str]] = []
 
@@ -74,6 +75,7 @@ class UserUpdate(BaseModel):
     department: Optional[str] = None
     degree: Optional[str] = None
     register_number: Optional[str] = None
+    section: Optional[str] = None
     joined_clubs: Optional[List[str]] = None
     interests: Optional[List[str]] = None
 
@@ -221,6 +223,7 @@ class EventRSVPUserResponse(BaseModel):
     degree: Optional[str] = None
     batch: Optional[str] = None
     register_number: Optional[str] = None
+    section: Optional[str] = None
 
 class EventRSVPResponse(BaseModel):
     id: UUID
@@ -310,6 +313,7 @@ class StudentDirectoryStudentResponse(BaseModel):
     degree: Optional[str] = None
     batch: Optional[str] = None
     register_number: Optional[str] = None
+    section: Optional[str] = None
     year: Optional[str] = None
 
 
@@ -338,6 +342,7 @@ class EventWorkforceMemberResponse(BaseModel):
     degree: Optional[str] = None
     batch: Optional[str] = None
     register_number: Optional[str] = None
+    section: Optional[str] = None
 
 
 class EventWorkforceListResponse(BaseModel):

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
 import wavcIcon from '../assets/WAVC-edit.png';
@@ -54,6 +54,8 @@ const DEGREE_OPTIONS = [
   'M.Tech',
 ];
 
+const SECTION_OPTIONS = ['A', 'B', 'C'];
+
 const REGISTER_NUMBER_PATTERN = /^3122\d{9}$/;
 const PASSOUT_YEAR_PATTERN = /^\d{4}$/;
 const PASSOUT_YEAR_MAX_AHEAD = 6;
@@ -62,6 +64,7 @@ const EMPTY_FIELD_ERRORS = {
   batch: '',
   department: '',
   degree: '',
+  section: '',
   interests: '',
 };
 
@@ -97,6 +100,11 @@ function getStudentProfileErrors(formData, minPassoutYear, maxPassoutYear) {
     errors.degree = 'Degree is required.';
   }
 
+  const section = String(formData.section || '').trim();
+  if (!section) {
+    errors.section = 'Section is required.';
+  }
+
   if ((formData.interests || []).length < 3) {
     errors.interests = 'Select at least 3 interests.';
   }
@@ -111,8 +119,10 @@ function hasStudentProfileErrors(errors) {
 const StudentProfile = () => {
   const { user, loading, logout, refetchUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.from;
 
-  const [formData, setFormData] = useState({ register_number: '', batch: '', department: '', degree: '', joined_clubs: [], interests: [] });
+  const [formData, setFormData] = useState({ register_number: '', batch: '', department: '', degree: '', section: '', joined_clubs: [], interests: [] });
   const [clubs, setClubs] = useState([]);
   const [saving, setSaving] = useState(false);
   const [pictureError, setPictureError] = useState(false);
@@ -125,7 +135,7 @@ const StudentProfile = () => {
   const minPassoutYear = academicYear;
   const maxPassoutYear = academicYear + PASSOUT_YEAR_MAX_AHEAD;
 
-  const isIncomplete = user && (!user.batch || !user.department || !user.degree || !user.register_number || (user.interests || []).length < 3);
+  const isIncomplete = user && (!user.batch || !user.department || !user.degree || !user.register_number || !user.section || (user.interests || []).length < 3);
 
   // Check if the user has a valid picture URL
   const hasValidPicture = user?.picture && user.picture.trim() !== '' && !pictureError;
@@ -143,6 +153,7 @@ const StudentProfile = () => {
         batch: user.batch || '',
         department: user.department || '',
         degree: user.degree || '',
+        section: user.section || '',
         joined_clubs: user.joined_clubs || [],
         interests: user.interests || []
       });
@@ -263,7 +274,7 @@ const StudentProfile = () => {
       });
       if (res.ok) {
         await refetchUser();
-        navigate('/student/dashboard');
+        navigate(returnTo || '/student/dashboard');
       } else {
         const errorPayload = await res.json().catch(() => null);
         const errorDetail = errorPayload?.detail;
@@ -455,6 +466,27 @@ const StudentProfile = () => {
                   ))}
                 </Select>
                 <FieldMessage id="profile-degree-error" tone="error">{fieldErrors.degree}</FieldMessage>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="profile-section" required>Section</Label>
+                <Select
+                  id="profile-section"
+                  name="section"
+                  value={formData.section}
+                  onChange={handleChange}
+                  onBlur={handleFieldBlur}
+                  required
+                  aria-required="true"
+                  aria-invalid={fieldErrors.section ? 'true' : 'false'}
+                  aria-describedby={fieldErrors.section ? 'profile-section-error' : undefined}
+                  className={fieldErrors.section ? 'border-danger focus-visible:ring-danger' : undefined}
+                >
+                  <option value="" disabled>Select your section</option>
+                  {SECTION_OPTIONS.map((section) => (
+                    <option key={section} value={section}>{section}</option>
+                  ))}
+                </Select>
+                <FieldMessage id="profile-section-error" tone="error">{fieldErrors.section}</FieldMessage>
               </div>
             </div>
 

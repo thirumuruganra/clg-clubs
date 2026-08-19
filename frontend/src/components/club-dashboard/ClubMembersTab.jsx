@@ -151,12 +151,12 @@ const ClubMembersTab = ({
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                       <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Dept</p>
-                        <p className="mt-1 truncate font-semibold">{member.department || '-'}</p>
-                      </div>
-                      <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Year</p>
                         <p className="mt-1 font-semibold">{calculateYear(member.batch, member.degree, member.register_number)}</p>
+                      </div>
+                      <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Dept</p>
+                        <p className="mt-1 truncate font-semibold">{member.department || '-'}</p>
                       </div>
                       <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Reg No</p>
@@ -183,15 +183,15 @@ const ClubMembersTab = ({
                 <colgroup>
                   <col className="w-[22%]" />
                   <col className="w-[20%]" />
-                  <col className="w-[14%]" />
                   <col className="w-[9%]" />
+                  <col className="w-[14%]" />
                   <col className="w-[13%]" />
                   {isClubHead && <col className="w-[12%]" />}
                   {isClubHead && <col className="w-[10%]" />}
                 </colgroup>
                 <thead className="bg-surface-muted dark:bg-border-strong/55">
                   <tr className="border-b border-border-subtle dark:border-border-strong">
-                    {['Student', 'Email', 'Department', 'Year', 'Register No', ...(isClubHead ? ['Admin Access', 'Actions'] : [])].map((header) => (
+                    {['Student', 'Email', 'Year', 'Department', 'Register No', ...(isClubHead ? ['Admin Access', 'Actions'] : [])].map((header) => (
                       <th
                         key={header}
                         className={`px-5 py-3.5 text-xs font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary ${header === 'Actions' || header === 'Admin Access' ? 'text-center' : 'text-left'}`}
@@ -220,8 +220,8 @@ const ClubMembersTab = ({
                         <td className="px-5 py-4 align-middle text-sm text-text-secondary dark:text-text-dark-secondary">
                           <span className="block truncate" title={member.email || '-'}>{member.email || '-'}</span>
                         </td>
-                        <td className="px-5 py-4 align-middle text-sm">{member.department || '-'}</td>
                         <td className="px-5 py-4 align-middle text-sm">{calculateYear(member.batch, member.degree, member.register_number)}</td>
+                        <td className="px-5 py-4 align-middle text-sm">{member.department || '-'}</td>
                         <td className="px-5 py-4 align-middle text-sm">
                           <span className="block truncate" title={member.register_number || '-'}>{member.register_number || '-'}</span>
                         </td>
@@ -351,12 +351,12 @@ const ClubMembersTab = ({
                           </div>
                           <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                             <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Dept</p>
-                              <p className="mt-1 truncate font-semibold">{student.department || '-'}</p>
-                            </div>
-                            <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
                               <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Year</p>
                               <p className="mt-1 font-semibold">{student.year || '-'}</p>
+                            </div>
+                            <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Dept</p>
+                              <p className="mt-1 truncate font-semibold">{student.department || '-'}</p>
                             </div>
                             <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
                               <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Reg No</p>
@@ -373,14 +373,14 @@ const ClubMembersTab = ({
                       <colgroup>
                         <col className="w-[28%]" />
                         <col className="w-[26%]" />
-                        <col className="w-[18%]" />
                         <col className="w-[10%]" />
+                        <col className="w-[18%]" />
                         <col className="w-[14%]" />
                         <col className="w-[8%]" />
                       </colgroup>
                       <thead className="bg-surface-muted dark:bg-border-strong/55">
                         <tr className="border-b border-border-subtle dark:border-border-strong">
-                          {['Student', 'Email', 'Department', 'Year', 'Register No', 'Add'].map((header) => (
+                          {['Student', 'Email', 'Year', 'Department', 'Register No', 'Add'].map((header) => (
                             <th key={header} className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary">{header}</th>
                           ))}
                         </tr>
@@ -404,8 +404,8 @@ const ClubMembersTab = ({
                               <td className="px-4 py-3 align-middle text-sm text-text-secondary dark:text-text-dark-secondary">
                                 <span className="block truncate" title={student.email || '-'}>{student.email || '-'}</span>
                               </td>
-                              <td className="px-4 py-3 align-middle text-sm">{student.department || '-'}</td>
                               <td className="px-4 py-3 align-middle text-sm">{student.year || '-'}</td>
+                              <td className="px-4 py-3 align-middle text-sm">{student.department || '-'}</td>
                               <td className="px-4 py-3 align-middle text-sm">
                                 <span className="block truncate" title={student.register_number || '-'}>{student.register_number || '-'}</span>
                               </td>

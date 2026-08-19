@@ -19,6 +19,7 @@ class User(Base):
     department = Column(String(100), nullable=True)  # e.g. "CSE"
     degree = Column(String(50), nullable=True)      # e.g. "B.E."
     register_number = Column(String(50), nullable=True) # e.g. "3122XXXXXXXX"
+    section = Column(String(20), nullable=True)      # e.g. "A", "B", "C"
     joined_clubs = Column(Text, default="[]")        # JSON string of club names
     interests = Column(Text, default="[]")           # JSON string of selected interests
     token_version = Column(Integer, nullable=False, default=0)  # bump to revoke all outstanding JWTs

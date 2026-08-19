@@ -75,12 +75,12 @@ const FollowersTab = ({ followers, followersLoading, followersError, calculateYe
                     </div>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                       <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Dept</p>
-                        <p className="mt-1 truncate font-semibold">{follower.department || '-'}</p>
-                      </div>
-                      <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Year</p>
                         <p className="mt-1 font-semibold">{calculateYear(follower.batch, follower.degree, follower.register_number)}</p>
+                      </div>
+                      <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Dept</p>
+                        <p className="mt-1 truncate font-semibold">{follower.department || '-'}</p>
                       </div>
                       <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Reg No</p>
@@ -97,13 +97,13 @@ const FollowersTab = ({ followers, followersLoading, followersError, calculateYe
                 <colgroup>
                   <col className="w-[28%]" />
                   <col className="w-[30%]" />
-                  <col className="w-[18%]" />
                   <col className="w-[10%]" />
+                  <col className="w-[18%]" />
                   <col className="w-[14%]" />
                 </colgroup>
                 <thead className="bg-surface-muted dark:bg-border-strong/55">
                   <tr className="border-b border-border-subtle dark:border-border-strong">
-                    {['Student', 'Email', 'Department', 'Year', 'Register No'].map((header) => (
+                    {['Student', 'Email', 'Year', 'Department', 'Register No'].map((header) => (
                       <th key={header} className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary">{header}</th>
                     ))}
                   </tr>
@@ -127,8 +127,8 @@ const FollowersTab = ({ followers, followersLoading, followersError, calculateYe
                         <td className="px-5 py-4 align-middle text-sm text-text-secondary dark:text-text-dark-secondary">
                           <span className="block truncate" title={follower.email || '-'}>{follower.email || '-'}</span>
                         </td>
-                        <td className="px-5 py-4 align-middle text-sm">{follower.department || '-'}</td>
                         <td className="px-5 py-4 align-middle text-sm">{calculateYear(follower.batch, follower.degree, follower.register_number)}</td>
+                        <td className="px-5 py-4 align-middle text-sm">{follower.department || '-'}</td>
                         <td className="px-5 py-4 align-middle text-sm">
                           <span className="block truncate" title={follower.register_number || '-'}>{follower.register_number || '-'}</span>
                         </td>

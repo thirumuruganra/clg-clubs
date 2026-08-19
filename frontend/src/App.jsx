@@ -55,11 +55,15 @@ function LoadingRouteFallback() {
 
 function ProtectedRoute({ children, allowRoles }) {
   const { loading, user } = useAuth();
+  const location = useLocation();
 
   if (loading && !user) return <LoadingRouteFallback />;
   if (!user) return <Navigate to="/login" replace />;
   if (allowRoles?.length && !allowRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
+  }
+  if (user.role === 'STUDENT' && !user.section && location.pathname !== '/student/profile') {
+    return <Navigate to="/student/profile" state={{ from: `${location.pathname}${location.search}` }} replace />;
   }
 
   return children;

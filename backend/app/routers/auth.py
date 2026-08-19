@@ -318,12 +318,14 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
             user_department = cast(str | None, getattr(user, "department", None))
             user_degree = cast(str | None, getattr(user, "degree", None))
             user_register_number = cast(str | None, getattr(user, "register_number", None))
+            user_section = cast(str | None, getattr(user, "section", None))
             redirect_url = f"{FRONTEND_DEFAULT_ORIGIN}/student/dashboard"
             if (
                 user_batch in (None, "")
                 or user_department in (None, "")
                 or user_degree in (None, "")
                 or user_register_number in (None, "")
+                or user_section in (None, "")
                 or not _is_valid_passout_year(user_batch)
                 or not _is_valid_register_number(user_register_number)
                 or len(user_interests) < 3

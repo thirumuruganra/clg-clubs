@@ -1615,7 +1615,7 @@ const ClubsDashboard = () => {
     const sortedAttended = sortAttendanceRows(attended);
 
     setRsvpError('');
-    const headers = ['S.NO', 'ROLE', 'NAME', 'DEGREE', 'DEPARTMENT', 'YEAR', 'REGISTER NO'];
+    const headers = ['S.NO', 'ROLE', 'NAME', 'DEGREE', 'YEAR', 'DEPARTMENT', 'SECTION', 'REGISTER NO'];
     const rows = sortedAttended.map((r, index) => {
       const u = r.user || {};
       return [
@@ -1623,8 +1623,9 @@ const ClubsDashboard = () => {
         getAttendanceRoleLabel(r.attendance_role),
         u.name || '-',
         u.degree || '-',
-        u.department || '-',
         calculateYear(u.batch, u.degree, u.register_number),
+        u.department || '-',
+        u.section || '-',
         u.register_number || '-'
       ];
     });
@@ -2466,8 +2467,9 @@ const ClubsDashboard = () => {
                               <th className="px-4 py-3">S.NO</th>
                               <th className="px-4 py-3">NAME</th>
                               <th className="px-4 py-3">ROLE</th>
-                              <th className="px-4 py-3">DEPARTMENT</th>
                               <th className="px-4 py-3">YEAR</th>
+                              <th className="px-4 py-3">DEPARTMENT</th>
+                              <th className="px-4 py-3">SECTION</th>
                               <th className="px-4 py-3">REGISTER NO</th>
                               <th className="px-4 py-3 text-center">ACTIONS</th>
                             </tr>
@@ -2482,8 +2484,9 @@ const ClubsDashboard = () => {
                                     {worker.role === 'CLUB_MEMBER' ? 'Member' : 'Volunteer'}
                                   </StatusBadge>
                                 </td>
-                                <td className="px-4 py-3">{worker.department || '-'}</td>
                                 <td className="px-4 py-3">{calculateYear(worker.batch, worker.degree, worker.register_number)}</td>
+                                <td className="px-4 py-3">{worker.department || '-'}</td>
+                                <td className="px-4 py-3">{worker.section || '-'}</td>
                                 <td className="px-4 py-3 font-mono text-xs">{worker.register_number || '-'}</td>
                                 <td className="px-4 py-3 text-center">
                                   <button
@@ -2540,8 +2543,9 @@ const ClubsDashboard = () => {
                           <th className="px-2.5 py-2">S.NO</th>
                           <th className="px-2.5 py-2">NAME</th>
                           <th className="px-2.5 py-2">ROLE</th>
-                          <th className="px-2.5 py-2">DEPARTMENT</th>
                           <th className="px-2.5 py-2">YEAR</th>
+                          <th className="px-2.5 py-2">DEPARTMENT</th>
+                          <th className="px-2.5 py-2">SECTION</th>
                           <th className="px-2.5 py-2">REGISTER NO</th>
                           {rsvpModal.tab !== 'payment' && (
                             <th className="px-2.5 py-2">ATTENDANCE MARKED AT</th>
@@ -2563,8 +2567,9 @@ const ClubsDashboard = () => {
                                   {getAttendanceRoleLabel(rsvp.attendance_role)}
                                 </StatusBadge>
                               </td>
-                              <td className="px-2.5 py-1.5">{u.department || '-'}</td>
                               <td className="px-2.5 py-1.5">{calculateYear(u.batch, u.degree, u.register_number)}</td>
+                              <td className="px-2.5 py-1.5">{u.department || '-'}</td>
+                              <td className="px-2.5 py-1.5">{u.section || '-'}</td>
                               <td className="px-2.5 py-1.5 font-mono text-[11px]">{u.register_number || '-'}</td>
                               {rsvpModal.tab !== 'payment' && (
                                 <td className="px-2.5 py-1.5 text-[11px] whitespace-nowrap">

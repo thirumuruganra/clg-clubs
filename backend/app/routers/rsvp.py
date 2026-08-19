@@ -136,6 +136,7 @@ def _serialize_rsvp(rsvp: RSVP, attendance_role: str | None = None) -> dict:
             "degree": user.degree,
             "batch": user.batch,
             "register_number": user.register_number,
+            "section": user.section,
         } if user else None,
     }
 

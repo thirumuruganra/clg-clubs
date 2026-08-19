@@ -27,6 +27,7 @@ router = APIRouter()
 
 REGISTER_NUMBER_PATTERN = re.compile(r"^3122\d{9}$")
 PASSOUT_YEAR_PATTERN = re.compile(r"^\d{4}$")
+SECTION_PATTERN = re.compile(r"^[A-C]$")
 
 
 def _normalize_interest_values(interests: List[str]) -> List[str]:
@@ -67,6 +68,13 @@ def _validate_passout_year(value: str) -> str:
             detail=f"Passout year must be between {min_passout_year} and {max_passout_year}",
         )
 
+    return normalized
+
+
+def _validate_section(value: str) -> str:
+    normalized = str(value or "").strip().upper()
+    if not SECTION_PATTERN.fullmatch(normalized):
+        raise HTTPException(status_code=422, detail="Section must be A, B, or C")
     return normalized
 
 
@@ -145,6 +153,7 @@ def list_registered_students(
                 "degree": student.degree,
                 "batch": student.batch,
                 "register_number": student.register_number,
+                "section": student.section,
                 "year": student_year,
             }
         )
@@ -196,6 +205,8 @@ def update_user(
         user.degree = user_update.degree
     if user_update.register_number is not None:
         user.register_number = _validate_register_number(user_update.register_number)
+    if user_update.section is not None:
+        user.section = _validate_section(user_update.section)
     if user_update.joined_clubs is not None:
         add_missing_memberships_for_requested_clubs(db, user, user_update.joined_clubs)
         sync_user_joined_clubs_projection(db, user)

@@ -130,6 +130,7 @@ def _serialize_event_worker(assignment: EventWorker, worker: User) -> dict:
         "degree": worker.degree,
         "batch": worker.batch,
         "register_number": worker.register_number,
+        "section": worker.section,
     }
 
 
