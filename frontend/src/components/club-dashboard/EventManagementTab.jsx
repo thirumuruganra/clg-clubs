@@ -52,6 +52,7 @@ const EventManagementTab = ({
   openRsvpModal,
   openOdSheet,
   openQrModal,
+  openFeedbackModal,
   openEditModal,
   setDeleteTarget,
 }) => {
@@ -237,6 +238,15 @@ const EventManagementTab = ({
                     >
                       <span className="material-symbols-outlined text-[18px] leading-none">qr_code_2</span>
                     </button>
+                    {event.collect_feedback && (
+                      <button
+                        aria-label={`View feedback for ${event.title}`}
+                        onClick={() => openFeedbackModal(event)}
+                        className={actionIconNeutralClass}
+                      >
+                        <span className="material-symbols-outlined text-[18px] leading-none">forum</span>
+                      </button>
+                    )}
                     <button
                       aria-label={`Open OD sheet for ${event.title}`}
                       onClick={() => openOdSheet(event)}

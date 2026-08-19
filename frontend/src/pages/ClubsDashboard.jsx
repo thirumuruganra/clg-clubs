@@ -53,6 +53,7 @@ const EMPTY_EVENT_FORM = {
   payment_link: '',
   is_paid: false,
   registration_fees: '',
+  collect_feedback: false,
 };
 
 const STUDENT_DEPARTMENT_OPTIONS = [
@@ -957,6 +958,7 @@ const ClubsDashboard = () => {
       payment_qr_url: event.payment_qr_url || '',
       is_paid: event.is_paid || false,
       registration_fees: event.registration_fees || '',
+      collect_feedback: event.collect_feedback || false,
     });
   };
 
@@ -1065,6 +1067,14 @@ const ClubsDashboard = () => {
     checkinUrl: '',
     error: '',
     notice: '',
+  });
+
+  const [feedbackModal, setFeedbackModal] = useState({
+    open: false,
+    event: null,
+    loading: false,
+    responses: [],
+    error: '',
   });
 
   const getDegreeDuration = (degreeStr) => {
@@ -1370,6 +1380,25 @@ const ClubsDashboard = () => {
 
   const closeQrModal = () => {
     setQrModal({ open: false, event: null, loading: false, checkinUrl: '', error: '', notice: '' });
+  };
+
+  const closeFeedbackModal = () => {
+    setFeedbackModal({ open: false, event: null, loading: false, responses: [], error: '' });
+  };
+
+  const openFeedbackModal = async (eventObj) => {
+    setFeedbackModal({ open: true, event: eventObj, loading: true, responses: [], error: '' });
+    try {
+      const res = await fetch(`${API}/api/events/${eventObj.id}/feedback`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'Failed to load feedback.');
+      }
+      const data = await res.json();
+      setFeedbackModal(prev => ({ ...prev, loading: false, responses: data.responses || [] }));
+    } catch (err) {
+      setFeedbackModal(prev => ({ ...prev, loading: false, error: err.message || 'Failed to load feedback.' }));
+    }
   };
 
   const syncEventQrStatus = (eventId, isOpen) => {
@@ -1958,6 +1987,7 @@ const ClubsDashboard = () => {
               openRsvpModal={openRsvpModal}
               openOdSheet={openOdSheet}
               openQrModal={openQrModal}
+              openFeedbackModal={openFeedbackModal}
               openEditModal={openEditModal}
               setDeleteTarget={setDeleteTarget}
             />
@@ -2121,6 +2151,10 @@ const ClubsDashboard = () => {
                   </div>
                 </div>
               )}
+              <div className="flex items-center gap-2 mb-2">
+                <input type="checkbox" id="edit_collect_feedback" checked={editEvent.collect_feedback || false} onChange={e => setEditEvent(p => ({ ...p, collect_feedback: e.target.checked }))} className="size-4 rounded-full border border-border-subtle bg-surface-muted text-primary focus:ring-2 focus:ring-primary cursor-pointer" />
+                <Label htmlFor="edit_collect_feedback" className="text-sm">Collect feedback from attendees at check-in</Label>
+              </div>
               <div>
                 <Label className="mb-2 block text-xs text-text-secondary dark:text-text-dark-secondary">Category</Label>
                 <div className="flex gap-3">
@@ -2290,6 +2324,43 @@ const ClubsDashboard = () => {
                   Copy Link
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {feedbackModal.open && (
+        <div className="fixed inset-y-0 left-0 right-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y lg:left-64" onClick={closeFeedbackModal}>
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] border border-border-subtle dark:border-border-strong flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-border-subtle dark:border-border-strong">
+              <div>
+                <h2 className="text-lg font-bold">Attendee Feedback</h2>
+                <p className="mt-1 text-xs text-text-secondary dark:text-text-dark-secondary">{feedbackModal.event?.title || 'Event'}</p>
+              </div>
+              <IconButton ariaLabel="Close feedback dialog" onClick={closeFeedbackModal} size="sm">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </IconButton>
+            </div>
+
+            <div className="p-5 flex flex-col gap-3 overflow-y-auto">
+              {feedbackModal.error ? <Toast tone="error" title="Failed to load feedback" description={feedbackModal.error} /> : null}
+
+              {feedbackModal.loading ? (
+                <Skeleton className="h-32 w-full rounded-xl" />
+              ) : feedbackModal.responses.length === 0 ? (
+                <EmptyState
+                  icon="forum"
+                  title="No feedback yet"
+                  description="Responses will appear here as attendees check in."
+                />
+              ) : (
+                feedbackModal.responses.map((entry) => (
+                  <div key={entry.rsvp_id} className="rounded-xl border border-border-subtle dark:border-border-strong bg-surface-muted dark:bg-[#111a22] p-3">
+                    <p className="text-sm">{entry.feedback_text}</p>
+                    <p className="mt-2 text-xs text-text-secondary dark:text-text-dark-secondary">{entry.name || entry.email}</p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

@@ -16,7 +16,7 @@ from app.models.club_member import ClubMember
 from app.models.rsvp import RSVP
 from app.models.follow import Follow
 from app.models.user import User
-from app.schemas import EventCreate, EventUpdate, EventWorkforceCreate
+from app.schemas import EventCreate, EventUpdate, EventWorkforceCreate, EventFeedbackListResponse
 from app.core.audit import log_security_event
 from app.core.security import get_current_user, get_optional_user
 from app.services.authz_rules import resolve_personalization_user_id
@@ -195,6 +195,7 @@ def get_all_events(search: Optional[str] = Query(None), db: Session = Depends(ge
             "registration_fees": event.registration_fees,
             "rsvp_count": rsvp_count,
             "attendance_qr_open": bool(event.attendance_qr_open),
+            "collect_feedback": bool(event.collect_feedback),
         })
     return result
 
@@ -296,6 +297,7 @@ def get_event_feed(
             "is_from_followed_club": is_from_followed_club,
             "recommendation_score": recommendation_score,
             "attendance_qr_open": bool(event.attendance_qr_open),
+            "collect_feedback": bool(event.collect_feedback),
         })
     return result
 
@@ -350,6 +352,7 @@ def get_event(
         "is_rsvped": is_rsvped,
         "recent_activity": recent_rsvps,
         "attendance_qr_open": bool(event.attendance_qr_open),
+        "collect_feedback": bool(event.collect_feedback),
     }
 
 
@@ -373,6 +376,7 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
         payment_link=event.payment_link,
         is_paid=event.is_paid,
         registration_fees=event.registration_fees,
+        collect_feedback=event.collect_feedback,
     )
     db.add(db_event)
     db.commit()
@@ -396,6 +400,7 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
         "registration_fees": db_event.registration_fees,
         "rsvp_count": 0,
         "attendance_qr_open": bool(db_event.attendance_qr_open),
+        "collect_feedback": bool(db_event.collect_feedback),
     }
 
 
@@ -543,6 +548,8 @@ def update_event(event_id: UUID, event_update: EventUpdate, db: Session = Depend
         event.is_paid = event_update.is_paid
     if event_update.registration_fees is not None:
         event.registration_fees = event_update.registration_fees
+    if event_update.collect_feedback is not None:
+        event.collect_feedback = event_update.collect_feedback
 
     db.commit()
     db.refresh(event)
@@ -568,6 +575,7 @@ def update_event(event_id: UUID, event_update: EventUpdate, db: Session = Depend
         "registration_fees": event.registration_fees,
         "rsvp_count": rsvp_count,
         "attendance_qr_open": bool(event.attendance_qr_open),
+        "collect_feedback": bool(event.collect_feedback),
     }
 
 
@@ -639,6 +647,38 @@ def close_event_attendance_qr(event_id: UUID, db: Session = Depends(get_db), cur
         "status": "success",
         "event_id": event.id,
         "attendance_qr_open": False,
+    }
+
+
+@router.get("/{event_id}/feedback", response_model=EventFeedbackListResponse)
+def get_event_feedback(event_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get collected attendee feedback for an event (club admin owner only)."""
+    event = _require_admin_owned_event(event_id, db, current_user)
+
+    rows = (
+        db.query(RSVP, User)
+        .join(User, RSVP.user_id == User.id)
+        .filter(RSVP.event_id == event.id, RSVP.feedback_text.isnot(None))
+        .order_by(RSVP.attended_marked_at.desc())
+        .all()
+    )
+
+    responses = [
+        {
+            "rsvp_id": rsvp.id,
+            "user_id": rsvp.user_id,
+            "name": user.name,
+            "email": user.email,
+            "feedback_text": rsvp.feedback_text,
+            "attended_marked_at": rsvp.attended_marked_at,
+        }
+        for rsvp, user in rows
+    ]
+
+    return {
+        "event_id": event.id,
+        "feedback_count": len(responses),
+        "responses": responses,
     }
 
 

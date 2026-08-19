@@ -279,6 +279,11 @@ const CreateEventTab = ({
                 </div>
               </div>
             )}
+
+            <div className="mb-2 flex items-center gap-2">
+              <input type="checkbox" id="collect_feedback" checked={newEvent.collect_feedback || false} onChange={(event) => setNewEvent((previous) => ({ ...previous, collect_feedback: event.target.checked }))} className="size-4 cursor-pointer rounded-full border border-border-subtle bg-surface-muted text-primary focus:ring-2 focus:ring-primary" />
+              <Label htmlFor="collect_feedback" className="text-sm">Collect feedback from attendees at check-in</Label>
+            </div>
           </section>
 
           <Button type="submit" disabled={creating || creatingPoster || creatingPaymentQr} className="h-12 w-full text-sm font-semibold">

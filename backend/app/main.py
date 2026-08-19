@@ -267,6 +267,42 @@ def ensure_event_attendance_qr_open_column() -> None:
         print(f"⚠️  Could not auto-add 'attendance_qr_open' column: {exc}")
 
 
+def ensure_event_collect_feedback_column() -> None:
+    """Add the collect_feedback column for older databases."""
+    try:
+        inspector = inspect(engine)
+        if "events" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("events")}
+        if "collect_feedback" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE events ADD COLUMN collect_feedback BOOLEAN DEFAULT FALSE"))
+        print("ℹ️  Added missing 'collect_feedback' column to events table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'collect_feedback' column: {exc}")
+
+
+def ensure_rsvp_feedback_text_column() -> None:
+    """Add the feedback_text column for older databases."""
+    try:
+        inspector = inspect(engine)
+        if "rsvps" not in inspector.get_table_names():
+            return
+
+        existing_columns = {col["name"] for col in inspector.get_columns("rsvps")}
+        if "feedback_text" in existing_columns:
+            return
+
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE rsvps ADD COLUMN feedback_text VARCHAR(100)"))
+        print("ℹ️  Added missing 'feedback_text' column to rsvps table")
+    except Exception as exc:
+        print(f"⚠️  Could not auto-add 'feedback_text' column: {exc}")
+
+
 def ensure_event_poster_columns() -> None:
     """Add event asset metadata columns for Supabase Storage lifecycle if missing."""
     try:
@@ -353,6 +389,8 @@ ensure_club_member_admin_access_column()
 ensure_event_attendance_qr_code_column()
 ensure_event_attendance_qr_open_column()
 ensure_event_short_code_column()
+ensure_event_collect_feedback_column()
+ensure_rsvp_feedback_text_column()
 ensure_event_poster_columns()
 normalize_legacy_cse_entries()
 

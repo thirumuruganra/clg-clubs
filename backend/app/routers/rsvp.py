@@ -274,7 +274,7 @@ def get_user_activity(db: Session = Depends(get_db), current_user: User = Depend
         })
     return activities
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from typing import Optional
 class RSVPAttendUpdate(BaseModel):
@@ -284,6 +284,7 @@ class RSVPAttendUpdate(BaseModel):
 
 class AttendanceCheckinRequest(BaseModel):
     qr_code: str
+    feedback: Optional[str] = Field(None, max_length=100)
 
 @router.patch("/rsvps/{rsvp_id}")
 def update_rsvp_attendance(rsvp_id: UUID, update_data: RSVPAttendUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -347,6 +348,10 @@ def checkin_attendance_via_qr(
     if not event.attendance_qr_open:
         raise HTTPException(status_code=403, detail="Attendance QR is closed for this event")
 
+    feedback_text = (payload.feedback or "").strip() or None
+    if event.collect_feedback and not feedback_text:
+        raise HTTPException(status_code=400, detail="Feedback is required to mark attendance for this event")
+
     attendance_role = _resolve_attendance_role(event, current_user.id, db)
     _ensure_member_assignment(event, current_user.id, attendance_role, db)
 
@@ -365,6 +370,9 @@ def checkin_attendance_via_qr(
                 existing_rsvp.attendance_role = attendance_role
                 existing_rsvp.attended_marked_at = _current_ist_datetime()
                 role_updated = True
+            if feedback_text and existing_rsvp.feedback_text != feedback_text:
+                existing_rsvp.feedback_text = feedback_text
+                role_updated = True
             if role_updated:
                 db.commit()
             return {
@@ -379,6 +387,8 @@ def checkin_attendance_via_qr(
         existing_rsvp.attended = True
         existing_rsvp.attendance_role = attendance_role
         existing_rsvp.attended_marked_at = _current_ist_datetime()
+        if feedback_text:
+            existing_rsvp.feedback_text = feedback_text
         db.commit()
         return {
             "status": "success",
@@ -395,6 +405,7 @@ def checkin_attendance_via_qr(
         attended=True,
         attendance_role=attendance_role,
         attended_marked_at=_current_ist_datetime(),
+        feedback_text=feedback_text,
     )
     db.add(new_rsvp)
     try:
@@ -422,11 +433,19 @@ def checkin_attendance_via_qr(
             concurrent_rsvp.attended = True
             concurrent_rsvp.attendance_role = attendance_role
             concurrent_rsvp.attended_marked_at = _current_ist_datetime()
+            if feedback_text:
+                concurrent_rsvp.feedback_text = feedback_text
             db.commit()
-        elif concurrent_rsvp.attended_marked_at is None or concurrent_rsvp.attendance_role != attendance_role:
+        elif (
+            concurrent_rsvp.attended_marked_at is None
+            or concurrent_rsvp.attendance_role != attendance_role
+            or (feedback_text and concurrent_rsvp.feedback_text != feedback_text)
+        ):
             concurrent_rsvp.attendance_role = attendance_role
             if concurrent_rsvp.attended_marked_at is None:
                 concurrent_rsvp.attended_marked_at = _current_ist_datetime()
+            if feedback_text:
+                concurrent_rsvp.feedback_text = feedback_text
             db.commit()
 
         return {

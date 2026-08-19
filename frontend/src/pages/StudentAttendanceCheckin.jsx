@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 
 const API = '';
+const FEEDBACK_MAX_LENGTH = 100;
 
 const StudentAttendanceCheckin = () => {
   const { user, loading } = useAuth();
@@ -10,10 +11,12 @@ const StudentAttendanceCheckin = () => {
   const eventId = params.get('event_id');
   const qrCode = params.get('qr');
 
+  const [eventLoading, setEventLoading] = useState(true);
+  const [eventInfo, setEventInfo] = useState(null);
+  const [feedbackText, setFeedbackText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [eventTitle, setEventTitle] = useState('');
 
   const buildSuccessMessage = (action, attendanceRole) => {
     const roleLabel = attendanceRole === 'CLUB_MEMBER'
@@ -35,52 +38,80 @@ const StudentAttendanceCheckin = () => {
     return Boolean(user && eventId && qrCode);
   }, [user, eventId, qrCode]);
 
+  const submitCheckin = async (feedbackValue) => {
+    setSubmitting(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await fetch(`${API}/api/rsvp/events/${eventId}/attendance/checkin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qr_code: qrCode, feedback: feedbackValue || undefined }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'Unable to mark attendance.');
+      }
+
+      const data = await res.json();
+      setSuccess(buildSuccessMessage(data.action, data.attendance_role));
+    } catch (err) {
+      setError(err.message || 'Unable to mark attendance.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   useEffect(() => {
-    if (!canAttemptCheckin) return;
+    if (!canAttemptCheckin) {
+      setEventLoading(false);
+      return;
+    }
 
     let cancelled = false;
 
-    const runCheckin = async () => {
-      setSubmitting(true);
-      setError('');
-      setSuccess('');
+    const loadEventThenCheckin = async () => {
+      setEventLoading(true);
+      let eventData = null;
 
       try {
         const eventRes = await fetch(`${API}/api/events/${eventId}?user_id=${user.id}`);
-        if (eventRes.ok && !cancelled) {
-          const eventData = await eventRes.json();
-          setEventTitle(eventData.title || '');
+        if (eventRes.ok) {
+          eventData = await eventRes.json();
+          if (!cancelled) setEventInfo(eventData);
         }
-
-        const res = await fetch(`${API}/api/rsvp/events/${eventId}/attendance/checkin`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ qr_code: qrCode }),
-        });
-
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.detail || 'Unable to mark attendance.');
-        }
-
-        const data = await res.json();
-        if (cancelled) return;
-
-        setSuccess(buildSuccessMessage(data.action, data.attendance_role));
-      } catch (err) {
-        if (cancelled) return;
-        setError(err.message || 'Unable to mark attendance.');
       } finally {
-        if (!cancelled) setSubmitting(false);
+        if (!cancelled) setEventLoading(false);
+      }
+
+      // Events that don't require feedback keep the original auto check-in
+      // behavior; feedback-required events wait for the form below instead.
+      if (!cancelled && !(eventData && eventData.collect_feedback)) {
+        await submitCheckin(null);
       }
     };
 
-    void runCheckin();
+    void loadEventThenCheckin();
 
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canAttemptCheckin, eventId, qrCode, user]);
+
+  const handleFeedbackSubmit = (e) => {
+    e.preventDefault();
+    const trimmedFeedback = feedbackText.trim();
+    if (!trimmedFeedback) {
+      setError('Feedback is required to mark attendance for this event.');
+      return;
+    }
+    void submitCheckin(trimmedFeedback);
+  };
+
+  const needsFeedbackForm = Boolean(eventInfo?.collect_feedback) && !success;
 
   const renderBody = () => {
     if (!eventId || !qrCode) {
@@ -122,13 +153,60 @@ const StudentAttendanceCheckin = () => {
 
     return (
       <div className="space-y-4">
-        {eventTitle && (
+        {eventInfo?.title && (
           <p className="text-sm text-text-secondary dark:text-text-dark-secondary">
-            Event: <span className="font-semibold text-slate-800 dark:text-white">{eventTitle}</span>
+            Event: <span className="font-semibold text-slate-800 dark:text-white">{eventInfo.title}</span>
           </p>
         )}
 
-        {submitting && (
+        {eventLoading && (
+          <div className="flex items-center gap-2 text-sm text-text-secondary dark:text-text-dark-secondary">
+            <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></span>
+            Loading event...
+          </div>
+        )}
+
+        {!eventLoading && needsFeedbackForm && (
+          <form onSubmit={handleFeedbackSubmit} className="space-y-3">
+            <div>
+              <label htmlFor="attendance-feedback" className="mb-1 block text-sm font-semibold text-slate-800 dark:text-white">
+                Share quick feedback to mark your attendance
+              </label>
+              <textarea
+                id="attendance-feedback"
+                required
+                maxLength={FEEDBACK_MAX_LENGTH}
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder="What did you think of this event?"
+                rows={3}
+                className="w-full rounded-lg border border-border-subtle bg-transparent px-3 py-2 text-sm text-slate-800 focus:border-primary focus:outline-none dark:border-border-strong dark:text-white"
+              />
+              <p className="mt-1 text-right text-xs text-text-secondary dark:text-text-dark-secondary">
+                {feedbackText.length}/{FEEDBACK_MAX_LENGTH}
+              </p>
+            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? (
+                <>
+                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                  Submit & Mark Attendance
+                </>
+              )}
+            </button>
+          </form>
+        )}
+
+        {!eventLoading && !needsFeedbackForm && submitting && (
           <div className="flex items-center gap-2 text-sm text-text-secondary dark:text-text-dark-secondary">
             <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></span>
             Marking your attendance...
@@ -155,14 +233,16 @@ const StudentAttendanceCheckin = () => {
             <span className="material-symbols-outlined text-[18px]">dashboard</span>
             Go to Dashboard
           </Link>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="inline-flex items-center gap-2 rounded-lg border border-border-subtle px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-surface-muted dark:border-border-strong dark:text-white dark:hover:bg-border-strong"
-          >
-            <span className="material-symbols-outlined text-[18px]">refresh</span>
-            Retry
-          </button>
+          {!needsFeedbackForm && (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 rounded-lg border border-border-subtle px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-surface-muted dark:border-border-strong dark:text-white dark:hover:bg-border-strong"
+            >
+              <span className="material-symbols-outlined text-[18px]">refresh</span>
+              Retry
+            </button>
+          )}
         </div>
       </div>
     );

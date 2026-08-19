@@ -21,6 +21,7 @@ class RSVP(Base):
     attended_marked_at = Column(DateTime, nullable=True)
     attendance_role = Column(String(20), nullable=True)
     is_paid = Column(Boolean, default=False)
+    feedback_text = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Prevent duplicate RSVPs

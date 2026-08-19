@@ -36,6 +36,7 @@ class Event(Base):
     attendance_qr_code = Column(String(64), nullable=True, index=True)
     attendance_qr_open = Column(Boolean, default=False)
     short_code = Column(String(10), unique=True, nullable=True, index=True)
+    collect_feedback = Column(Boolean, default=False)
 
     # Relationships
     club = relationship("Club", back_populates="events")

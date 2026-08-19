@@ -141,6 +141,7 @@ class EventBase(BaseModel):
     payment_link: Optional[str] = None
     is_paid: Optional[bool] = False
     registration_fees: Optional[str] = None
+    collect_feedback: Optional[bool] = False
 
     @field_validator("image_url")
     @classmethod
@@ -167,6 +168,7 @@ class EventUpdate(BaseModel):
     payment_link: Optional[str] = None
     is_paid: Optional[bool] = None
     registration_fees: Optional[str] = None
+    collect_feedback: Optional[bool] = None
 
     @field_validator("image_url")
     @classmethod
@@ -232,6 +234,21 @@ class EventRSVPResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class EventFeedbackEntryResponse(BaseModel):
+    rsvp_id: UUID
+    user_id: UUID
+    name: Optional[str] = None
+    email: str
+    feedback_text: str
+    attended_marked_at: Optional[datetime] = None
+
+
+class EventFeedbackListResponse(BaseModel):
+    event_id: UUID
+    feedback_count: int
+    responses: List[EventFeedbackEntryResponse]
 
 
 # ===== FOLLOW SCHEMAS =====
