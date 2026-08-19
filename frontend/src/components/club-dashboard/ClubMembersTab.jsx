@@ -257,7 +257,7 @@ const ClubMembersTab = ({
       </div>
 
       {addMemberOpen && (
-        <div className="fixed inset-0 z-1100 flex items-center justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:p-5" onClick={onCloseAddMember}>
+        <div className="fixed inset-0 z-1100 flex items-center justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:p-5 lg:left-64" onClick={onCloseAddMember}>
           <div
             className="flex w-[min(96vw,76rem)] max-h-[92dvh] flex-col overflow-hidden rounded-2xl border border-border-subtle bg-surface-panel shadow-soft-xl dark:border-border-strong dark:bg-surface-elevated"
             onClick={(event) => event.stopPropagation()}
