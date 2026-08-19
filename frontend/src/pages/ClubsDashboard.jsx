@@ -2153,7 +2153,7 @@ const ClubsDashboard = () => {
               )}
               <div className="flex items-center gap-2 mb-2">
                 <input type="checkbox" id="edit_collect_feedback" checked={editEvent.collect_feedback || false} onChange={e => setEditEvent(p => ({ ...p, collect_feedback: e.target.checked }))} className="size-4 rounded-full border border-border-subtle bg-surface-muted text-primary focus:ring-2 focus:ring-primary cursor-pointer" />
-                <Label htmlFor="edit_collect_feedback" className="text-sm">Collect feedback from attendees at check-in</Label>
+                <Label htmlFor="edit_collect_feedback" className="text-sm">Collect feedback from attendees</Label>
               </div>
               <div>
                 <Label className="mb-2 block text-xs text-text-secondary dark:text-text-dark-secondary">Category</Label>
