@@ -340,16 +340,18 @@ def checkin_attendance_via_qr(
         raise HTTPException(status_code=403, detail="Attendance QR is closed for this event")
 
     feedback_text = (payload.feedback or "").strip() or None
-    if event.collect_feedback and not feedback_text:
-        raise HTTPException(status_code=400, detail="Feedback is required to mark attendance for this event")
-
-    attendance_role = _resolve_attendance_role(event, current_user.id, db)
-    _ensure_member_assignment(event, current_user.id, attendance_role, db)
 
     existing_rsvp = db.query(RSVP).filter(
         RSVP.user_id == current_user.id,
         RSVP.event_id == event_id,
     ).first()
+    already_attended = bool(existing_rsvp and existing_rsvp.attended)
+
+    if event.collect_feedback and not feedback_text and not already_attended:
+        raise HTTPException(status_code=400, detail="Feedback is required to mark attendance for this event")
+
+    attendance_role = _resolve_attendance_role(event, current_user.id, db)
+    _ensure_member_assignment(event, current_user.id, attendance_role, db)
 
     if existing_rsvp:
         if existing_rsvp.attended:
@@ -361,7 +363,7 @@ def checkin_attendance_via_qr(
                 existing_rsvp.attendance_role = attendance_role
                 existing_rsvp.attended_marked_at = _current_ist_datetime()
                 role_updated = True
-            if feedback_text and existing_rsvp.feedback_text != feedback_text:
+            if feedback_text and not existing_rsvp.feedback_text:
                 existing_rsvp.feedback_text = feedback_text
                 role_updated = True
             if role_updated:
@@ -430,12 +432,12 @@ def checkin_attendance_via_qr(
         elif (
             concurrent_rsvp.attended_marked_at is None
             or concurrent_rsvp.attendance_role != attendance_role
-            or (feedback_text and concurrent_rsvp.feedback_text != feedback_text)
+            or (feedback_text and not concurrent_rsvp.feedback_text)
         ):
             concurrent_rsvp.attendance_role = attendance_role
             if concurrent_rsvp.attended_marked_at is None:
                 concurrent_rsvp.attended_marked_at = _current_ist_datetime()
-            if feedback_text:
+            if feedback_text and not concurrent_rsvp.feedback_text:
                 concurrent_rsvp.feedback_text = feedback_text
             db.commit()
 

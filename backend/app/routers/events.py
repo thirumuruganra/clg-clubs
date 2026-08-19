@@ -320,11 +320,12 @@ def get_event(
     club = db.query(Club).filter(Club.id == event.club_id).first()
     rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
 
-    is_rsvped = False
+    personal_rsvp = None
     if personalization_user_id:
-        is_rsvped = db.query(RSVP).filter(
+        personal_rsvp = db.query(RSVP).filter(
             RSVP.event_id == event.id, RSVP.user_id == personalization_user_id
-        ).first() is not None
+        ).first()
+    is_rsvped = personal_rsvp is not None
 
     # Live activity: RSVPs in the last hour
     one_hour_ago = datetime.utcnow() - timedelta(hours=1)
@@ -351,6 +352,7 @@ def get_event(
         "registration_fees": event.registration_fees,
         "rsvp_count": rsvp_count,
         "is_rsvped": is_rsvped,
+        "attended": bool(personal_rsvp.attended) if personal_rsvp else False,
         "recent_activity": recent_rsvps,
         "attendance_qr_open": bool(event.attendance_qr_open),
         "collect_feedback": bool(event.collect_feedback),

@@ -86,9 +86,10 @@ const StudentAttendanceCheckin = () => {
         if (!cancelled) setEventLoading(false);
       }
 
-      // Events that don't require feedback keep the original auto check-in
-      // behavior; feedback-required events wait for the form below instead.
-      if (!cancelled && !(eventData && eventData.collect_feedback)) {
+      // Events that don't require feedback (or where this student already
+      // attended) keep the original auto check-in behavior; only a
+      // first-time feedback-required check-in waits for the form below.
+      if (!cancelled && !(eventData && eventData.collect_feedback && !eventData.attended)) {
         await submitCheckin(null);
       }
     };
@@ -111,7 +112,7 @@ const StudentAttendanceCheckin = () => {
     void submitCheckin(trimmedFeedback);
   };
 
-  const needsFeedbackForm = Boolean(eventInfo?.collect_feedback) && !success;
+  const needsFeedbackForm = Boolean(eventInfo?.collect_feedback) && !eventInfo?.attended && !success;
 
   const renderBody = () => {
     if (!eventId || !qrCode) {
