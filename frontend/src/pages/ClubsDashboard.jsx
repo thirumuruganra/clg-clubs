@@ -1438,6 +1438,56 @@ const ClubsDashboard = () => {
   };
 
 
+  const handleToggleAllAttendance = async () => {
+    const rsvps = rsvpModal.rsvps;
+    if (rsvps.length === 0) return;
+    const newStatus = !rsvps.every((r) => r.attended);
+    const toUpdate = rsvps.filter((r) => r.attended !== newStatus);
+    if (toUpdate.length === 0) return;
+
+    setRsvpModal(prev => ({
+      ...prev,
+      rsvps: prev.rsvps.map(r => ({ ...r, attended: newStatus }))
+    }));
+    setEvents(prev => prev.map(e => {
+      if (e.id === rsvpModal.event.id) {
+        const delta = newStatus ? toUpdate.length : -toUpdate.length;
+        return { ...e, attended_count: (e.attended_count || 0) + delta };
+      }
+      return e;
+    }));
+
+    const results = await Promise.allSettled(
+      toUpdate.map((r) =>
+        fetch(`${API}/api/rsvp/rsvps/${r.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attended: newStatus })
+        }).then((res) => { if (!res.ok) throw new Error('API Error'); })
+      )
+    );
+
+    const failedIds = new Set();
+    results.forEach((result, i) => {
+      if (result.status === 'rejected') failedIds.add(toUpdate[i].id);
+    });
+
+    if (failedIds.size > 0) {
+      console.error(`Failed to update attendance for ${failedIds.size} record(s)`);
+      setRsvpModal(prev => ({
+        ...prev,
+        rsvps: prev.rsvps.map(r => failedIds.has(r.id) ? { ...r, attended: !newStatus } : r)
+      }));
+      setEvents(prev => prev.map(e => {
+        if (e.id === rsvpModal.event.id) {
+          const delta = newStatus ? -failedIds.size : failedIds.size;
+          return { ...e, attended_count: (e.attended_count || 0) + delta };
+        }
+        return e;
+      }));
+    }
+  };
+
   const handleTogglePayment = async (rsvpId, currentStatus) => {
     const newStatus = !currentStatus;
     setRsvpModal(prev => ({
@@ -2551,7 +2601,17 @@ const ClubsDashboard = () => {
                             <th className="px-2.5 py-2">ATTENDANCE MARKED AT</th>
                           )}
                           <th className="px-2.5 py-2 text-center border-l border-border-subtle dark:border-border-strong">
-                              {rsvpModal.tab === 'payment' ? 'PAID' : 'ATTENDED'}
+                              {rsvpModal.tab === 'payment' ? 'PAID' : (
+                                <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={rsvpModal.rsvps.length > 0 && rsvpModal.rsvps.every((rsvp) => rsvp.attended)}
+                                    onChange={handleToggleAllAttendance}
+                                    className="size-4 rounded border border-border-subtle bg-surface-muted text-primary focus:ring-primary cursor-pointer"
+                                  />
+                                  ATTENDED
+                                </label>
+                              )}
                           </th>
                         </tr>
                       </thead>
