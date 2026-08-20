@@ -855,6 +855,35 @@ body,
   display: none;
 }
 
+.feedback-table-scroll {
+  max-height: min(52dvh, 32rem);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-color: color-mix(in oklab, var(--color-border-strong) 82%, var(--color-primary)) transparent;
+  scrollbar-width: thin;
+}
+
+.feedback-table-scroll::-webkit-scrollbar {
+  display: block;
+  height: 0.5rem;
+  width: 0.5rem;
+}
+
+.feedback-table-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--color-border-strong) 82%, var(--color-primary));
+  border-radius: var(--radius-full);
+}
+
+.feedback-table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.feedback-table-scroll thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 @media (max-width: 767px) {
   .modal-panel {
     max-height: 86dvh;

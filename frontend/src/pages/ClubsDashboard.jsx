@@ -2337,7 +2337,7 @@ const ClubsDashboard = () => {
                   description="Responses will appear here as attendees check in."
                 />
               ) : (
-                <div className="border border-border-subtle dark:border-border-strong rounded-xl overflow-hidden table-scroll">
+                <div className="feedback-table-scroll rounded-xl border border-border-subtle dark:border-border-strong">
                   <table className="w-full min-w-130 text-sm text-left">
                     <thead className="bg-surface-muted dark:bg-[#111a22] border-b border-border-subtle dark:border-border-strong text-xs uppercase text-text-secondary dark:text-text-dark-secondary font-bold">
                       <tr>
