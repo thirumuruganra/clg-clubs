@@ -287,12 +287,14 @@ def update_rsvp_attendance(rsvp_id: UUID, update_data: RSVPAttendUpdate, db: Ses
     _verify_admin_owns_event(rsvp.event_id, db, current_user)
 
     if update_data.attended is not None:
+        was_attended = rsvp.attended
         rsvp.attended = update_data.attended
         if update_data.attended:
             attendance_role = _resolve_attendance_role(rsvp.event, rsvp.user_id, db)
             _ensure_member_assignment(rsvp.event, rsvp.user_id, attendance_role, db)
             rsvp.attendance_role = attendance_role
-            rsvp.attended_marked_at = _current_ist_datetime()
+            if not was_attended or rsvp.attended_marked_at is None:
+                rsvp.attended_marked_at = _current_ist_datetime()
         else:
             rsvp.attendance_role = None
             rsvp.attended_marked_at = None
