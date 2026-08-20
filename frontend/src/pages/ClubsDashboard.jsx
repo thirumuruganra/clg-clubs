@@ -2269,7 +2269,7 @@ const ClubsDashboard = () => {
               </IconButton>
             </div>
 
-            <div className="p-5 flex flex-col gap-3 overflow-y-auto">
+            <div className="p-5 flex flex-col gap-3 overflow-y-auto flex-1">
               {feedbackModal.error ? <Toast tone="error" title="Failed to load feedback" description={feedbackModal.error} /> : null}
 
               {feedbackModal.loading ? (
