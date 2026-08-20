@@ -347,11 +347,6 @@ def checkin_attendance_via_qr(
         RSVP.user_id == current_user.id,
         RSVP.event_id == event_id,
     ).first()
-    already_attended = bool(existing_rsvp and existing_rsvp.attended)
-
-    if event.collect_feedback and not feedback_text and not already_attended:
-        raise HTTPException(status_code=400, detail="Feedback is required to mark attendance for this event")
-
     attendance_role = _resolve_attendance_role(event, current_user.id, db)
     _ensure_member_assignment(event, current_user.id, attendance_role, db)
 
