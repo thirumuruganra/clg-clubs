@@ -1321,7 +1321,13 @@ const ClubsDashboard = () => {
         throw new Error(data.detail || 'Failed to load feedback.');
       }
       const data = await res.json();
-      setFeedbackModal(prev => ({ ...prev, loading: false, responses: data.responses || [] }));
+      const responses = [...(data.responses || [])].sort((a, b) => {
+        const yearDiff = (YEAR_RANK[calculateYear(b.batch, b.degree, b.register_number)] ?? -1)
+          - (YEAR_RANK[calculateYear(a.batch, a.degree, a.register_number)] ?? -1);
+        if (yearDiff !== 0) return yearDiff;
+        return (a.name || a.email || '').localeCompare(b.name || b.email || '');
+      });
+      setFeedbackModal(prev => ({ ...prev, loading: false, responses }));
     } catch (err) {
       setFeedbackModal(prev => ({ ...prev, loading: false, error: err.message || 'Failed to load feedback.' }));
     }
