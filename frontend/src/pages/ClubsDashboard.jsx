@@ -2308,8 +2308,8 @@ const ClubsDashboard = () => {
 
       {feedbackModal.open && (
         <div className="fixed inset-y-0 left-0 right-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-y lg:left-64" onClick={closeFeedbackModal}>
-          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] border border-border-subtle dark:border-border-strong flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-border-subtle dark:border-border-strong">
+          <div className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] border border-border-subtle dark:border-border-strong flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-border-subtle dark:border-border-strong shrink-0">
               <div>
                 <h2 className="text-lg font-bold">Attendee Feedback</h2>
                 <p className="mt-1 text-xs text-text-secondary dark:text-text-dark-secondary">{feedbackModal.event?.title || 'Event'}</p>
@@ -2319,7 +2319,7 @@ const ClubsDashboard = () => {
               </IconButton>
             </div>
 
-            <div className="p-5 flex flex-col gap-3 overflow-y-auto flex-1">
+            <div className="p-5 flex flex-col gap-3 overflow-y-auto flex-1 min-h-0">
               {feedbackModal.error ? <Toast tone="error" title="Failed to load feedback" description={feedbackModal.error} /> : null}
 
               {feedbackModal.loading ? (
