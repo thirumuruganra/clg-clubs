@@ -60,12 +60,20 @@ const StudentClubs = () => {
     }
   }, [user, loading, navigate, fetchClubs]);
 
+  const setClubFollowState = (clubId, isFollowing) => {
+    setClubs((prev) => prev.map((club) => (
+      club.id === clubId
+        ? { ...club, is_following: isFollowing, follower_count: club.follower_count + (isFollowing ? 1 : -1) }
+        : club
+    )));
+  };
+
   const handleFollow = async (clubId) => {
     setFollowError('');
     try {
       const res = await fetch(`${API}/api/follow/clubs/${clubId}/follow`, { method: 'POST' });
       if (res.ok) {
-        await fetchClubs();
+        setClubFollowState(clubId, true);
       } else {
         const data = await res.json();
         setFollowError(data.detail || 'Could not follow this club right now.');
@@ -81,7 +89,7 @@ const StudentClubs = () => {
     try {
       const res = await fetch(`${API}/api/follow/clubs/${clubId}/follow`, { method: 'DELETE' });
       if (res.ok) {
-        await fetchClubs();
+        setClubFollowState(clubId, false);
       }
     } catch (err) {
       console.error(err);
