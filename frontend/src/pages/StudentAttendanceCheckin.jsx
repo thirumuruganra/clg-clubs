@@ -212,10 +212,11 @@ const StudentAttendanceCheckin = () => {
           <form onSubmit={handleFeedbackSubmit} className="space-y-3">
             <div>
               <label htmlFor="attendance-feedback" className="mb-1 block text-sm font-semibold text-slate-800 dark:text-white">
-                Share quick feedback (optional)
+                Share quick feedback to complete check-in
               </label>
               <textarea
                 id="attendance-feedback"
+                required
                 maxLength={FEEDBACK_MAX_LENGTH}
                 value={feedbackText}
                 onChange={(e) => setFeedbackText(e.target.value)}
@@ -258,23 +259,25 @@ const StudentAttendanceCheckin = () => {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-3">
-          <Link
-            to="/student/dashboard"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary/90 transition-colors"
-          >
-            <span className="material-symbols-outlined text-[18px]">dashboard</span>
-            Go to Dashboard
-          </Link>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="inline-flex items-center gap-2 rounded-lg border border-border-subtle px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-surface-muted dark:border-border-strong dark:text-white dark:hover:bg-border-strong"
-          >
-            <span className="material-symbols-outlined text-[18px]">refresh</span>
-            Retry
-          </button>
-        </div>
+        {!showFeedbackPrompt && (
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/student/dashboard"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary/90 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[18px]">dashboard</span>
+              Go to Dashboard
+            </Link>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 rounded-lg border border-border-subtle px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-surface-muted dark:border-border-strong dark:text-white dark:hover:bg-border-strong"
+            >
+              <span className="material-symbols-outlined text-[18px]">refresh</span>
+              Retry
+            </button>
+          </div>
+        )}
       </div>
     );
   };
