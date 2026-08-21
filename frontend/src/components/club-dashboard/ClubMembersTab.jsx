@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { SearchBar } from '../ui/search-bar';
 import { Switch } from '../ui/switch';
+import { Toast } from '../ui/toast';
 
 const ClubMembersTab = ({
   members,
@@ -98,21 +99,18 @@ const ClubMembersTab = ({
       </div>
 
       {membersError && (
-        <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{membersError}</p>
+        <Toast tone="error" title="Unable to load members" description={membersError} className="mb-4" />
       )}
       {memberActionError && (
-        <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{memberActionError}</p>
+        <Toast tone="error" title="Member action failed" description={memberActionError} className="mb-4" />
       )}
       {memberActionSuccess && (
-        <p
-          className={
-            memberActionTone === 'danger'
-              ? 'mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500'
-              : 'mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400'
-          }
-        >
-          {memberActionSuccess}
-        </p>
+        <Toast
+          tone={memberActionTone === 'danger' ? 'warning' : 'success'}
+          title="Member updated"
+          description={memberActionSuccess}
+          className="mb-4"
+        />
       )}
 
       <div className="table-scroll overflow-hidden rounded-xl border border-border-subtle bg-surface-panel shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">

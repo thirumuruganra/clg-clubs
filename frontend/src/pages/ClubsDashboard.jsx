@@ -766,10 +766,11 @@ const ClubsDashboard = () => {
         throw new Error(payload.detail || 'Failed to add club member.');
       }
 
+      const addedMember = await response.json();
+      setMembers((prev) => [...prev, addedMember]);
       setMemberActionTone('success');
       setMemberActionSuccess('Member added successfully.');
       setStudentResults((prev) => prev.filter((student) => student.id !== studentId));
-      await fetchMembers(club.id, { force: true });
     } catch (err) {
       setMemberActionError(err?.message || 'Failed to add club member.');
     }
@@ -795,9 +796,9 @@ const ClubsDashboard = () => {
         throw new Error(payload.detail || 'Failed to remove club member.');
       }
 
+      setMembers((prev) => prev.filter((existing) => existing.user_id !== member.user_id));
       setMemberActionTone('danger');
       setMemberActionSuccess('Member removed successfully.');
-      await fetchMembers(club.id, { force: true });
     } catch (err) {
       setMemberActionError(err?.message || 'Failed to remove club member.');
     }
