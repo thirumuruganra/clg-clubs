@@ -35,7 +35,7 @@ const StudentCalendar = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [clubs, setClubs] = useState([]);
-  const [dayEventsModal, setDayEventsModal] = useState({ open: false, day: null, events: [] });
+  const [dayEventsModal, setDayEventsModal] = useState({ open: false, date: null, events: [] });
   const [shareCopied, setShareCopied] = useState(false);
 
   const fetchEvents = useCallback(async () => {
@@ -181,27 +181,30 @@ const StudentCalendar = () => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const getEventsForDay = (day) => filteredEvents.filter((event) => {
+  const getEventsForDay = (date) => filteredEvents.filter((event) => {
     if (!event.start_time) return false;
-    const date = new Date(event.start_time);
-    return date.getFullYear() === year && date.getMonth() === month && date.getDate() === day;
+    const eventDate = new Date(event.start_time);
+    return eventDate.getFullYear() === date.getFullYear() && eventDate.getMonth() === date.getMonth() && eventDate.getDate() === date.getDate();
   });
 
   const myScheduleCount = events.filter((event) => event.is_rsvped).length;
-  const openDayEventsModal = (day, dayEvents) => {
+  const openDayEventsModal = (date, dayEvents) => {
     setDayEventsModal({
       open: true,
-      day,
+      date,
       events: [...dayEvents].sort((a, b) => new Date(a.start_time || 0) - new Date(b.start_time || 0)),
     });
   };
 
   const calendarDays = [];
   const prevMonthDays = new Date(year, month, 0).getDate();
-  for (let i = firstDayOfWeek - 1; i >= 0; i -= 1) calendarDays.push({ day: prevMonthDays - i, current: false });
-  for (let day = 1; day <= daysInMonth; day += 1) calendarDays.push({ day, current: true });
+  for (let i = firstDayOfWeek - 1; i >= 0; i -= 1) {
+    const day = prevMonthDays - i;
+    calendarDays.push({ day, current: false, date: new Date(year, month - 1, day) });
+  }
+  for (let day = 1; day <= daysInMonth; day += 1) calendarDays.push({ day, current: true, date: new Date(year, month, day) });
   const remaining = 42 - calendarDays.length;
-  for (let day = 1; day <= remaining; day += 1) calendarDays.push({ day, current: false });
+  for (let day = 1; day <= remaining; day += 1) calendarDays.push({ day, current: false, date: new Date(year, month + 1, day) });
 
   const isToday = (day) => today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
 
@@ -239,7 +242,7 @@ const StudentCalendar = () => {
             <div key={day} className="py-1 font-medium text-text-secondary">{day}</div>
           ))}
           {calendarDays.map((dayItem, index) => {
-            const dayEvents = dayItem.current ? getEventsForDay(dayItem.day) : [];
+            const dayEvents = getEventsForDay(dayItem.date);
             const hasEvents = dayEvents.length > 0;
             const dotClass = getMiniCalendarDotClass(dayEvents);
 
@@ -388,7 +391,7 @@ const StudentCalendar = () => {
 
         <div className="grid flex-1 grid-cols-7 border-l border-t border-border-subtle">
           {calendarDays.map((dayItem, index) => {
-            const dayEvents = dayItem.current ? getEventsForDay(dayItem.day) : [];
+            const dayEvents = getEventsForDay(dayItem.date);
 
             return (
               <div
@@ -418,7 +421,7 @@ const StudentCalendar = () => {
                 {dayEvents.length > 2 ? (
                   <button
                     type="button"
-                    onClick={() => openDayEventsModal(dayItem.day, dayEvents)}
+                    onClick={() => openDayEventsModal(dayItem.date, dayEvents)}
                     className="px-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
                   >
                     +{dayEvents.length - 2} more
@@ -585,14 +588,14 @@ const StudentCalendar = () => {
         ) : null}
 
         {dayEventsModal.open ? createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm safe-area-y" onClick={() => setDayEventsModal({ open: false, day: null, events: [] })}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm safe-area-y" onClick={() => setDayEventsModal({ open: false, date: null, events: [] })}>
           <div
             className="w-full max-w-md rounded-2xl border border-border-subtle bg-white p-4 shadow-2xl dark:border-border-strong dark:bg-[#1a2632]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Events on {new Date(year, month, dayEventsModal.day).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</h3>
-              <IconButton ariaLabel="Close day events" variant="soft" size="sm" onClick={() => setDayEventsModal({ open: false, day: null, events: [] })}>
+              <h3 className="text-lg font-semibold">Events on {dayEventsModal.date ? dayEventsModal.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}</h3>
+              <IconButton ariaLabel="Close day events" variant="soft" size="sm" onClick={() => setDayEventsModal({ open: false, date: null, events: [] })}>
                 <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
               </IconButton>
             </div>
@@ -602,7 +605,7 @@ const StudentCalendar = () => {
                   key={event.id}
                   type="button"
                   onClick={() => {
-                    setDayEventsModal({ open: false, day: null, events: [] });
+                    setDayEventsModal({ open: false, date: null, events: [] });
                     void openEventDetail(event.id);
                   }}
                   className="w-full rounded-xl border border-border-subtle bg-surface-muted px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-surface-muted/80 dark:border-border-strong"
