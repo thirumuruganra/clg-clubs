@@ -5,6 +5,7 @@ import { getClubIconUrl, getClubInitial } from '../lib/utils';
 import wavcIcon from '../assets/WAVC-edit.png';
 import { Button } from '../components/ui/button';
 import { FieldMessage } from '../components/ui/field-message';
+import { ActionToast } from '../components/ui/action-toast';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { SearchBar } from '../components/ui/search-bar';
@@ -388,11 +389,7 @@ const StudentProfile = () => {
         </p>
 
         <form onSubmit={handleSave} noValidate className="space-y-8">
-            {saveError ? (
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
-                <FieldMessage tone="error">{saveError}</FieldMessage>
-              </div>
-            ) : null}
+            <ActionToast message={saveError} tone="error" />
 
             <div className="border border-dashed border-border-subtle dark:border-border-strong rounded-xl p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8">
               <div className="w-28 h-28 rounded-full border-2 border-dashed border-text-secondary/30 flex items-center justify-center shrink-0 bg-surface-muted dark:bg-border-strong overflow-hidden">

@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { SearchBar } from '../ui/search-bar';
 import { Switch } from '../ui/switch';
 import { Toast } from '../ui/toast';
+import { ActionToast } from '../ui/action-toast';
 
 const ClubMembersTab = ({
   members,
@@ -30,21 +31,6 @@ const ClubMembersTab = ({
   studentYearOptions,
 }) => {
   const [memberQuery, setMemberQuery] = useState('');
-
-  const actionMessage = memberActionError || memberActionSuccess || null;
-  const [prevActionMessage, setPrevActionMessage] = useState(actionMessage);
-  const [actionToastVisible, setActionToastVisible] = useState(false);
-
-  if (actionMessage !== prevActionMessage) {
-    setPrevActionMessage(actionMessage);
-    setActionToastVisible(Boolean(actionMessage));
-  }
-
-  useEffect(() => {
-    if (!actionToastVisible) return undefined;
-    const timer = setTimeout(() => setActionToastVisible(false), 3000);
-    return () => clearTimeout(timer);
-  }, [actionToastVisible, actionMessage]);
 
   const yearRank = { I: 1, II: 2, III: 3, IV: 4, V: 5, Alumni: 6, '-': 7 };
 
@@ -432,18 +418,11 @@ const ClubMembersTab = ({
         </div>
       )}
 
-      {actionToastVisible && (
-        <div className="fixed inset-x-0 bottom-4 z-1200 flex justify-center px-4 sm:bottom-6 lg:left-64 lg:px-0">
-          <div className="enter-rise inline-flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full bg-white px-3.5 py-2 shadow-soft-lg">
-            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${memberActionError ? 'bg-red-500' : 'bg-emerald-500'}`}>
-              <span className="material-symbols-outlined text-[13px] font-bold text-white">
-                {memberActionError ? 'close' : 'check'}
-              </span>
-            </span>
-            <p className="text-sm font-semibold text-slate-900">{memberActionError || memberActionSuccess}</p>
-          </div>
-        </div>
-      )}
+      <ActionToast
+        message={memberActionError || memberActionSuccess}
+        tone={memberActionError ? 'error' : 'success'}
+        className="lg:left-64 lg:px-0"
+      />
     </div>
   );
 };
