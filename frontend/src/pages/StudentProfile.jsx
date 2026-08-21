@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import { getClubIconUrl, getClubInitial } from '../lib/utils';
@@ -54,6 +54,7 @@ const DEGREE_OPTIONS = [
   'M.Tech',
 ];
 
+const FIELD_ORDER = ['register_number', 'batch', 'department', 'degree', 'section', 'interests'];
 const SECTION_OPTIONS = ['A', 'B', 'C'];
 const DEGREES_WITHOUT_SECTIONS = ['M.Tech Integrated'];
 
@@ -132,6 +133,7 @@ const StudentProfile = () => {
   const [interestInput, setInterestInput] = useState('');
   const [fieldErrors, setFieldErrors] = useState(EMPTY_FIELD_ERRORS);
   const [saveError, setSaveError] = useState('');
+  const fieldRefs = useRef({});
   const academicYear = getEffectiveAcademicYear();
   const minPassoutYear = academicYear;
   const maxPassoutYear = academicYear + PASSOUT_YEAR_MAX_AHEAD;
@@ -262,6 +264,12 @@ const StudentProfile = () => {
     setFieldErrors(nextErrors);
     if (hasStudentProfileErrors(nextErrors)) {
       setSaveError('Fix the highlighted fields and try again.');
+      const firstErrorField = FIELD_ORDER.find((field) => nextErrors[field]);
+      const target = fieldRefs.current[firstErrorField];
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.focus({ preventScroll: true });
+      }
       return;
     }
 
@@ -391,6 +399,7 @@ const StudentProfile = () => {
               <div className="space-y-1 md:col-span-2">
                 <Label htmlFor="profile-register-number" required>Register Number</Label>
                 <Input
+                  ref={(el) => { fieldRefs.current.register_number = el; }}
                   id="profile-register-number"
                   type="text"
                   name="register_number"
@@ -412,6 +421,7 @@ const StudentProfile = () => {
               <div className="space-y-1">
                 <Label htmlFor="profile-batch" required>Passout Year</Label>
                 <Input
+                  ref={(el) => { fieldRefs.current.batch = el; }}
                   id="profile-batch"
                   type="text"
                   name="batch"
@@ -435,6 +445,7 @@ const StudentProfile = () => {
               <div className="space-y-1">
                 <Label htmlFor="profile-department" required>Course</Label>
                 <Select
+                  ref={(el) => { fieldRefs.current.department = el; }}
                   id="profile-department"
                   name="department"
                   value={formData.department}
@@ -456,6 +467,7 @@ const StudentProfile = () => {
               <div className="space-y-1">
                 <Label htmlFor="profile-degree" required>Degree</Label>
                 <Select
+                  ref={(el) => { fieldRefs.current.degree = el; }}
                   id="profile-degree"
                   name="degree"
                   value={formData.degree}
@@ -478,6 +490,7 @@ const StudentProfile = () => {
                 <div className="space-y-1">
                   <Label htmlFor="profile-section" required>Section</Label>
                   <Select
+                    ref={(el) => { fieldRefs.current.section = el; }}
                     id="profile-section"
                     name="section"
                     value={formData.section}
@@ -601,7 +614,11 @@ const StudentProfile = () => {
             </div>
 
             {/* Interests Section */}
-            <div className="space-y-3">
+            <div
+              ref={(el) => { fieldRefs.current.interests = el; }}
+              tabIndex={-1}
+              className="space-y-3 focus:outline-none"
+            >
               <div className="flex items-center justify-between">
                 <Label htmlFor="profile-interest-input" required>Interests</Label>
                 <span className="text-xs text-text-secondary dark:text-text-dark-secondary">Select at least 3</span>
