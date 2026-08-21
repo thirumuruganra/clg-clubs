@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { SearchBar } from '../ui/search-bar';
 import { Switch } from '../ui/switch';
 import { Toast } from '../ui/toast';
@@ -31,6 +31,21 @@ const ClubMembersTab = ({
   studentYearOptions,
 }) => {
   const [memberQuery, setMemberQuery] = useState('');
+
+  const actionMessage = memberActionError || memberActionSuccess || null;
+  const [prevActionMessage, setPrevActionMessage] = useState(actionMessage);
+  const [actionToastVisible, setActionToastVisible] = useState(false);
+
+  if (actionMessage !== prevActionMessage) {
+    setPrevActionMessage(actionMessage);
+    setActionToastVisible(Boolean(actionMessage));
+  }
+
+  useEffect(() => {
+    if (!actionToastVisible) return undefined;
+    const timer = setTimeout(() => setActionToastVisible(false), 4000);
+    return () => clearTimeout(timer);
+  }, [actionToastVisible, actionMessage]);
 
   const yearRank = { I: 1, II: 2, III: 3, IV: 4, V: 5, Alumni: 6, '-': 7 };
 
@@ -100,17 +115,6 @@ const ClubMembersTab = ({
 
       {membersError && (
         <Toast tone="error" title="Unable to load members" description={membersError} className="mb-4" />
-      )}
-      {memberActionError && (
-        <Toast tone="error" title="Member action failed" description={memberActionError} className="mb-4" />
-      )}
-      {memberActionSuccess && (
-        <Toast
-          tone={memberActionTone === 'danger' ? 'warning' : 'success'}
-          title="Member updated"
-          description={memberActionSuccess}
-          className="mb-4"
-        />
       )}
 
       <div className="table-scroll overflow-hidden rounded-xl border border-border-subtle bg-surface-panel shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">
@@ -425,6 +429,22 @@ const ClubMembersTab = ({
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {actionToastVisible && (
+        <div className="fixed inset-x-0 bottom-4 z-1200 flex justify-center px-4 sm:bottom-6 lg:left-64 lg:px-0">
+          <div className="enter-rise w-full max-w-sm">
+            {memberActionError ? (
+              <Toast tone="error" title="Member action failed" description={memberActionError} />
+            ) : (
+              <Toast
+                tone={memberActionTone === 'danger' ? 'warning' : 'success'}
+                title="Member updated"
+                description={memberActionSuccess}
+              />
+            )}
           </div>
         </div>
       )}
