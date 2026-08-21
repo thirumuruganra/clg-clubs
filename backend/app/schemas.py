@@ -76,7 +76,6 @@ class UserUpdate(BaseModel):
     degree: Optional[str] = None
     register_number: Optional[str] = None
     section: Optional[str] = None
-    joined_clubs: Optional[List[str]] = None
     interests: Optional[List[str]] = None
 
 

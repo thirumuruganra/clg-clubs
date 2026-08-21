@@ -6,7 +6,6 @@ from uuid import uuid4
 
 from app.services.membership_sync import (
     project_joined_club_names,
-    resolve_requested_clubs,
     sync_user_joined_clubs_projection,
 )
 
@@ -20,17 +19,6 @@ class _FakeDb:
 
 
 class MembershipSyncTests(unittest.TestCase):
-    def test_resolve_requested_clubs_ignores_duplicates_and_unknown_names(self) -> None:
-        robotics = SimpleNamespace(id=uuid4(), name="Robotics Club")
-        ai = SimpleNamespace(id=uuid4(), name="AI Club")
-
-        resolved = resolve_requested_clubs(
-            [robotics, ai],
-            [" robotics club ", "ROBOTICS CLUB", "Unknown Club", "AI Club"],
-        )
-
-        self.assertEqual([club.id for club in resolved], [robotics.id, ai.id])
-
     def test_project_joined_club_names_uses_membership_source_of_truth(self) -> None:
         projected = project_joined_club_names(
             [

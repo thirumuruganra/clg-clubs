@@ -6,7 +6,6 @@ from app.models.user import User
 from app.schemas import UserUpdate
 from app.core.audit import log_security_event
 from app.core.security import get_current_user
-from app.services.membership_sync import add_missing_memberships_for_requested_clubs, sync_user_joined_clubs_projection
 from app.services.authz_rules import require_self_access
 import json
 import re
@@ -211,9 +210,6 @@ def update_user(
             user.section = None if not str(user_update.section).strip() else _validate_section(user_update.section)
         else:
             user.section = _validate_section(user_update.section)
-    if user_update.joined_clubs is not None:
-        add_missing_memberships_for_requested_clubs(db, user, user_update.joined_clubs)
-        sync_user_joined_clubs_projection(db, user)
     if user_update.interests is not None:
         normalized_interests = _normalize_interest_values(user_update.interests)
         if len(normalized_interests) < 3:

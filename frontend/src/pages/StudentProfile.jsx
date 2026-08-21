@@ -124,12 +124,13 @@ const StudentProfile = () => {
   const location = useLocation();
   const returnTo = location.state?.from;
 
-  const [formData, setFormData] = useState({ register_number: '', batch: '', department: '', degree: '', section: '', joined_clubs: [], interests: [] });
+  const [formData, setFormData] = useState({ register_number: '', batch: '', department: '', degree: '', section: '', interests: [] });
   const [clubs, setClubs] = useState([]);
   const [saving, setSaving] = useState(false);
   const [pictureError, setPictureError] = useState(false);
   const [clubSearch, setClubSearch] = useState('');
   const [clubSearchOpen, setClubSearchOpen] = useState(false);
+  const [followError, setFollowError] = useState('');
   const [interestInput, setInterestInput] = useState('');
   const [fieldErrors, setFieldErrors] = useState(EMPTY_FIELD_ERRORS);
   const [saveError, setSaveError] = useState('');
@@ -157,12 +158,11 @@ const StudentProfile = () => {
         department: user.department || '',
         degree: user.degree || '',
         section: user.section || '',
-        joined_clubs: user.joined_clubs || [],
         interests: user.interests || []
       });
       setFieldErrors(EMPTY_FIELD_ERRORS);
       setSaveError('');
-      fetch(`${API}/api/clubs/`).then(r => r.json()).then(setClubs).catch(() => {});
+      fetch(`${API}/api/clubs/?user_id=${user.id}`).then(r => r.json()).then(setClubs).catch(() => {});
     }
   }, [user, loading, navigate]);
 
@@ -209,16 +209,44 @@ const StudentProfile = () => {
     setFieldErrors((prev) => ({ ...prev, interests: nextErrors.interests }));
   };
 
-  const handleAddClub = (clubName) => {
-    if (clubName && !formData.joined_clubs.includes(clubName)) {
-      setFormData(p => ({ ...p, joined_clubs: [...p.joined_clubs, clubName] }));
-    }
-    setClubSearch('');
-    setClubSearchOpen(false);
+  const setClubFollowState = (clubId, isFollowing) => {
+    setClubs((prev) => prev.map((club) => (
+      club.id === clubId
+        ? { ...club, is_following: isFollowing, follower_count: club.follower_count + (isFollowing ? 1 : -1) }
+        : club
+    )));
   };
 
-  const handleRemoveClub = (clubName) => {
-    setFormData(p => ({ ...p, joined_clubs: p.joined_clubs.filter(c => c !== clubName) }));
+  const handleFollowClub = async (clubId) => {
+    setFollowError('');
+    setClubSearch('');
+    setClubSearchOpen(false);
+    try {
+      const res = await fetch(`${API}/api/follow/clubs/${clubId}/follow`, { method: 'POST' });
+      if (res.ok) {
+        setClubFollowState(clubId, true);
+      } else {
+        const data = await res.json().catch(() => null);
+        setFollowError(data?.detail || 'Could not follow this club right now.');
+      }
+    } catch {
+      setFollowError('Unable to follow this club right now.');
+    }
+  };
+
+  const handleUnfollowClub = async (clubId) => {
+    setFollowError('');
+    try {
+      const res = await fetch(`${API}/api/follow/clubs/${clubId}/follow`, { method: 'DELETE' });
+      if (res.ok) {
+        setClubFollowState(clubId, false);
+      } else {
+        const data = await res.json().catch(() => null);
+        setFollowError(data?.detail || 'Could not unfollow this club right now.');
+      }
+    } catch {
+      setFollowError('Unable to unfollow this club right now.');
+    }
   };
 
   const addInterest = (rawInterest) => {
@@ -317,8 +345,9 @@ const StudentProfile = () => {
 
   if (!user) return null;
 
-  // Available clubs = all clubs minus already joined ones
-  const availableClubs = clubs.filter(c => !formData.joined_clubs.includes(c.name));
+  // Available clubs = all clubs the student isn't already following
+  const followedClubs = clubs.filter(c => c.is_following);
+  const availableClubs = clubs.filter(c => !c.is_following);
   const normalizedClubSearch = clubSearch.trim().toLowerCase();
   const matchedClubs = availableClubs
     .filter((club) => {
@@ -512,15 +541,19 @@ const StudentProfile = () => {
               )}
             </div>
 
-            {/* Clubs you're a part of section */}
+            {/* Clubs you want to follow section */}
             <div className="space-y-2">
-              <Label htmlFor="profile-club-search">Clubs you&apos;re a part of</Label>
+              <Label htmlFor="profile-club-search">Clubs you want to follow</Label>
+
+              {followError ? (
+                <FieldMessage tone="error">{followError}</FieldMessage>
+              ) : null}
 
               {/* Club chips */}
               <div className="flex flex-wrap gap-2 min-h-9">
-                {formData.joined_clubs.map(clubName => (
+                {followedClubs.map(club => (
                   <span
-                    key={clubName}
+                    key={club.id}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors"
                     style={{
                       backgroundColor: 'rgba(19, 127, 236, 0.12)',
@@ -528,28 +561,28 @@ const StudentProfile = () => {
                       borderColor: 'rgba(19, 127, 236, 0.25)',
                     }}
                   >
-                    <span>{String(clubName)}</span>
+                    <span>{club.name}</span>
                     <button
                       type="button"
-                      onClick={() => handleRemoveClub(clubName)}
+                      onClick={() => handleUnfollowClub(club.id)}
                       className="flex items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-500 transition-colors p-0.5"
-                      aria-label={`Remove ${clubName}`}
+                      aria-label={`Unfollow ${club.name}`}
                     >
                       <span className="material-symbols-outlined text-secondary">close</span>
                     </button>
                   </span>
                 ))}
-                {formData.joined_clubs.length === 0 && (
-                  <span className="text-sm text-text-secondary dark:text-text-dark-secondary italic py-1.5">No clubs yet</span>
+                {followedClubs.length === 0 && (
+                  <span className="text-sm text-text-secondary dark:text-text-dark-secondary italic py-1.5">Not following any clubs yet</span>
                 )}
               </div>
 
-              {/* Typeahead for adding clubs */}
+              {/* Typeahead for following clubs */}
               <div className="relative">
                 <SearchBar
                   id="profile-club-search"
                   type="text"
-                  ariaLabel="Search clubs to join"
+                  ariaLabel="Search clubs to follow"
                   ariaAutocomplete="list"
                   ariaExpanded={clubSearchOpen}
                   value={clubSearch}
@@ -567,16 +600,16 @@ const StudentProfile = () => {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && matchedClubs.length > 0) {
                       e.preventDefault();
-                      handleAddClub(matchedClubs[0].name);
+                      handleFollowClub(matchedClubs[0].id);
                     }
                   }}
-                  placeholder="Type club name to join..."
+                  placeholder="Type club name to follow..."
                 />
 
                 {clubSearchOpen && (
                   <div className="absolute z-50 mt-1 w-full rounded-xl bg-white dark:bg-[#1a2632] border border-border-subtle dark:border-border-strong shadow-xl max-h-60 overflow-y-auto">
                     {availableClubs.length === 0 && (
-                      <p className="px-4 py-3 text-sm text-text-secondary dark:text-text-dark-secondary italic">All clubs have been joined</p>
+                      <p className="px-4 py-3 text-sm text-text-secondary dark:text-text-dark-secondary italic">You're already following every club</p>
                     )}
 
                     {availableClubs.length > 0 && matchedClubs.length === 0 && (
@@ -591,7 +624,7 @@ const StudentProfile = () => {
                         key={club.id}
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => handleAddClub(club.name)}
+                        onClick={() => handleFollowClub(club.id)}
                         className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-primary/10 transition-colors text-text-primary dark:text-white text-sm"
                       >
                         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
