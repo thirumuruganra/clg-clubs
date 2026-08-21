@@ -338,7 +338,6 @@ const ClubsDashboard = () => {
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [memberActionError, setMemberActionError] = useState('');
   const [memberActionSuccess, setMemberActionSuccess] = useState('');
-  const [memberActionTone, setMemberActionTone] = useState('success');
   const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
   const [memberDepartmentFilter, setMemberDepartmentFilter] = useState('');
@@ -768,7 +767,6 @@ const ClubsDashboard = () => {
 
       const addedMember = await response.json();
       setMembers((prev) => [...prev, addedMember]);
-      setMemberActionTone('success');
       setMemberActionSuccess('Member added successfully.');
       setStudentResults((prev) => prev.filter((student) => student.id !== studentId));
     } catch (err) {
@@ -797,7 +795,6 @@ const ClubsDashboard = () => {
       }
 
       setMembers((prev) => prev.filter((existing) => existing.user_id !== member.user_id));
-      setMemberActionTone('danger');
       setMemberActionSuccess('Member removed successfully.');
     } catch (err) {
       setMemberActionError(err?.message || 'Failed to remove club member.');
@@ -824,7 +821,6 @@ const ClubsDashboard = () => {
 
       const updated = await response.json();
       setMembers((prev) => prev.map((existing) => (existing.user_id === updated.user_id ? { ...existing, is_delegated_admin: updated.is_delegated_admin } : existing)));
-      setMemberActionTone(updated.is_delegated_admin ? 'success' : 'danger');
       setMemberActionSuccess(updated.is_delegated_admin ? 'Admin access granted.' : 'Admin access revoked.');
     } catch (err) {
       setMemberActionError(err?.message || 'Failed to update admin access.');
@@ -1893,7 +1889,6 @@ const ClubsDashboard = () => {
               calculateYear={calculateYear}
               memberActionError={memberActionError}
               memberActionSuccess={memberActionSuccess}
-              memberActionTone={memberActionTone}
               isClubHead={club?.admin_id === user?.id}
               onOpenAddMember={openAddMemberModal}
               onRemoveMember={handleRemoveMember}

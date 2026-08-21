@@ -10,7 +10,6 @@ const ClubMembersTab = ({
   calculateYear,
   memberActionError,
   memberActionSuccess,
-  memberActionTone = 'success',
   isClubHead = false,
   onOpenAddMember,
   onRemoveMember,
@@ -43,7 +42,7 @@ const ClubMembersTab = ({
 
   useEffect(() => {
     if (!actionToastVisible) return undefined;
-    const timer = setTimeout(() => setActionToastVisible(false), 4000);
+    const timer = setTimeout(() => setActionToastVisible(false), 3000);
     return () => clearTimeout(timer);
   }, [actionToastVisible, actionMessage]);
 
@@ -435,16 +434,13 @@ const ClubMembersTab = ({
 
       {actionToastVisible && (
         <div className="fixed inset-x-0 bottom-4 z-1200 flex justify-center px-4 sm:bottom-6 lg:left-64 lg:px-0">
-          <div className="enter-rise w-full max-w-sm">
-            {memberActionError ? (
-              <Toast tone="error" title="Member action failed" description={memberActionError} />
-            ) : (
-              <Toast
-                tone={memberActionTone === 'danger' ? 'warning' : 'success'}
-                title="Member updated"
-                description={memberActionSuccess}
-              />
-            )}
+          <div className="enter-rise inline-flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full bg-white px-3.5 py-2 shadow-soft-lg">
+            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${memberActionError ? 'bg-red-500' : 'bg-emerald-500'}`}>
+              <span className="material-symbols-outlined text-[13px] font-bold text-white">
+                {memberActionError ? 'close' : 'check'}
+              </span>
+            </span>
+            <p className="text-sm font-semibold text-slate-900">{memberActionError || memberActionSuccess}</p>
           </div>
         </div>
       )}
