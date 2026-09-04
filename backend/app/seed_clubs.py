@@ -39,6 +39,7 @@ CLUBS = [
     {"name": "GFG Campus Body", "instagram": "geeksforgeeks_ssn", "email": "gfgcampusbody@ssn.edu.in", "category": "TECH"},
     {"name": "IEEE SPS", "instagram": "ieee_sps_ssn", "email": "ieeespssb@ssn.edu.in", "category": "TECH"},
     {"name": "Saaral Tamizh Mandram", "instagram": "saaral_tamizh_mandram", "email": "saaraltamilmandram@ssn.edu.in", "category": "NON_TECH"},
+    {"name": "ACE", "instagram": "ssnace", "email": "ssnace@ssn.edu.in", "category": "TECH"},
 ]
 
 
