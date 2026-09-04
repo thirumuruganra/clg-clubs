@@ -13,7 +13,7 @@ from app.core.security import (
 )
 from app.services.payloads import auth_me_payload
 from app.seed_clubs import CLUBS as SEEDED_CLUBS
-from app.utils.common import safe_json_list
+from app.utils.common import is_production_environment, safe_json_list
 from app.utils.academic_year import (
     get_effective_academic_year as _get_effective_academic_year,
     PASSOUT_YEAR_MAX_AHEAD,
@@ -35,14 +35,6 @@ REGISTER_NUMBER_PATTERN = re.compile(r"^3122\d{9}$")
 PASSOUT_YEAR_PATTERN = re.compile(r"^\d{4}$")
 
 
-_NON_PRODUCTION_APP_ENVS = {"development", "dev", "local", "test", "testing"}
-
-
-def _is_production_environment() -> bool:
-    # Fail closed: see the matching helper in app/main.py for rationale.
-    return os.getenv("APP_ENV", "production").strip().lower() not in _NON_PRODUCTION_APP_ENVS
-
-
 def _parse_allowed_testing_emails() -> set[str]:
     raw_allowlist = os.getenv("DEV_TESTING_CLUB_EMAIL_ALLOWLIST", "").strip()
     if not raw_allowlist:
@@ -51,7 +43,7 @@ def _parse_allowed_testing_emails() -> set[str]:
 
 
 def _is_dev_allowlisted_email(email: str) -> bool:
-    if _is_production_environment():
+    if is_production_environment():
         return False
     return email.strip().lower() in _parse_allowed_testing_emails()
 
@@ -334,7 +326,7 @@ async def auth_callback(request: Request, db: Session = Depends(get_db)):
 
     # Set JWT as cookie and redirect
     response = RedirectResponse(url=redirect_url, status_code=302)
-    is_production = _is_production_environment()
+    is_production = is_production_environment()
     cookie_same_site = os.getenv("ACCESS_TOKEN_SAMESITE", "lax").strip().lower()
     if cookie_same_site not in {"lax", "strict", "none"}:
         cookie_same_site = "lax"

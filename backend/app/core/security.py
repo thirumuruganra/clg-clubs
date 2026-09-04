@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
+from app.utils.common import require_env
 import os
 import logging
-from typing import Iterable
 from uuid import UUID
 
 GOOGLE_BASE_SCOPES = "openid email profile"
@@ -17,16 +17,13 @@ AUTH_ERROR_DETAIL = "Authentication required"
 logger = logging.getLogger(__name__)
 
 
-def build_google_scope(include_calendar: bool = False, extra_scopes: Iterable[str] | None = None) -> str:
+def build_google_scope(include_calendar: bool = False) -> str:
     """Build a deterministic Google OAuth scope string."""
     scopes = GOOGLE_BASE_SCOPES.split()
     if include_calendar:
         scopes.append(GOOGLE_CALENDAR_SCOPE)
-    if extra_scopes:
-        scopes.extend([scope for scope in extra_scopes if scope])
 
-    ordered_unique_scopes = list(dict.fromkeys(scopes))
-    return " ".join(ordered_unique_scopes)
+    return " ".join(scopes)
 
 # OAuth setup
 config = Config('.env')
@@ -41,18 +38,11 @@ oauth.register(
 )
 
 # JWT Configuration
-def _require_env_value(var_name: str) -> str:
-    value = os.getenv(var_name, "").strip()
-    if not value:
-        raise RuntimeError(f"Missing required environment variable: {var_name}")
-    return value
-
-
 # Deliberately separate from the Starlette SessionMiddleware's SECRET_KEY
 # (used only for the short-lived OAuth-state session cookie) so the two trust
 # boundaries can be rotated independently and a leak of one doesn't
 # compromise the other.
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "").strip() or _require_env_value("SECRET_KEY")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "").strip() or require_env("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 7
 
