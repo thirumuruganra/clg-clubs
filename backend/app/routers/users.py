@@ -15,9 +15,6 @@ from app.services.payloads import user_profile_payload
 from app.utils.common import normalize_compact, normalize_text, unique_non_empty_strings
 from app.utils.academic_year import (
     get_effective_academic_year as _get_effective_academic_year,
-    get_degree_duration as _get_degree_duration,
-    get_admission_year_from_register_number as _get_admission_year_from_register_number,
-    calculate_year_from_admission as _calculate_year_from_admission,
     calculate_year_label as _calculate_year_label,
     PASSOUT_YEAR_MAX_AHEAD,
 )
@@ -31,18 +28,6 @@ SECTION_PATTERN = re.compile(r"^[A-C]$")
 
 def _normalize_interest_values(interests: List[str]) -> List[str]:
     return unique_non_empty_strings(interests)
-
-
-def _require_self_access(target_user_id: UUID, current_user: User) -> None:
-    try:
-        require_self_access(current_user.id, target_user_id)
-    except HTTPException:
-        log_security_event(
-            "authz.user_profile.denied",
-            actor_user_id=current_user.id,
-            target_user_id=target_user_id,
-        )
-        raise
 
 
 def _validate_register_number(value: str) -> str:
@@ -176,7 +161,7 @@ def read_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    _require_self_access(user_id, current_user)
+    require_self_access(current_user.id, user_id)
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -191,7 +176,7 @@ def update_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    _require_self_access(user_id, current_user)
+    require_self_access(current_user.id, user_id)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

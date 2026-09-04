@@ -62,15 +62,7 @@ def get_user_following(
     current_user: User = Depends(get_current_user),
 ):
     """Get all clubs a user follows (self only)."""
-    try:
-        require_self_access(current_user.id, user_id, detail="You can only view your own following list")
-    except HTTPException:
-        log_security_event(
-            "authz.following.denied",
-            actor_user_id=current_user.id,
-            target_user_id=user_id,
-        )
-        raise
+    require_self_access(current_user.id, user_id, detail="You can only view your own following list")
 
     follows = db.query(Follow).filter(Follow.user_id == user_id).all()
 
@@ -97,16 +89,7 @@ def get_club_followers(
     current_user: User = Depends(get_current_user),
 ):
     """Get all followers for a club. Accessible by the owning CLUB_ADMIN or a delegated admin member."""
-    try:
-        require_club_admin_access(club_id, current_user, db)
-    except HTTPException as exc:
-        if exc.status_code == 403:
-            log_security_event(
-                "authz.club_followers.denied",
-                actor_user_id=current_user.id,
-                club_id=club_id,
-            )
-        raise
+    require_club_admin_access(club_id, current_user, db)
 
     follows = db.query(Follow).filter(Follow.club_id == club_id).all()
 
