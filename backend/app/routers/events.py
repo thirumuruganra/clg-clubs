@@ -17,7 +17,6 @@ from app.models.rsvp import RSVP
 from app.models.follow import Follow
 from app.models.user import User
 from app.schemas import EventCreate, EventUpdate, EventWorkforceCreate, EventFeedbackListResponse
-from app.core.audit import log_security_event
 from app.core.security import get_current_user, get_optional_user
 from app.services.authz_rules import resolve_personalization_user_id
 from app.services.club_admin_access import require_club_admin_access
@@ -27,6 +26,7 @@ from app.services.event_posters import (
     clear_event_poster,
 )
 from app.services.event_payment_qrs import replace_event_payment_qr, clear_event_payment_qr
+from app.services.payloads import event_payload
 from app.utils.common import safe_json_list
 from datetime import datetime, timedelta
 from typing import Optional, List
@@ -155,19 +155,6 @@ def _calculate_recommendation_score(event: Event, interest_tokens: set[str], is_
     return score
 
 
-def _resolve_personalization_user_id(requested_user_id: UUID | None, current_user: User | None) -> UUID | None:
-    actor_user_id = current_user.id if current_user else None
-    try:
-        return resolve_personalization_user_id(requested_user_id, actor_user_id)
-    except HTTPException:
-        log_security_event(
-            "authz.events.personalization_denied",
-            actor_user_id=actor_user_id,
-            requested_user_id=requested_user_id,
-        )
-        raise
-
-
 @router.get("/all")
 def get_all_events(search: Optional[str] = Query(None), db: Session = Depends(get_db)):
     """Get all events (for calendar view)."""
@@ -178,26 +165,7 @@ def get_all_events(search: Optional[str] = Query(None), db: Session = Depends(ge
     for event in events:
         club = db.query(Club).filter(Club.id == event.club_id).first()
         rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
-        result.append({
-            "id": event.id,
-            "club_id": event.club_id,
-            "club_name": club.name if club else None,
-            "title": event.title,
-            "description": event.description,
-            "location": event.location,
-            "start_time": event.start_time.isoformat() if event.start_time else None,
-            "end_time": event.end_time.isoformat() if event.end_time else None,
-            "tag": event.tag,
-            "image_url": event.image_url,
-            "keywords": event.keywords,
-            "payment_link": event.payment_link,
-            "payment_qr_url": event.payment_qr_url,
-            "is_paid": event.is_paid,
-            "registration_fees": event.registration_fees,
-            "rsvp_count": rsvp_count,
-            "attendance_qr_open": bool(event.attendance_qr_open),
-            "collect_feedback": bool(event.collect_feedback),
-        })
+        result.append(event_payload(event, club, rsvp_count))
     return result
 
 
@@ -215,7 +183,7 @@ def get_event_feed(
     - type=discover: events from clubs the user does NOT follow
     - type=recommended: ranked mixed feed by user interests + recency
     """
-    personalization_user_id = _resolve_personalization_user_id(user_id, current_user)
+    personalization_user_id = resolve_personalization_user_id(user_id, current_user.id if current_user else None)
 
     followed_club_ids = []
     interest_tokens = set()
@@ -277,29 +245,12 @@ def get_event_feed(
                     is_from_followed_club,
                 )
 
-        result.append({
-            "id": event.id,
-            "club_id": event.club_id,
-            "club_name": club.name if club else None,
-            "title": event.title,
-            "description": event.description,
-            "location": event.location,
-            "start_time": event.start_time.isoformat() if event.start_time else None,
-            "end_time": event.end_time.isoformat() if event.end_time else None,
-            "tag": event.tag,
-            "image_url": event.image_url,
-            "keywords": event.keywords,
-            "payment_link": event.payment_link,
-            "payment_qr_url": event.payment_qr_url,
-            "is_paid": event.is_paid,
-            "registration_fees": event.registration_fees,
-            "rsvp_count": rsvp_count,
-            "is_rsvped": is_rsvped,
-            "is_from_followed_club": is_from_followed_club,
-            "recommendation_score": recommendation_score,
-            "attendance_qr_open": bool(event.attendance_qr_open),
-            "collect_feedback": bool(event.collect_feedback),
-        })
+        result.append(event_payload(
+            event, club, rsvp_count,
+            is_rsvped=is_rsvped,
+            is_from_followed_club=is_from_followed_club,
+            recommendation_score=recommendation_score,
+        ))
     return result
 
 
@@ -311,7 +262,7 @@ def get_event(
     current_user: User | None = Depends(get_optional_user),
 ):
     """Get a single event by ID."""
-    personalization_user_id = _resolve_personalization_user_id(user_id, current_user)
+    personalization_user_id = resolve_personalization_user_id(user_id, current_user.id if current_user else None)
 
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
@@ -334,29 +285,12 @@ def get_event(
         RSVP.created_at >= one_hour_ago
     ).count()
 
-    return {
-        "id": event.id,
-        "club_id": event.club_id,
-        "club_name": club.name if club else None,
-        "title": event.title,
-        "description": event.description,
-        "location": event.location,
-        "start_time": event.start_time.isoformat() if event.start_time else None,
-        "end_time": event.end_time.isoformat() if event.end_time else None,
-        "tag": event.tag,
-        "image_url": event.image_url,
-        "keywords": event.keywords,
-        "payment_link": event.payment_link,
-        "payment_qr_url": event.payment_qr_url,
-        "is_paid": event.is_paid,
-        "registration_fees": event.registration_fees,
-        "rsvp_count": rsvp_count,
-        "is_rsvped": is_rsvped,
-        "attended": bool(personal_rsvp.attended) if personal_rsvp else False,
-        "recent_activity": recent_rsvps,
-        "attendance_qr_open": bool(event.attendance_qr_open),
-        "collect_feedback": bool(event.collect_feedback),
-    }
+    return event_payload(
+        event, club, rsvp_count,
+        is_rsvped=is_rsvped,
+        attended=bool(personal_rsvp.attended) if personal_rsvp else False,
+        recent_activity=recent_rsvps,
+    )
 
 
 @router.post("/")
@@ -385,26 +319,7 @@ def create_event(event: EventCreate, db: Session = Depends(get_db), current_user
     db.commit()
     db.refresh(db_event)
 
-    return {
-        "id": db_event.id,
-        "club_id": db_event.club_id,
-        "club_name": club.name,
-        "title": db_event.title,
-        "description": db_event.description,
-        "location": db_event.location,
-        "start_time": db_event.start_time.isoformat() if db_event.start_time else None,
-        "end_time": db_event.end_time.isoformat() if db_event.end_time else None,
-        "tag": db_event.tag,
-        "image_url": db_event.image_url,
-        "keywords": db_event.keywords,
-        "payment_link": db_event.payment_link,
-        "payment_qr_url": db_event.payment_qr_url,
-        "is_paid": db_event.is_paid,
-        "registration_fees": db_event.registration_fees,
-        "rsvp_count": 0,
-        "attendance_qr_open": bool(db_event.attendance_qr_open),
-        "collect_feedback": bool(db_event.collect_feedback),
-    }
+    return event_payload(db_event, club, rsvp_count=0)
 
 
 @router.post("/{event_id}/poster")
@@ -560,26 +475,7 @@ def update_event(event_id: UUID, event_update: EventUpdate, db: Session = Depend
     club = db.query(Club).filter(Club.id == event.club_id).first()
     rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
 
-    return {
-        "id": event.id,
-        "club_id": event.club_id,
-        "club_name": club.name if club else None,
-        "title": event.title,
-        "description": event.description,
-        "location": event.location,
-        "start_time": event.start_time.isoformat() if event.start_time else None,
-        "end_time": event.end_time.isoformat() if event.end_time else None,
-        "tag": event.tag,
-        "image_url": event.image_url,
-        "keywords": event.keywords,
-        "payment_link": event.payment_link,
-        "payment_qr_url": event.payment_qr_url,
-        "is_paid": event.is_paid,
-        "registration_fees": event.registration_fees,
-        "rsvp_count": rsvp_count,
-        "attendance_qr_open": bool(event.attendance_qr_open),
-        "collect_feedback": bool(event.collect_feedback),
-    }
+    return event_payload(event, club, rsvp_count)
 
 
 @router.post("/{event_id}/short-link")

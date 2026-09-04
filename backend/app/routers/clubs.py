@@ -12,6 +12,7 @@ from app.core.security import get_current_user
 from app.services.club_admin_access import require_club_admin_access, require_club_head
 from app.services.club_logos import MAX_LOGO_BYTES, replace_club_logo
 from app.services.membership_sync import sync_user_joined_clubs_projection
+from app.services.payloads import event_payload
 from app.utils.common import normalize_text
 from typing import Optional
 from uuid import UUID
@@ -350,25 +351,5 @@ def get_club_events(club_id: UUID, db: Session = Depends(get_db)):
     for event in events:
         rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
         attended_count = db.query(RSVP).filter(RSVP.event_id == event.id, RSVP.attended == True).count()
-        result.append({
-            "id": event.id,
-            "club_id": event.club_id,
-            "club_name": club.name,
-            "title": event.title,
-            "description": event.description,
-            "location": event.location,
-            "start_time": event.start_time.isoformat() if event.start_time else None,
-            "end_time": event.end_time.isoformat() if event.end_time else None,
-            "tag": event.tag,
-            "image_url": event.image_url,
-            "keywords": event.keywords,
-            "is_paid": event.is_paid,
-            "registration_fees": event.registration_fees,
-            "payment_link": event.payment_link,
-            "payment_qr_url": event.payment_qr_url,
-            "rsvp_count": rsvp_count,
-            "attended_count": attended_count,
-            "attendance_qr_open": bool(event.attendance_qr_open),
-            "collect_feedback": bool(event.collect_feedback),
-        })
+        result.append(event_payload(event, club, rsvp_count, attended_count=attended_count))
     return result

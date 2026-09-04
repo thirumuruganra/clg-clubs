@@ -49,6 +49,30 @@ def _resolve_managed_clubs(user: User, db: Session) -> list[dict]:
     return managed
 
 
+def event_payload(event, club, rsvp_count: int, **extra) -> dict:
+    return {
+        "id": event.id,
+        "club_id": event.club_id,
+        "club_name": club.name if club else None,
+        "title": event.title,
+        "description": event.description,
+        "location": event.location,
+        "start_time": event.start_time.isoformat() if event.start_time else None,
+        "end_time": event.end_time.isoformat() if event.end_time else None,
+        "tag": event.tag,
+        "image_url": event.image_url,
+        "keywords": event.keywords,
+        "payment_link": event.payment_link,
+        "payment_qr_url": event.payment_qr_url,
+        "is_paid": event.is_paid,
+        "registration_fees": event.registration_fees,
+        "rsvp_count": rsvp_count,
+        "attendance_qr_open": bool(event.attendance_qr_open),
+        "collect_feedback": bool(event.collect_feedback),
+        **extra,
+    }
+
+
 def auth_me_payload(user: User, db: Session) -> dict:
     payload = user_profile_payload(user)
     granted_scopes_list = safe_json_list(user.google_scopes)
