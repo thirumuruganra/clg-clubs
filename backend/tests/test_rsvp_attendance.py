@@ -12,7 +12,6 @@ from app.routers.rsvp import (
     WORKFORCE_ROLE_MEMBER,
     WORKFORCE_ROLE_VOLUNTEER,
     _ensure_member_assignment,
-    _infer_attendance_role,
     _resolve_attendance_role,
     _sorted_rsvp_rows,
 )
@@ -45,7 +44,7 @@ def _build_event(club_id=None):
     return SimpleNamespace(id=uuid4(), club_id=club_id or uuid4())
 
 
-def _build_rsvp(attendance_role, name, department, batch, degree="B.E."):
+def _build_rsvp(attendance_role, name, department, batch, degree="B.E.", section="A"):
     return SimpleNamespace(
         id=uuid4(),
         user_id=uuid4(),
@@ -63,6 +62,7 @@ def _build_rsvp(attendance_role, name, department, batch, degree="B.E."):
             degree=degree,
             batch=batch,
             register_number=f"3122{name[:3].upper()}123",
+            section=section,
         ),
     )
 
@@ -116,7 +116,7 @@ class RSVPAttendanceTests(unittest.TestCase):
 
         self.assertEqual(context.exception.status_code, 409)
 
-    def test_infer_attendance_role_uses_member_precedence_for_legacy_rows(self):
+    def test_resolve_attendance_role_non_strict_uses_member_precedence_for_legacy_rows(self):
         event = _build_event()
         db = _FakeDb(
             {
@@ -125,7 +125,7 @@ class RSVPAttendanceTests(unittest.TestCase):
             }
         )
 
-        resolved = _infer_attendance_role(event, uuid4(), db)
+        resolved = _resolve_attendance_role(event, uuid4(), db, strict=False)
 
         self.assertEqual(resolved, RSVP.ATTENDANCE_ROLE_CLUB_MEMBER)
 
@@ -154,11 +154,11 @@ class RSVPAttendanceTests(unittest.TestCase):
     def test_sorted_rsvp_rows_groups_member_then_volunteer_then_student(self):
         rows = _sorted_rsvp_rows(
             [
-                _build_rsvp(RSVP.ATTENDANCE_ROLE_PARTICIPANT, "Amy", "CSE", "2023"),
-                _build_rsvp(RSVP.ATTENDANCE_ROLE_CLUB_MEMBER, "Zara", "ECE", "2024"),
-                _build_rsvp(RSVP.ATTENDANCE_ROLE_VOLUNTEER, "Bob", "AI", "2023"),
-                _build_rsvp(RSVP.ATTENDANCE_ROLE_CLUB_MEMBER, "Carl", "CSE", "2023"),
-                _build_rsvp(RSVP.ATTENDANCE_ROLE_CLUB_MEMBER, "Ben", "CSE", "2023"),
+                _build_rsvp(RSVP.ATTENDANCE_ROLE_PARTICIPANT, "Amy", "CSE", "2023", section="A"),
+                _build_rsvp(RSVP.ATTENDANCE_ROLE_CLUB_MEMBER, "Zara", "ECE", "2024", section="B"),
+                _build_rsvp(RSVP.ATTENDANCE_ROLE_VOLUNTEER, "Bob", "AI", "2023", section="C"),
+                _build_rsvp(RSVP.ATTENDANCE_ROLE_CLUB_MEMBER, "Carl", "CSE", "2023", section="A"),
+                _build_rsvp(RSVP.ATTENDANCE_ROLE_CLUB_MEMBER, "Ben", "CSE", "2023", section="B"),
             ],
             _FakeDb(),
         )
