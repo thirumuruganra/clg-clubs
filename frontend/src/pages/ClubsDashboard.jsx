@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth-context';
-import { getClubIconUrl, getClubInitial } from '../lib/utils';
+import { eventMatchesSearch, getClubIconUrl, getClubInitial } from '../lib/utils';
 import { calculateYear, YEAR_RANK } from '../lib/academicYear';
 import ClubDashboardSidebar from '../components/club-dashboard/ClubDashboardSidebar';
 import AppShell from '../components/layout/AppShell';
@@ -28,6 +28,7 @@ import { StatusBadge } from '../components/ui/status-badge';
 import { Textarea } from '../components/ui/textarea';
 import { Toast } from '../components/ui/toast';
 import { SearchBar } from '../components/ui/search-bar';
+import { FileDropzone } from '../components/ui/file-dropzone';
 
 const ClubsCalendarTab = lazy(() => import('../components/club-dashboard/ClubsCalendarTab'));
 const FollowersTab = lazy(() => import('../components/club-dashboard/FollowersTab'));
@@ -126,15 +127,6 @@ const formatAttendanceMarkedAt = (rawValue) => {
     hour: '2-digit',
     minute: '2-digit',
   });
-};
-
-const eventMatchesSearch = (event, rawQuery) => {
-  const query = rawQuery.trim().toLowerCase();
-  if (!query) return true;
-
-  return [event.title, event.description, event.keywords]
-    .filter(Boolean)
-    .some((field) => field.toLowerCase().includes(query));
 };
 
 const normalizeValue = (value) => (value ? String(value).trim().toLowerCase() : '');
@@ -433,22 +425,6 @@ const ClubsDashboard = () => {
       if (previous) URL.revokeObjectURL(previous);
       return URL.createObjectURL(file);
     });
-  };
-
-  const openCreatePosterPicker = () => {
-    newPosterInputRef.current?.click();
-  };
-
-  const openEditPosterPicker = () => {
-    editPosterInputRef.current?.click();
-  };
-
-  const openCreatePaymentQrPicker = () => {
-    newPaymentQrInputRef.current?.click();
-  };
-
-  const openEditPaymentQrPicker = () => {
-    editPaymentQrInputRef.current?.click();
   };
 
   const handlePosterDragEnter = (event, setDragActive, dragCounterRef) => {
@@ -1942,8 +1918,6 @@ const ClubsDashboard = () => {
               newPosterInputRef={newPosterInputRef}
               newPaymentQrInputRef={newPaymentQrInputRef}
               setPosterSelection={setPosterSelection}
-              openCreatePosterPicker={openCreatePosterPicker}
-              openCreatePaymentQrPicker={openCreatePaymentQrPicker}
               newPosterFile={newPosterFile}
               newPosterPreview={newPosterPreview}
               newPaymentQrFile={newPaymentQrFile}
@@ -2070,43 +2044,20 @@ const ClubsDashboard = () => {
                   </div>
                   <div>
                     <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary">Payment QR (Optional)</Label>
-                    <div
-                      className={`rounded-xl border-2 border-dashed p-4 transition-colors ${
-                        isEditPaymentQrDragActive
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border-subtle dark:border-border-strong bg-surface-muted dark:bg-[#0f1720]/40'
-                      }`}
+                    <FileDropzone
+                      dragActive={isEditPaymentQrDragActive}
                       onDragEnter={(event) => handlePosterDragEnter(event, setIsEditPaymentQrDragActive, editPaymentQrDragCounterRef)}
                       onDragOver={handlePosterDragOver}
                       onDragLeave={(event) => handlePosterDragLeave(event, setIsEditPaymentQrDragActive, editPaymentQrDragCounterRef)}
                       onDrop={(event) => handlePosterDrop(event, setIsEditPaymentQrDragActive, editPaymentQrDragCounterRef, setEditPaymentQrFile, setEditPaymentQrPreview, setEditError, 'Payment QR')}
-                    >
-                      <input
-                        ref={editPaymentQrInputRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        onChange={(event) => {
-                          const selectedFile = event.target.files?.[0] || null;
-                          setPosterSelection(selectedFile, setEditPaymentQrFile, setEditPaymentQrPreview, setEditError, 'Payment QR');
-                          event.target.value = '';
-                        }}
-                        className="hidden"
-                      />
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={openEditPaymentQrPicker}
-                        >
-                          <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
-                          Choose Payment QR
-                        </Button>
-                        <span className="text-xs text-text-secondary dark:text-text-dark-secondary truncate max-w-64">
-                          {editPaymentQrFile ? editPaymentQrFile.name : editEvent.payment_qr_url ? 'Using existing payment QR' : 'No payment QR selected'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2">or drag and drop a QR image here</p>
-                    </div>
+                      inputRef={editPaymentQrInputRef}
+                      onSelectFile={(file) => setPosterSelection(file, setEditPaymentQrFile, setEditPaymentQrPreview, setEditError, 'Payment QR')}
+                      fileName={editPaymentQrFile?.name}
+                      buttonLabel="Choose Payment QR"
+                      buttonIcon="qr_code_2"
+                      hint="or drag and drop a QR image here"
+                      emptyLabel={editEvent.payment_qr_url ? 'Using existing payment QR' : 'No payment QR selected'}
+                    />
                     {editPaymentQrPreview ? (
                       <div className="mt-3 w-full max-w-40 overflow-hidden rounded-lg border border-border-subtle bg-white dark:border-border-strong dark:bg-[#0f1720]">
                         <img src={editPaymentQrPreview} alt="Updated payment QR preview" className="h-full w-full object-contain" />
@@ -2152,42 +2103,18 @@ const ClubsDashboard = () => {
               </div>
               <div>
                 <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary">Replace Event Poster (optional)</Label>
-                <div
-                  className={`rounded-xl border-2 border-dashed p-4 transition-colors ${
-                    isEditPosterDragActive
-                      ? 'border-primary bg-primary/5'
-                        : 'border-border-subtle dark:border-border-strong bg-surface-muted dark:bg-[#0f1720]/40'
-                  }`}
+                <FileDropzone
+                  dragActive={isEditPosterDragActive}
                   onDragEnter={(event) => handlePosterDragEnter(event, setIsEditPosterDragActive, editPosterDragCounterRef)}
                   onDragOver={handlePosterDragOver}
                   onDragLeave={(event) => handlePosterDragLeave(event, setIsEditPosterDragActive, editPosterDragCounterRef)}
                   onDrop={(event) => handlePosterDrop(event, setIsEditPosterDragActive, editPosterDragCounterRef, setEditPosterFile, setEditPosterPreview, setEditError)}
-                >
-                  <input
-                    ref={editPosterInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={(event) => {
-                      const selectedFile = event.target.files?.[0] || null;
-                      setPosterSelection(selectedFile, setEditPosterFile, setEditPosterPreview, setEditError);
-                      event.target.value = '';
-                    }}
-                    className="hidden"
-                  />
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={openEditPosterPicker}
-                      className="cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">upload</span>
-                      Choose Poster
-                    </Button>
-                    <span className="text-xs text-text-secondary dark:text-text-dark-secondary truncate max-w-64">{editPosterFile ? editPosterFile.name : 'No new file selected'}</span>
-                  </div>
-                  <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2">or drag and drop an image here</p>
-                </div>
+                  inputRef={editPosterInputRef}
+                  onSelectFile={(file) => setPosterSelection(file, setEditPosterFile, setEditPosterPreview, setEditError)}
+                  fileName={editPosterFile?.name}
+                  buttonLabel="Choose Poster"
+                  emptyLabel="No new file selected"
+                />
                 {editPosterPreview ? (
                   <div className="mt-3 w-full max-w-52 aspect-4/5 rounded-lg border border-border-subtle dark:border-border-strong overflow-hidden bg-[#0f1720]">
                     <img src={editPosterPreview} alt="Updated poster preview" className="h-full w-full object-cover" />

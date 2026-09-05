@@ -1,23 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth-context';
-import { getShortEventLink, warmPosterCacheForEvents, warmPosterImageCache } from '../../lib/utils';
+import { eventMatchesSearch, getShortEventLink, warmPosterCacheForEvents, warmPosterImageCache } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { EmptyState } from '../ui/empty-state';
-import { EventPosterFallback } from '../ui/event-poster-fallback';
 import { IconButton } from '../ui/icon-button';
 import { SearchBar } from '../ui/search-bar';
 import { Skeleton } from '../ui/skeleton';
+import { EventDetailPanel } from '../event/event-detail-panel';
 
 const API = '';
 
-const eventMatchesSearch = (event, rawQuery) => {
-  const query = String(rawQuery || '').trim().toLowerCase();
-  if (!query) return true;
-  return [event.title, event.description, event.tag]
-    .filter(Boolean)
-    .some((field) => field.toLowerCase().includes(query));
-};
+const SEARCH_FIELDS = ['title', 'description', 'tag'];
 
 const ClubsCalendarTab = ({
   club = null,
@@ -105,7 +99,7 @@ const ClubsCalendarTab = ({
   const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
 
-  const filteredEvents = allEvents.filter(e => eventMatchesSearch(e, searchQuery));
+  const filteredEvents = allEvents.filter(e => eventMatchesSearch(e, searchQuery, SEARCH_FIELDS));
 
   const eventsByDate = {};
   filteredEvents.forEach(e => {
@@ -270,143 +264,38 @@ const ClubsCalendarTab = ({
             className="bg-white dark:bg-[#1a2632] rounded-2xl shadow-2xl w-full max-w-2xl modal-panel overflow-y-auto md:overflow-hidden border border-border-subtle dark:border-border-strong"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex flex-col md:aspect-2/1 md:flex-row">
-              <div className="w-full md:h-full md:w-2/5 md:shrink-0 aspect-4/5 bg-[#0f1720] relative overflow-hidden">
-                {selectedEvent.image_url ? (
-                  <img src={selectedEvent.image_url} alt={selectedEvent.title} className="h-full w-full object-contain" />
-                ) : (
-                  <EventPosterFallback title={selectedEvent.title} />
-                )}
-              </div>
-
-              <div className="w-full min-h-0 md:h-full md:w-3/5 md:overflow-y-auto p-6 flex flex-col">
-                <div className="flex justify-between items-start mb-1">
-                  <span className="text-sm text-text-secondary dark:text-text-dark-secondary">
-                    {selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
-                    {' '}
-                    {selectedEvent.start_time ? `• ${new Date(selectedEvent.start_time).toLocaleDateString('en-US', { weekday: 'long' })}` : ''}
-                  </span>
-                  <button
-                    aria-label="Close event details"
-                    onClick={() => { setSelectedEvent(null); setShareCopied(false); }}
-                    className="touch-target flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-surface-muted dark:hover:bg-border-strong"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">close</span>
-                  </button>
-                </div>
-
-                <p className="text-sm font-semibold text-primary mb-1">{selectedEvent.club_name || 'Club Event'}</p>
-
-                <h2 className="text-2xl font-bold mb-4">{selectedEvent.title}</h2>
-
-                <div className="flex items-center gap-3 mb-4">
-                  {selectedEvent.__isOwnClub && (
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        onOpenEditModal(selectedEvent);
-                        setSelectedEvent(null);
-                      }}
-                      className="flex-1 text-sm font-bold"
-                    >
-                      Edit Event
+            <EventDetailPanel
+              event={selectedEvent}
+              onClose={() => { setSelectedEvent(null); setShareCopied(false); }}
+              showRsvpCount
+              actions={(
+                <>
+                  <div className="flex items-center gap-3 mb-4">
+                    {selectedEvent.__isOwnClub && (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          onOpenEditModal(selectedEvent);
+                          setSelectedEvent(null);
+                        }}
+                        className="flex-1 text-sm font-bold"
+                      >
+                        Edit Event
+                      </Button>
+                    )}
+                    <Button type="button" variant="secondary" onClick={() => shareEvent(selectedEvent)} className="flex-1 border border-border-subtle">
+                      <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{shareCopied ? 'check' : 'share'}</span>
+                      {shareCopied ? 'Link Copied!' : 'Share Event'}
                     </Button>
-                  )}
-                  <Button type="button" variant="secondary" onClick={() => shareEvent(selectedEvent)} className="flex-1 border border-border-subtle">
-                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{shareCopied ? 'check' : 'share'}</span>
-                    {shareCopied ? 'Link Copied!' : 'Share Event'}
-                  </Button>
-                </div>
-                {!selectedEvent.__isOwnClub && (
-                  <p className="text-xs text-text-secondary dark:text-text-dark-secondary mb-4">
-                    View-only event details for other clubs. Use your event management tab to edit your own events.
-                  </p>
-                )}
-
-                {selectedEvent.is_paid && (
-                  <div className="mb-4 rounded-xl border border-orange-100 bg-orange-50 px-4 py-2.5 dark:border-orange-500/20 dark:bg-orange-500/5">
-                    <div className="flex min-h-8 items-center justify-between gap-3">
-                      <span className="flex items-center gap-1.5 text-sm font-bold leading-none text-orange-600 dark:text-orange-400">
-                        <span className="material-symbols-outlined text-[18px]">payments</span>
-                        Registration Fee
-                      </span>
-                      <span className="shrink-0 text-sm font-bold leading-none tabular-nums text-text-primary dark:text-white">{selectedEvent.registration_fees || 'TBA'}</span>
-                    </div>
-                    {selectedEvent.payment_link && (
-                      <a
-                        href={selectedEvent.payment_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group mt-1.5 flex items-center gap-1.5 text-sm font-bold text-primary hover:underline"
-                      >
-                        <span className="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">open_in_new</span>
-                        Payment Link
-                      </a>
-                    )}
-                    {selectedEvent.payment_qr_url && (
-                      <div className="mt-3 rounded-xl border border-orange-200/80 bg-white/85 p-3 dark:border-orange-500/20 dark:bg-[#0f1720]/55">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs font-bold uppercase tracking-[0.12em] text-orange-700 dark:text-orange-300">Payment QR</span>
-                          <a href={selectedEvent.payment_qr_url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-primary hover:underline">
-                            Open image
-                          </a>
-                        </div>
-                        <img src={selectedEvent.payment_qr_url} alt={`${selectedEvent.title} payment QR`} className="mt-2 w-full max-w-44 rounded-lg bg-white object-contain p-2" />
-                      </div>
-                    )}
                   </div>
-                )}
-
-                <div className="space-y-3 flex-1">
-                  {selectedEvent.start_time && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <span className="material-symbols-outlined text-[20px] text-text-secondary">schedule</span>
-                      <div>
-                        <p className="font-medium">
-                          {new Date(selectedEvent.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                          {' - '}
-                          {selectedEvent.end_time ? new Date(selectedEvent.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}
-                        </p>
-                        <p className="text-xs text-text-secondary dark:text-text-dark-secondary">
-                          {selectedEvent.end_time && selectedEvent.start_time
-                            ? `${Math.round((new Date(selectedEvent.end_time) - new Date(selectedEvent.start_time)) / 3600000)} hours`
-                            : ''}
-                        </p>
-                      </div>
-                    </div>
+                  {!selectedEvent.__isOwnClub && (
+                    <p className="text-xs text-text-secondary dark:text-text-dark-secondary mb-4">
+                      View-only event details for other clubs. Use your event management tab to edit your own events.
+                    </p>
                   )}
-
-                  {selectedEvent.location && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <span className="material-symbols-outlined text-[20px] text-text-secondary">location_on</span>
-                      <p className="font-medium">{selectedEvent.location}</p>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="material-symbols-outlined text-[20px] text-text-secondary">group</span>
-                    <p className="font-medium">{selectedEvent.rsvp_count || 0} registered</p>
-                  </div>
-                </div>
-
-                {selectedEvent.description && (
-                  <p className="text-sm text-text-secondary dark:text-text-dark-secondary mt-5 whitespace-pre-wrap">{selectedEvent.description}</p>
-                )}
-
-                {selectedEvent.keywords && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {selectedEvent.keywords.split(',').map((kw, i) => (
-                      <span
-                        key={i}
-                        className="px-2.5 py-1 bg-gray-100 dark:bg-border-strong text-text-secondary dark:text-text-dark-secondary text-xs font-medium rounded-lg border border-border-subtle dark:border-border-strong"
-                      >
-                        {kw.trim()}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+                </>
+              )}
+            />
           </div>
         </div>
       )}

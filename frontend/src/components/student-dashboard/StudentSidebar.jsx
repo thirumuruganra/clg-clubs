@@ -4,6 +4,7 @@ import { useAuth } from '../../auth-context';
 import wavcIcon from '../../assets/WAVC-edit.png';
 import SidebarProfileFooter from '../layout/SidebarProfileFooter';
 import SideNavShell from '../layout/SideNavShell';
+import { getPersonInitial } from '../../lib/utils';
 
 const sideNavItems = [
   { label: 'Event', icon: 'event', path: '/student/calendar' },
@@ -56,7 +57,7 @@ const StudentSidebar = ({ mobileMenuOpen, onClose, children }) => {
       subtitle="Student"
       avatarUrl={user?.picture || ''}
       avatarAlt={user?.name || 'Student'}
-      fallbackInitial={(user?.name || 'S')[0].toUpperCase()}
+      fallbackInitial={getPersonInitial(user)}
       onProfileClick={() => handleNavigate('/student/profile')}
       onLogout={logout}
     />

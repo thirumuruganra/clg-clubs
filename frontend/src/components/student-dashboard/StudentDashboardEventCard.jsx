@@ -4,20 +4,11 @@ import { Button } from '../ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { EventPosterFallback } from '../ui/event-poster-fallback';
 import { StatusBadge } from '../ui/status-badge';
-
-const formatEventDate = (iso) => {
-  if (!iso) return { month: '', day: '' };
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return { month: '', day: '' };
-  return {
-    month: date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
-    day: date.getDate(),
-  };
-};
+import { formatEventMonthDay } from '../../lib/utils';
 
 const StudentDashboardEventCard = ({ event, pendingRsvpId, onToggleRsvp }) => {
   const navigate = useNavigate();
-  const { month, day } = formatEventDate(event.start_time);
+  const { month, day } = formatEventMonthDay(event.start_time);
   const isPending = pendingRsvpId === event.id;
   const isFinished = event.end_time ? new Date(event.end_time) < new Date() : false;
 

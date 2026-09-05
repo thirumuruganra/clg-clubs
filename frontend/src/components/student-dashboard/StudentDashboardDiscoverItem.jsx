@@ -2,19 +2,10 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { EventPosterFallback } from '../ui/event-poster-fallback';
-
-const formatEventDate = (iso) => {
-  if (!iso) return { month: '', day: '' };
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return { month: '', day: '' };
-  return {
-    month: date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
-    day: date.getDate(),
-  };
-};
+import { formatEventMonthDay } from '../../lib/utils';
 
 const StudentDashboardDiscoverItem = ({ event, onMoreInfo }) => {
-  const { month, day } = formatEventDate(event.start_time);
+  const { month, day } = formatEventMonthDay(event.start_time);
 
   return (
     <Card interactive onClick={onMoreInfo} className="flex min-h-40 flex-col overflow-hidden border-border-subtle/90 bg-surface-panel/95 p-0 sm:flex-row">
