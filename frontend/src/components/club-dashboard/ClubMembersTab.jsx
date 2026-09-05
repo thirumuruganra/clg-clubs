@@ -3,6 +3,7 @@ import { SearchBar } from '../ui/search-bar';
 import { Switch } from '../ui/switch';
 import { Toast } from '../ui/toast';
 import { ActionToast } from '../ui/action-toast';
+import { RosterTable } from '../ui/roster-table';
 
 const ClubMembersTab = ({
   members,
@@ -105,141 +106,56 @@ const ClubMembersTab = ({
       <div className="table-scroll overflow-hidden rounded-xl border border-border-subtle bg-surface-panel shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">
         {membersLoading ? (
           <div className="px-4 py-10 text-sm text-text-secondary dark:text-text-dark-secondary">Loading club members...</div>
-        ) : filteredMembers.length === 0 ? (
-          <div className="px-4 py-10 text-sm text-text-secondary dark:text-text-dark-secondary">No members match your search.</div>
         ) : (
-          <>
-            <div className="space-y-3 p-3 md:hidden">
-              {filteredMembers.map((member) => {
-                const memberInitial = (member.name || member.email || '?').charAt(0).toUpperCase();
-                return (
-                  <article key={member.id} className="rounded-xl border border-border-subtle bg-surface-panel p-3 shadow-soft-sm dark:border-border-strong dark:bg-surface-canvas/65">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        {member.picture ? (
-                          <img src={member.picture} alt={member.name || 'Member'} className="h-9 w-9 rounded-full object-cover" referrerPolicy="no-referrer" />
-                        ) : (
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{memberInitial}</div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold" title={member.name || 'Unnamed student'}>{member.name || 'Unnamed student'}</p>
-                          <p className="truncate text-xs text-text-secondary dark:text-text-dark-secondary" title={member.email || '-'}>{member.email || '-'}</p>
-                        </div>
-                      </div>
-                      {isClubHead && (
-                        <button
-                          type="button"
-                          onClick={() => onRemoveMember(member)}
-                          className="rounded-full border border-red-500/25 px-2.5 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                      <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Year</p>
-                        <p className="mt-1 font-semibold">{calculateYear(member.batch, member.degree, member.register_number)}</p>
-                      </div>
-                      <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Dept</p>
-                        <p className="mt-1 truncate font-semibold">{member.department || '-'}</p>
-                      </div>
-                      <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Reg No</p>
-                        <p className="mt-1 truncate font-semibold" title={member.register_number || '-'}>{member.register_number || '-'}</p>
-                      </div>
-                    </div>
-                    {isClubHead && (
-                      <div className="mt-3 flex items-center justify-between rounded-lg bg-surface-muted px-2.5 py-2 dark:bg-border-strong/55">
-                        <p className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">Admin Access</p>
-                        <Switch
-                          checked={Boolean(member.is_delegated_admin)}
-                          onCheckedChange={() => onToggleAdminAccess(member)}
-                          ariaLabel={`Toggle admin access for ${member.name || member.email || 'member'}`}
-                        />
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
-
-            <div className="hidden md:block">
-              <table className="w-full min-w-184 table-fixed">
-                <colgroup>
-                  <col className="w-[22%]" />
-                  <col className="w-[20%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[13%]" />
-                  {isClubHead && <col className="w-[12%]" />}
-                  {isClubHead && <col className="w-[10%]" />}
-                </colgroup>
-                <thead className="bg-surface-muted dark:bg-border-strong/55">
-                  <tr className="border-b border-border-subtle dark:border-border-strong">
-                    {['Student', 'Email', 'Year', 'Department', 'Register No', ...(isClubHead ? ['Admin Access', 'Actions'] : [])].map((header) => (
-                      <th
-                        key={header}
-                        className={`px-5 py-3.5 text-xs font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary ${header === 'Actions' || header === 'Admin Access' ? 'text-center' : 'text-left'}`}
-                      >
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredMembers.map((member) => {
-                    const memberInitial = (member.name || member.email || '?').charAt(0).toUpperCase();
-
-                    return (
-                      <tr key={member.id} className="border-b border-border-subtle transition-colors hover:bg-surface-muted dark:border-border-strong dark:hover:bg-border-strong/50">
-                        <td className="px-5 py-4 align-middle">
-                          <div className="flex items-center gap-3">
-                            {member.picture ? (
-                              <img src={member.picture} alt={member.name || 'Member'} className="h-9 w-9 rounded-full object-cover" referrerPolicy="no-referrer" />
-                            ) : (
-                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{memberInitial}</div>
-                            )}
-                            <span className="block truncate text-sm font-semibold" title={member.name || 'Unnamed student'}>{member.name || 'Unnamed student'}</span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 align-middle text-sm text-text-secondary dark:text-text-dark-secondary">
-                          <span className="block truncate" title={member.email || '-'}>{member.email || '-'}</span>
-                        </td>
-                        <td className="px-5 py-4 align-middle text-sm">{calculateYear(member.batch, member.degree, member.register_number)}</td>
-                        <td className="px-5 py-4 align-middle text-sm">{member.department || '-'}</td>
-                        <td className="px-5 py-4 align-middle text-sm">
-                          <span className="block truncate" title={member.register_number || '-'}>{member.register_number || '-'}</span>
-                        </td>
-                        {isClubHead && (
-                          <td className="px-5 py-4 align-middle text-center">
-                            <Switch
-                              checked={Boolean(member.is_delegated_admin)}
-                              onCheckedChange={() => onToggleAdminAccess(member)}
-                              ariaLabel={`Toggle admin access for ${member.name || member.email || 'member'}`}
-                              className="mx-auto"
-                            />
-                          </td>
-                        )}
-                        {isClubHead && (
-                          <td className="px-5 py-4 align-middle text-center">
-                            <button
-                              type="button"
-                              onClick={() => onRemoveMember(member)}
-                              className="inline-flex min-w-22 items-center justify-center rounded-full border border-red-500/25 px-3 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
-                            >
-                              Remove
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <RosterTable
+            rows={filteredMembers}
+            calculateYear={calculateYear}
+            emptyMessage="No members match your search."
+            extraColumns={isClubHead ? [
+              {
+                label: 'Admin Access',
+                render: (member) => (
+                  <Switch
+                    checked={Boolean(member.is_delegated_admin)}
+                    onCheckedChange={() => onToggleAdminAccess(member)}
+                    ariaLabel={`Toggle admin access for ${member.name || member.email || 'member'}`}
+                    className="mx-auto"
+                  />
+                ),
+              },
+              {
+                label: 'Actions',
+                render: (member) => (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveMember(member)}
+                    className="inline-flex min-w-22 items-center justify-center rounded-full border border-red-500/25 px-3 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
+                  >
+                    Remove
+                  </button>
+                ),
+              },
+            ] : []}
+            mobileTopRight={isClubHead ? (member) => (
+              <button
+                type="button"
+                onClick={() => onRemoveMember(member)}
+                className="rounded-full border border-red-500/25 px-2.5 py-1 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/10"
+              >
+                Remove
+              </button>
+            ) : undefined}
+            mobileFooter={isClubHead ? (member) => (
+              <div className="mt-3 flex items-center justify-between rounded-lg bg-surface-muted px-2.5 py-2 dark:bg-border-strong/55">
+                <p className="text-xs font-semibold text-text-secondary dark:text-text-dark-secondary">Admin Access</p>
+                <Switch
+                  checked={Boolean(member.is_delegated_admin)}
+                  onCheckedChange={() => onToggleAdminAccess(member)}
+                  ariaLabel={`Toggle admin access for ${member.name || member.email || 'member'}`}
+                />
+              </div>
+            ) : undefined}
+          />
         )}
       </div>
 
@@ -306,112 +222,34 @@ const ClubMembersTab = ({
             <div className="min-h-0 flex-1 overflow-auto px-4 py-4 sm:px-5">
               {studentsLoading ? (
                 <div className="py-10 text-center text-sm text-text-secondary dark:text-text-dark-secondary">Loading registered students...</div>
-              ) : studentResults.length === 0 ? (
-                <div className="py-10 text-center text-sm text-text-secondary dark:text-text-dark-secondary">No students found for current filters.</div>
               ) : (
-                <>
-                  <div className="space-y-3 md:hidden">
-                    {studentResults.map((student) => {
-                      const studentInitial = (student.name || student.email || '?').charAt(0).toUpperCase();
-
-                      return (
-                        <article key={student.id} className="rounded-xl border border-border-subtle bg-surface-panel p-3 dark:border-border-strong dark:bg-surface-canvas/65">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex min-w-0 items-center gap-3">
-                              {student.picture ? (
-                                <img src={student.picture} alt={student.name || 'Student'} className="h-8 w-8 rounded-full object-cover" referrerPolicy="no-referrer" />
-                              ) : (
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{studentInitial}</div>
-                              )}
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold" title={student.name || 'Unnamed student'}>{student.name || 'Unnamed student'}</p>
-                                <p className="truncate text-xs text-text-secondary dark:text-text-dark-secondary" title={student.email || '-'}>{student.email || '-'}</p>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => onAddMember(student.id)}
-                              className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary/90"
-                            >
-                              Add
-                            </button>
-                          </div>
-                          <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                            <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Year</p>
-                              <p className="mt-1 font-semibold">{student.year || '-'}</p>
-                            </div>
-                            <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Dept</p>
-                              <p className="mt-1 truncate font-semibold">{student.department || '-'}</p>
-                            </div>
-                            <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Reg No</p>
-                              <p className="mt-1 truncate font-semibold" title={student.register_number || '-'}>{student.register_number || '-'}</p>
-                            </div>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-
-                  <div className="hidden md:block">
-                    <table className="w-full min-w-176 table-fixed">
-                      <colgroup>
-                        <col className="w-[28%]" />
-                        <col className="w-[26%]" />
-                        <col className="w-[10%]" />
-                        <col className="w-[18%]" />
-                        <col className="w-[14%]" />
-                        <col className="w-[8%]" />
-                      </colgroup>
-                      <thead className="bg-surface-muted dark:bg-border-strong/55">
-                        <tr className="border-b border-border-subtle dark:border-border-strong">
-                          {['Student', 'Email', 'Year', 'Department', 'Register No', 'Add'].map((header) => (
-                            <th key={header} className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary">{header}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {studentResults.map((student) => {
-                          const studentInitial = (student.name || student.email || '?').charAt(0).toUpperCase();
-
-                          return (
-                            <tr key={student.id} className="border-b border-border-subtle dark:border-border-strong">
-                              <td className="px-4 py-3 align-middle">
-                                <div className="flex items-center gap-3">
-                                  {student.picture ? (
-                                    <img src={student.picture} alt={student.name || 'Student'} className="h-8 w-8 rounded-full object-cover" referrerPolicy="no-referrer" />
-                                  ) : (
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{studentInitial}</div>
-                                  )}
-                                  <span className="truncate text-sm font-medium" title={student.name || 'Unnamed student'}>{student.name || 'Unnamed student'}</span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 align-middle text-sm text-text-secondary dark:text-text-dark-secondary">
-                                <span className="block truncate" title={student.email || '-'}>{student.email || '-'}</span>
-                              </td>
-                              <td className="px-4 py-3 align-middle text-sm">{student.year || '-'}</td>
-                              <td className="px-4 py-3 align-middle text-sm">{student.department || '-'}</td>
-                              <td className="px-4 py-3 align-middle text-sm">
-                                <span className="block truncate" title={student.register_number || '-'}>{student.register_number || '-'}</span>
-                              </td>
-                              <td className="px-4 py-3 align-middle">
-                                <button
-                                  type="button"
-                                  onClick={() => onAddMember(student.id)}
-                                  className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary/90"
-                                >
-                                  Add
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
+                <RosterTable
+                  rows={studentResults}
+                  emptyMessage="No students found for current filters."
+                  extraColumns={[
+                    {
+                      label: 'Add',
+                      render: (student) => (
+                        <button
+                          type="button"
+                          onClick={() => onAddMember(student.id)}
+                          className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary/90"
+                        >
+                          Add
+                        </button>
+                      ),
+                    },
+                  ]}
+                  mobileTopRight={(student) => (
+                    <button
+                      type="button"
+                      onClick={() => onAddMember(student.id)}
+                      className="rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary/90"
+                    >
+                      Add
+                    </button>
+                  )}
+                />
               )}
             </div>
           </div>

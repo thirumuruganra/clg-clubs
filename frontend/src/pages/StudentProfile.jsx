@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
-import { getClubIconUrl, getClubInitial } from '../lib/utils';
+import { getClubIconUrl, getClubInitial, getPersonInitial } from '../lib/utils';
 import wavcIcon from '../assets/WAVC-edit.png';
 import { Button } from '../components/ui/button';
 import { FieldMessage } from '../components/ui/field-message';
@@ -144,11 +144,6 @@ const StudentProfile = () => {
 
   // Check if the user has a valid picture URL
   const hasValidPicture = user?.picture && user.picture.trim() !== '' && !pictureError;
-
-  // Get the user's initial letter for the avatar fallback
-  const getInitial = () => {
-    return (user?.name || 'S').charAt(0).toUpperCase();
-  };
 
   useEffect(() => {
     if (!loading && !user) { navigate('/login'); return; }
@@ -402,7 +397,7 @@ const StudentProfile = () => {
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <span className="text-4xl font-bold text-text-secondary">{getInitial()}</span>
+                  <span className="text-4xl font-bold text-text-secondary">{getPersonInitial(user)}</span>
                 )}
               </div>
               <div className="flex-1">

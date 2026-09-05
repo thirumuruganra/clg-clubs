@@ -2,26 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth-context';
-import { getClubIconUrl, getClubInitial, getShortEventLink, warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
+import { eventMatchesSearch, getClubIconUrl, getClubInitial, getShortEventLink, warmPosterCacheForEvents, warmPosterImageCache } from '../lib/utils';
 import StudentSidebar from '../components/student-dashboard/StudentSidebar';
 import AppShell from '../components/layout/AppShell';
 import AppTopBar from '../components/layout/AppTopBar';
 import { Button } from '../components/ui/button';
 import { EmptyState } from '../components/ui/empty-state';
-import { EventPosterFallback } from '../components/ui/event-poster-fallback';
 import { IconButton } from '../components/ui/icon-button';
 import { Skeleton } from '../components/ui/skeleton';
+import { EventDetailPanel } from '../components/event/event-detail-panel';
 
 const API = '';
-
-const eventMatchesSearch = (event, rawQuery) => {
-  const query = rawQuery.trim().toLowerCase();
-  if (!query) return true;
-
-  return [event.title, event.description, event.keywords]
-    .filter(Boolean)
-    .some((field) => field.toLowerCase().includes(query));
-};
 
 const StudentCalendar = () => {
   const { user, loading } = useAuth();
@@ -455,30 +446,11 @@ const StudentCalendar = () => {
             className="modal-panel w-full max-w-2xl overflow-y-auto rounded-2xl border border-border-subtle bg-white shadow-2xl dark:border-border-strong dark:bg-[#1a2632] md:overflow-hidden"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex flex-col md:aspect-2/1 md:flex-row">
-              <div className="relative aspect-4/5 w-full overflow-hidden bg-[#0f1720] md:h-full md:w-2/5 md:shrink-0">
-                {selectedEvent.image_url ? (
-                  <img src={selectedEvent.image_url} alt={selectedEvent.title} loading="lazy" decoding="async" className="h-full w-full object-contain" />
-                ) : (
-                  <EventPosterFallback title={selectedEvent.title} />
-                )}
-              </div>
-
-              <div className="flex w-full min-h-0 flex-col p-6 md:h-full md:w-3/5 md:overflow-y-auto">
-                <div className="mb-1 flex items-start justify-between">
-                  <span className="text-sm text-text-secondary">
-                    {selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
-                    {' • '}
-                    {selectedEvent.start_time ? new Date(selectedEvent.start_time).toLocaleDateString('en-US', { weekday: 'long' }) : ''}
-                  </span>
-                  <IconButton ariaLabel="Close event details" variant="soft" size="sm" onClick={() => { setSelectedEvent(null); setShareCopied(false); }}>
-                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
-                  </IconButton>
-                </div>
-
-                <p className="mb-1 text-sm font-semibold text-primary">{selectedEvent.club_name || 'Club Event'}</p>
-                <h2 className="mb-4 text-2xl font-bold text-text-primary">{selectedEvent.title}</h2>
-
+            <EventDetailPanel
+              event={selectedEvent}
+              onClose={() => { setSelectedEvent(null); setShareCopied(false); }}
+              showRecentActivity
+              actions={(
                 <div className="mb-4 space-y-3">
                   <Button
                     type="button"
@@ -500,88 +472,8 @@ const StudentCalendar = () => {
                     </Button>
                   </div>
                 </div>
-
-                {selectedEvent.is_paid ? (
-                  <div className="mb-4 rounded-xl border border-orange-100 bg-orange-50 px-4 py-2.5 dark:border-orange-500/20 dark:bg-orange-500/5">
-                    <div className="flex min-h-8 items-center justify-between gap-3">
-                      <span className="flex items-center gap-1.5 text-sm font-bold leading-none text-orange-600 dark:text-orange-400">
-                        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">payments</span>
-                        Registration Fee
-                      </span>
-                      <span className="shrink-0 text-sm font-bold leading-none tabular-nums text-text-primary dark:text-white">{selectedEvent.registration_fees || 'TBA'}</span>
-                    </div>
-                    {selectedEvent.payment_link ? (
-                      <a href={selectedEvent.payment_link} target="_blank" rel="noopener noreferrer" className="group mt-1.5 flex items-center gap-1.5 text-sm font-bold text-primary hover:underline">
-                        <span className="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-0.5" aria-hidden="true">open_in_new</span>
-                        Pay via link
-                      </a>
-                    ) : null}
-                    {selectedEvent.payment_qr_url ? (
-                      <div className="mt-3 rounded-xl border border-orange-200/80 bg-white/85 p-3 dark:border-orange-500/20 dark:bg-[#0f1720]/55">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs font-bold uppercase tracking-[0.12em] text-orange-700 dark:text-orange-300">Payment QR</span>
-                          <a href={selectedEvent.payment_qr_url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-primary hover:underline">
-                            Open image
-                          </a>
-                        </div>
-                        <img src={selectedEvent.payment_qr_url} alt={`${selectedEvent.title} payment QR`} className="mt-2 w-full max-w-44 rounded-lg bg-white object-contain p-2" />
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <div className="mb-6 flex-1 space-y-3">
-                  {selectedEvent.start_time ? (
-                    <div className="flex items-center gap-3 text-sm">
-                      <span className="material-symbols-outlined text-[20px] text-text-secondary" aria-hidden="true">schedule</span>
-                      <div>
-                        <p className="font-medium text-text-primary dark:text-white">
-                          {new Date(selectedEvent.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                          {' - '}
-                          {selectedEvent.end_time ? new Date(selectedEvent.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : ''}
-                        </p>
-                        <p className="text-xs text-text-secondary">
-                          {selectedEvent.end_time && selectedEvent.start_time
-                            ? `${Math.round((new Date(selectedEvent.end_time) - new Date(selectedEvent.start_time)) / 3600000)} hours`
-                            : ''}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {selectedEvent.location ? (
-                    <div className="flex items-center gap-3 text-sm">
-                      <span className="material-symbols-outlined text-[20px] text-text-secondary" aria-hidden="true">location_on</span>
-                      <p className="font-medium text-text-primary dark:text-white">{selectedEvent.location}</p>
-                    </div>
-                  ) : null}
-
-                  {selectedEvent.recent_activity > 0 ? (
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-                      <span className="font-medium italic text-green-400">{selectedEvent.recent_activity}+ registered in last hour</span>
-                    </div>
-                  ) : null}
-                </div>
-
-                {selectedEvent.description ? (
-                  <p className="mb-4 whitespace-pre-wrap text-sm text-text-secondary">{selectedEvent.description}</p>
-                ) : null}
-
-                {selectedEvent.keywords ? (
-                  <div className="mb-4 flex flex-wrap gap-2">
-                    {selectedEvent.keywords.split(',').map((keyword, index) => (
-                      <span
-                        key={`${keyword}-${index}`}
-                        className="rounded-lg border border-border-subtle bg-gray-100 px-2.5 py-1 text-xs font-medium text-text-secondary dark:border-[#34485c] dark:bg-border-strong"
-                      >
-                        {keyword.trim()}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </div>
+              )}
+            />
           </div>
         </div>,
         document.body

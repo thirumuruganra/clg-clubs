@@ -6,6 +6,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Toast } from '../ui/toast';
+import { FileDropzone } from '../ui/file-dropzone';
 
 const CreateEventTab = ({
   createError,
@@ -38,8 +39,6 @@ const CreateEventTab = ({
   newPosterInputRef,
   newPaymentQrInputRef,
   setPosterSelection,
-  openCreatePosterPicker,
-  openCreatePaymentQrPicker,
   newPosterFile,
   newPosterPreview,
   newPaymentQrFile,
@@ -163,41 +162,17 @@ const CreateEventTab = ({
             <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary dark:text-text-dark-secondary">Poster & Registration</h2>
             <div>
               <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary">Event Poster (JPEG/PNG/WebP, up to 2 MB after compression)</Label>
-              <div
-                className={`rounded-xl border-2 border-dashed p-4 transition-colors ${
-                  isCreatePosterDragActive
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border-subtle bg-surface-muted dark:border-border-strong dark:bg-surface-canvas/60'
-                }`}
+              <FileDropzone
+                dragActive={isCreatePosterDragActive}
                 onDragEnter={(event) => handlePosterDragEnter(event, setIsCreatePosterDragActive, createPosterDragCounterRef)}
                 onDragOver={handlePosterDragOver}
                 onDragLeave={(event) => handlePosterDragLeave(event, setIsCreatePosterDragActive, createPosterDragCounterRef)}
                 onDrop={(event) => handlePosterDrop(event, setIsCreatePosterDragActive, createPosterDragCounterRef, setNewPosterFile, setNewPosterPreview, setCreateError)}
-              >
-                <input
-                  ref={newPosterInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={(event) => {
-                    const selectedFile = event.target.files?.[0] || null;
-                    setPosterSelection(selectedFile, setNewPosterFile, setNewPosterPreview, setCreateError);
-                    event.target.value = '';
-                  }}
-                  className="hidden"
-                />
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={openCreatePosterPicker}
-                  >
-                    <span className="material-symbols-outlined text-[18px]">upload</span>
-                    Choose Poster
-                  </Button>
-                  <span className="max-w-64 truncate text-xs text-text-secondary dark:text-text-dark-secondary">{newPosterFile ? newPosterFile.name : 'No file selected'}</span>
-                </div>
-                <p className="mt-2 text-xs text-text-secondary dark:text-text-dark-secondary">or drag and drop an image here</p>
-              </div>
+                inputRef={newPosterInputRef}
+                onSelectFile={(file) => setPosterSelection(file, setNewPosterFile, setNewPosterPreview, setCreateError)}
+                fileName={newPosterFile?.name}
+                buttonLabel="Choose Poster"
+              />
               {newPosterPreview && (
                 <div className="mt-3 aspect-4/5 w-full max-w-52 overflow-hidden rounded-lg border border-border-subtle bg-[#0f1720] dark:border-border-strong">
                   <img src={newPosterPreview} alt="Poster preview" className="h-full w-full object-cover" />
@@ -234,43 +209,19 @@ const CreateEventTab = ({
                 </div>
                 <div>
                   <Label className="mb-1 block text-xs text-text-secondary dark:text-text-dark-secondary">Payment QR (Optional)</Label>
-                  <div
-                    className={`rounded-xl border-2 border-dashed p-4 transition-colors ${
-                      isCreatePaymentQrDragActive
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border-subtle bg-surface-muted dark:border-border-strong dark:bg-surface-canvas/60'
-                    }`}
+                  <FileDropzone
+                    dragActive={isCreatePaymentQrDragActive}
                     onDragEnter={(event) => handlePosterDragEnter(event, setIsCreatePaymentQrDragActive, createPaymentQrDragCounterRef)}
                     onDragOver={handlePosterDragOver}
                     onDragLeave={(event) => handlePosterDragLeave(event, setIsCreatePaymentQrDragActive, createPaymentQrDragCounterRef)}
                     onDrop={(event) => handlePosterDrop(event, setIsCreatePaymentQrDragActive, createPaymentQrDragCounterRef, setNewPaymentQrFile, setNewPaymentQrPreview, setCreateError, 'Payment QR')}
-                  >
-                    <input
-                      ref={newPaymentQrInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(event) => {
-                        const selectedFile = event.target.files?.[0] || null;
-                        setPosterSelection(selectedFile, setNewPaymentQrFile, setNewPaymentQrPreview, setCreateError, 'Payment QR');
-                        event.target.value = '';
-                      }}
-                      className="hidden"
-                    />
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={openCreatePaymentQrPicker}
-                      >
-                        <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
-                        Choose Payment QR
-                      </Button>
-                      <span className="max-w-64 truncate text-xs text-text-secondary dark:text-text-dark-secondary">
-                        {newPaymentQrFile ? newPaymentQrFile.name : 'No file selected'}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-xs text-text-secondary dark:text-text-dark-secondary">or drag and drop a QR image here</p>
-                  </div>
+                    inputRef={newPaymentQrInputRef}
+                    onSelectFile={(file) => setPosterSelection(file, setNewPaymentQrFile, setNewPaymentQrPreview, setCreateError, 'Payment QR')}
+                    fileName={newPaymentQrFile?.name}
+                    buttonLabel="Choose Payment QR"
+                    buttonIcon="qr_code_2"
+                    hint="or drag and drop a QR image here"
+                  />
                   {newPaymentQrPreview && (
                     <div className="mt-3 w-full max-w-40 overflow-hidden rounded-lg border border-border-subtle bg-white dark:border-border-strong dark:bg-[#0f1720]">
                       <img src={newPaymentQrPreview} alt="Payment QR preview" className="h-full w-full object-contain" />

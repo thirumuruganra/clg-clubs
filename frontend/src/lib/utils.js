@@ -38,6 +38,32 @@ export function getClubInitial(club) {
   return name ? name.charAt(0).toUpperCase() : 'C';
 }
 
+export function getPersonInitial(person) {
+  const source = typeof person?.name === 'string' && person.name.trim() ? person.name : person?.email;
+  const trimmed = typeof source === 'string' ? source.trim() : '';
+  return trimmed ? trimmed.charAt(0).toUpperCase() : '?';
+}
+
+export function eventMatchesSearch(event, rawQuery, fields = ['title', 'description', 'keywords']) {
+  const query = String(rawQuery || '').trim().toLowerCase();
+  if (!query) return true;
+
+  return fields
+    .map((field) => event?.[field])
+    .filter(Boolean)
+    .some((value) => String(value).toLowerCase().includes(query));
+}
+
+export function formatEventMonthDay(iso) {
+  if (!iso) return { month: '', day: '' };
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return { month: '', day: '' };
+  return {
+    month: date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+    day: date.getDate(),
+  };
+}
+
 const warmedPosterUrls = new Set();
 
 function appendPosterResourceHint(posterUrl, rel) {

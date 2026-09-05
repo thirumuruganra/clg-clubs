@@ -3,6 +3,7 @@ import wavcIcon from '../../assets/WAVC-edit.png';
 import SidebarProfileFooter from '../layout/SidebarProfileFooter';
 import SideNavShell from '../layout/SideNavShell';
 import { Dropdown } from '../ui/dropdown';
+import { getPersonInitial } from '../../lib/utils';
 
 const ClubDashboardSidebar = ({
   mobileMenuOpen,
@@ -79,7 +80,7 @@ const ClubDashboardSidebar = ({
       subtitle={isClubHead ? 'Club Head' : 'Club Admin'}
       avatarUrl={isClubHead ? clubIconUrl : user?.picture}
       avatarAlt={isClubHead ? (club?.name || 'Club') : (user?.name || 'Student')}
-      fallbackInitial={isClubHead ? clubInitial : (user?.name || 'S')[0].toUpperCase()}
+      fallbackInitial={isClubHead ? clubInitial : getPersonInitial(user)}
       onProfileClick={() => navigate('/club/profile')}
       onLogout={logout}
     />

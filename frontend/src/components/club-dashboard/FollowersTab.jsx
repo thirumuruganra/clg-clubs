@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { SearchBar } from '../ui/search-bar';
+import { RosterTable } from '../ui/roster-table';
 
 const FollowersTab = ({ followers, followersLoading, followersError, calculateYear }) => {
   const [query, setQuery] = useState('');
@@ -53,92 +54,12 @@ const FollowersTab = ({ followers, followersLoading, followersError, calculateYe
       <div className="table-scroll overflow-hidden rounded-xl border border-border-subtle bg-surface-panel shadow-soft-sm dark:border-border-strong dark:bg-surface-elevated">
         {followersLoading ? (
           <div className="px-4 py-10 text-sm text-text-secondary dark:text-text-dark-secondary">Loading followers...</div>
-        ) : filteredFollowers.length === 0 ? (
-          <div className="px-4 py-10 text-sm text-text-secondary dark:text-text-dark-secondary">No followers match your search.</div>
         ) : (
-          <>
-            <div className="space-y-3 p-3 md:hidden">
-              {filteredFollowers.map((follower) => {
-                const followerInitial = (follower.name || follower.email || '?').charAt(0).toUpperCase();
-                return (
-                  <article key={follower.id} className="rounded-xl border border-border-subtle bg-surface-panel p-3 shadow-soft-sm dark:border-border-strong dark:bg-surface-canvas/65">
-                    <div className="flex items-center gap-3">
-                      {follower.picture ? (
-                        <img src={follower.picture} alt={follower.name || 'Follower'} className="h-9 w-9 rounded-full object-cover" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{followerInitial}</div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold" title={follower.name || 'Unnamed student'}>{follower.name || 'Unnamed student'}</p>
-                        <p className="truncate text-xs text-text-secondary dark:text-text-dark-secondary" title={follower.email || '-'}>{follower.email || '-'}</p>
-                      </div>
-                    </div>
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                      <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Year</p>
-                        <p className="mt-1 font-semibold">{calculateYear(follower.batch, follower.degree, follower.register_number)}</p>
-                      </div>
-                      <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Dept</p>
-                        <p className="mt-1 truncate font-semibold">{follower.department || '-'}</p>
-                      </div>
-                      <div className="rounded-lg bg-surface-muted px-2 py-1.5 dark:bg-border-strong/55">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-text-secondary">Reg No</p>
-                        <p className="mt-1 truncate font-semibold" title={follower.register_number || '-'}>{follower.register_number || '-'}</p>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            <div className="hidden md:block">
-              <table className="w-full min-w-176 table-fixed">
-                <colgroup>
-                  <col className="w-[28%]" />
-                  <col className="w-[30%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[18%]" />
-                  <col className="w-[14%]" />
-                </colgroup>
-                <thead className="bg-surface-muted dark:bg-border-strong/55">
-                  <tr className="border-b border-border-subtle dark:border-border-strong">
-                    {['Student', 'Email', 'Year', 'Department', 'Register No'].map((header) => (
-                      <th key={header} className="px-5 py-3.5 text-left text-xs font-bold uppercase tracking-[0.12em] text-text-secondary dark:text-text-dark-secondary">{header}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredFollowers.map((follower) => {
-                    const followerInitial = (follower.name || follower.email || '?').charAt(0).toUpperCase();
-
-                    return (
-                      <tr key={follower.id} className="border-b border-border-subtle transition-colors hover:bg-surface-muted dark:border-border-strong dark:hover:bg-border-strong/50">
-                        <td className="px-5 py-4 align-middle">
-                          <div className="flex items-center gap-3">
-                            {follower.picture ? (
-                              <img src={follower.picture} alt={follower.name || 'Follower'} className="h-9 w-9 rounded-full object-cover" referrerPolicy="no-referrer" />
-                            ) : (
-                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{followerInitial}</div>
-                            )}
-                            <span className="block truncate text-sm font-semibold" title={follower.name || 'Unnamed student'}>{follower.name || 'Unnamed student'}</span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 align-middle text-sm text-text-secondary dark:text-text-dark-secondary">
-                          <span className="block truncate" title={follower.email || '-'}>{follower.email || '-'}</span>
-                        </td>
-                        <td className="px-5 py-4 align-middle text-sm">{calculateYear(follower.batch, follower.degree, follower.register_number)}</td>
-                        <td className="px-5 py-4 align-middle text-sm">{follower.department || '-'}</td>
-                        <td className="px-5 py-4 align-middle text-sm">
-                          <span className="block truncate" title={follower.register_number || '-'}>{follower.register_number || '-'}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <RosterTable
+            rows={filteredFollowers}
+            calculateYear={calculateYear}
+            emptyMessage="No followers match your search."
+          />
         )}
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import wavcIcon from '../assets/WAVC-edit.png';
@@ -6,10 +6,10 @@ import { Button } from '../components/ui/button';
 import { FieldMessage } from '../components/ui/field-message';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { ClubLogoDropzone } from '../components/ui/club-logo-dropzone';
+import { useLogoUpload } from '../lib/useLogoUpload';
 
 const API = '';
-const CLUB_LOGO_MAX_SIZE_BYTES = 2 * 1024 * 1024;
-const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const ClubsSetup = () => {
   const { user, loading, logout, refetchUser } = useAuth();
@@ -20,102 +20,9 @@ const ClubsSetup = () => {
     instagram_handle: '',
     category: 'TECH',
   });
-  const [logoFile, setLogoFile] = useState(null);
-  const [logoPreview, setLogoPreview] = useState('');
-  const [isLogoDragActive, setIsLogoDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
-  const logoInputRef = useRef(null);
-  const logoDragCounterRef = useRef(0);
-
-  useEffect(() => {
-    return () => {
-      if (logoPreview) URL.revokeObjectURL(logoPreview);
-    };
-  }, [logoPreview]);
-
-  const uploadClubLogo = async (clubId, selectedFile) => {
-    const data = new FormData();
-    data.append('file', selectedFile, selectedFile.name || 'club-logo');
-
-    const res = await fetch(`${API}/api/clubs/${clubId}/logo`, {
-      method: 'POST',
-      body: data,
-    });
-
-    if (!res.ok) {
-      const payload = await res.json().catch(() => ({}));
-      throw new Error(payload.detail || 'Logo upload failed.');
-    }
-  };
-
-  const setSelectedLogoFile = (selectedFile) => {
-    if (!selectedFile) {
-      setLogoFile(null);
-      setLogoPreview((previous) => {
-        if (previous) URL.revokeObjectURL(previous);
-        return '';
-      });
-      return true;
-    }
-
-    if (!ALLOWED_LOGO_TYPES.includes(selectedFile.type)) {
-      setFormError('Logo must be JPEG, PNG, or WebP.');
-      return false;
-    }
-
-    if (selectedFile.size > CLUB_LOGO_MAX_SIZE_BYTES) {
-      setFormError('Logo must be 2 MB or smaller.');
-      return false;
-    }
-
-    setFormError('');
-    setLogoFile(selectedFile);
-    setLogoPreview((previous) => {
-      if (previous) URL.revokeObjectURL(previous);
-      return URL.createObjectURL(selectedFile);
-    });
-    return true;
-  };
-
-  const onSelectLogoFile = (event) => {
-    const selectedFile = event.target.files?.[0];
-    const isValid = setSelectedLogoFile(selectedFile || null);
-    if (!isValid) {
-      event.target.value = '';
-    }
-  };
-
-  const openLogoFilePicker = () => {
-    logoInputRef.current?.click();
-  };
-
-  const handleLogoDragEnter = (event) => {
-    event.preventDefault();
-    logoDragCounterRef.current += 1;
-    setIsLogoDragActive(true);
-  };
-
-  const handleLogoDragOver = (event) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-  };
-
-  const handleLogoDragLeave = (event) => {
-    event.preventDefault();
-    logoDragCounterRef.current = Math.max(0, logoDragCounterRef.current - 1);
-    if (logoDragCounterRef.current === 0) {
-      setIsLogoDragActive(false);
-    }
-  };
-
-  const handleLogoDrop = (event) => {
-    event.preventDefault();
-    logoDragCounterRef.current = 0;
-    setIsLogoDragActive(false);
-    const droppedFile = event.dataTransfer.files?.[0];
-    void setSelectedLogoFile(droppedFile || null);
-  };
+  const logo = useLogoUpload({ onError: setFormError });
 
   if (loading) return (
     <div className="min-h-dvh flex items-center justify-center bg-background-dark text-white">
@@ -151,9 +58,9 @@ const ClubsSetup = () => {
       if (res.ok) {
         const createdClub = await res.json();
 
-        if (logoFile) {
+        if (logo.file) {
           try {
-            await uploadClubLogo(createdClub.id, logoFile);
+            await logo.upload(createdClub.id);
           } catch (error) {
             console.error(error);
             await refetchUser();
@@ -206,50 +113,20 @@ const ClubsSetup = () => {
             </div>
           ) : null}
           {/* Logo Upload Area */}
-          <div
-            className={`rounded-xl border border-dashed p-5 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8 transition-colors ${
-              isLogoDragActive
-                ? 'border-primary bg-primary/5'
-                : 'border-border-subtle dark:border-border-strong'
-            }`}
-            onDragEnter={handleLogoDragEnter}
-            onDragOver={handleLogoDragOver}
-            onDragLeave={handleLogoDragLeave}
-            onDrop={handleLogoDrop}
-          >
-            <div className="w-28 h-28 rounded-full border-2 border-dashed border-text-secondary/30 flex items-center justify-center shrink-0 bg-surface-muted dark:bg-border-strong">
-              {logoPreview || user?.picture ? (
-                <img src={logoPreview || user?.picture} alt="Logo" className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
-              ) : (
-                <span className="material-symbols-outlined text-[40px] text-text-secondary/50">photo_camera</span>
-              )}
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-semibold mb-1">Upload Club Logo</h3>
-              <p className="type-body text-text-secondary dark:text-text-dark-secondary mb-3">If you skip upload, your Google profile picture will be used. JPG, PNG, WebP up to 2 MB.</p>
-              <input
-                ref={logoInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={onSelectLogoFile}
-                className="hidden"
-              />
-              <div className="flex items-center gap-3">
-                <Button
-                  type="button"
-                  onClick={openLogoFilePicker}
-                  variant="secondary"
-                  size="sm"
-                  className="border border-border-subtle"
-                >
-                  <span className="material-symbols-outlined text-[18px]">upload</span>
-                  Select File
-                </Button>
-                <span className="text-xs text-text-secondary dark:text-text-dark-secondary truncate max-w-64">{logoFile ? logoFile.name : 'No file selected'}</span>
-              </div>
-              <p className="text-xs text-text-secondary dark:text-text-dark-secondary mt-2">or drag and drop an image here</p>
-            </div>
-          </div>
+          <ClubLogoDropzone
+            dragActive={logo.dragActive}
+            onDragEnter={logo.handleDragEnter}
+            onDragOver={logo.handleDragOver}
+            onDragLeave={logo.handleDragLeave}
+            onDrop={logo.handleDrop}
+            inputRef={logo.inputRef}
+            onSelectFile={logo.setSelectedFile}
+            previewSrc={logo.preview || user?.picture}
+            fileName={logo.file?.name}
+            title="Upload Club Logo"
+            description="If you skip upload, your Google profile picture will be used. JPG, PNG, WebP up to 2 MB."
+            buttonLabel="Select File"
+          />
 
           {/* Club Name */}
           <div>
