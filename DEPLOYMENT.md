@@ -95,6 +95,19 @@ git push heroku main:main
 
 If your deployment branch is different, push that branch to Heroku `main`.
 
+## Database migrations
+
+The app has no migration framework and no boot-time schema migrations — `Base.metadata.create_all()` only creates tables that don't already exist, so it never retrofits a new column or index onto an existing database. Any change to `backend/app/models/*.py` that adds an index (or otherwise needs to reach a database that already has the table) ships as a one-off SQL file under `backend/migrations/`, applied by hand, in this order relative to the code deploy:
+
+```bash
+# Back up first — see the migration file's own header for the full sequence
+# (heroku pg:backups:capture/download, then heroku pg:pull for a local rehearsal).
+heroku pg:psql -a your-app-name -f backend/migrations/00N_description.sql
+git push heroku main:main
+```
+
+Indexes always go first, before the code that depends on them: they're additive (`CREATE INDEX CONCURRENTLY IF NOT EXISTS`, no write lock, safe against a running app) and speed up the *current* code too, so there's no reason to sequence them any other way. `essential-0` has no fork/follower support, so rehearse against a `heroku pg:pull` clone in local Postgres rather than against Heroku itself.
+
 ## 6. What Heroku Builds
 
 During deployment, Heroku runs the root `heroku-postbuild` script:
