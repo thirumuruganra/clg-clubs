@@ -49,7 +49,8 @@ The frontend is a React 19 SPA built with Vite.
 - `frontend/src/App.jsx` defines route structure, lazy-loads pages, and protects role-based routes.
 - `AuthProvider` loads the authenticated user and exposes auth state to the app.
 - `frontend/src/pages/` contains the route-level screens for students and club admins.
-- `frontend/src/components/` contains reusable UI and feature-specific components.
+- `frontend/src/components/` contains reusable UI and feature-specific components, including shared pieces pulled out of page-level duplication: `components/event/event-payment-info.jsx` and `event-detail-panel.jsx` (event modal body), `components/ui/roster-table.jsx` (member/follower list), and `components/ui/file-dropzone.jsx` / `club-logo-dropzone.jsx` with `lib/useLogoUpload.js` (drag-drop upload).
+- `frontend/src/lib/utils.js` holds small cross-page helpers (`getPersonInitial`, `eventMatchesSearch`, `formatEventMonthDay`).
 
 ### Frontend Route Groups
 
@@ -72,6 +73,7 @@ The backend is a FastAPI application organized around routers, models, and servi
 - `app/routers/` groups API endpoints by domain.
 - `app/models/` defines SQLAlchemy entities.
 - `app/services/` contains business logic for storage, payload shaping, authorization helpers, and membership synchronization.
+- `app/services/event_queries.py` is a shared query builder (`event_rows_query()`, plus search/filter/sort helpers) used by every event/club/follow listing endpoint. It carries the club join and RSVP counts as correlated scalar subqueries so listings run in 1-3 queries regardless of row count, instead of one extra query per row.
 - `app/core/` contains security, storage, audit, and rate-limiting infrastructure.
 
 ### Middleware and Platform Concerns
@@ -150,6 +152,8 @@ Core entities:
 - `Follow`: student-to-club follow relationship.
 - `ClubMember`: student membership in a club.
 - `EventWorker`: event workforce assignment with member or volunteer roles.
+
+`events.club_id/start_time/end_time`, `rsvps.event_id`, and `follows.club_id` are indexed (matching the existing `club_members`/`event_workers` indexes), since those columns drive every event listing and RSVP-count filter. Fresh databases get the indexes from the model definitions; existing databases need the one-off migration in `backend/migrations/` (see DEPLOYMENT.md).
 
 ## Key Application Flows
 
