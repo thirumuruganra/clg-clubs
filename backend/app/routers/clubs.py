@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.models.club import Club
 from app.models.club_member import ClubMember
@@ -11,6 +12,7 @@ from app.schemas import ClubCreate, ClubMemberAdminAccessUpdate, ClubMemberCreat
 from app.core.security import get_current_user
 from app.services.club_admin_access import require_club_admin_access, require_club_head
 from app.services.club_logos import MAX_LOGO_BYTES, replace_club_logo
+from app.services.event_queries import event_rows_query
 from app.services.membership_sync import sync_user_joined_clubs_projection
 from app.services.payloads import event_payload
 from app.utils.common import normalize_text
@@ -37,31 +39,39 @@ def _club_payload(club: Club, follower_count: int, is_following: bool = False):
         "is_following": is_following,
     }
 
+def _follower_count_subquery():
+    return select(func.count(Follow.id)).where(Follow.club_id == Club.id).correlate(Club).scalar_subquery()
+
+
 @router.get("/")
 def get_all_clubs(user_id: Optional[UUID] = Query(None), db: Session = Depends(get_db)):
     """Get all clubs with follower count and follow status for current user."""
-    clubs = db.query(Club).all()
-    result = []
-    for club in clubs:
-        follower_count = db.query(Follow).filter(Follow.club_id == club.id).count()
-        is_following = False
-        if user_id:
-            is_following = db.query(Follow).filter(
-                Follow.user_id == user_id, Follow.club_id == club.id
-            ).first() is not None
+    columns = [Club, _follower_count_subquery().label("follower_count")]
+    if user_id:
+        is_following_count = (
+            select(func.count(Follow.id))
+            .where(Follow.club_id == Club.id, Follow.user_id == user_id)
+            .correlate(Club)
+            .scalar_subquery()
+        )
+        columns.append(is_following_count.label("is_following_count"))
 
-        result.append(_club_payload(club, follower_count, is_following))
-    return result
+    rows = db.query(*columns).options(joinedload(Club.admin)).all()
+
+    return [
+        _club_payload(row.Club, row.follower_count, bool(row.is_following_count) if user_id else False)
+        for row in rows
+    ]
 
 
 @router.get("/{club_id}")
 def get_club(club_id: UUID, user_id: Optional[UUID] = Query(None), db: Session = Depends(get_db)):
     """Get a single club by ID."""
-    club = db.query(Club).filter(Club.id == club_id).first()
+    club = db.query(Club).options(joinedload(Club.admin)).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
 
-    follower_count = db.query(Follow).filter(Follow.club_id == club.id).count()
+    follower_count = db.query(func.count(Follow.id)).filter(Follow.club_id == club.id).scalar()
     is_following = False
     if user_id:
         is_following = db.query(Follow).filter(
@@ -339,17 +349,17 @@ async def upload_club_logo(
 @router.get("/{club_id}/events")
 def get_club_events(club_id: UUID, db: Session = Depends(get_db)):
     """Get all events for a specific club."""
-    from app.models.event import Event
-    from app.models.rsvp import RSVP
-
     club = db.query(Club).filter(Club.id == club_id).first()
     if not club:
         raise HTTPException(status_code=404, detail="Club not found")
 
-    events = db.query(Event).filter(Event.club_id == club_id).order_by(Event.start_time.asc()).all()
-    result = []
-    for event in events:
-        rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
-        attended_count = db.query(RSVP).filter(RSVP.event_id == event.id, RSVP.attended == True).count()
-        result.append(event_payload(event, club, rsvp_count, attended_count=attended_count))
-    return result
+    rows = (
+        event_rows_query(db, with_attended=True)
+        .filter(Event.club_id == club_id)
+        .order_by(Event.start_time.asc())
+        .all()
+    )
+    return [
+        event_payload(event, club, rsvp_count, attended_count=attended_count)
+        for event, _club, rsvp_count, attended_count in rows
+    ]

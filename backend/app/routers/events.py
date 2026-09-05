@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import func
 import re
 import os
 import secrets
@@ -11,7 +11,6 @@ from uuid import UUID
 from app.database import get_db
 from app.models.event import Event
 from app.models.event_worker import EventWorker
-from app.models.club import Club
 from app.models.club_member import ClubMember
 from app.models.rsvp import RSVP
 from app.models.follow import Follow
@@ -26,6 +25,12 @@ from app.services.event_posters import (
     clear_event_poster,
 )
 from app.services.event_payment_qrs import replace_event_payment_qr, clear_event_payment_qr
+from app.services.event_queries import (
+    apply_event_filters,
+    apply_event_search,
+    apply_event_sort,
+    event_rows_query,
+)
 from app.services.payloads import event_payload
 from app.utils.common import safe_json_list
 from datetime import datetime, timedelta
@@ -61,19 +66,6 @@ def _word_count(text: Optional[str]) -> int:
 def _validate_short_description(description: Optional[str]) -> None:
     if description is not None and _word_count(description) > 100:
         raise HTTPException(status_code=422, detail="Description must be 100 words or fewer")
-
-
-def _apply_event_search(query, search: Optional[str]):
-    if not search or not search.strip():
-        return query
-    search_term = f"%{search.strip()}%"
-    return query.filter(
-        or_(
-            Event.title.ilike(search_term),
-            Event.description.ilike(search_term),
-            Event.keywords.ilike(search_term),
-        )
-    )
 
 
 def _tokenize_text(raw_text: Optional[str]) -> set[str]:
@@ -158,15 +150,10 @@ def _calculate_recommendation_score(event: Event, interest_tokens: set[str], is_
 @router.get("/all")
 def get_all_events(search: Optional[str] = Query(None), db: Session = Depends(get_db)):
     """Get all events (for calendar view)."""
-    query = db.query(Event)
-    query = _apply_event_search(query, search)
-    events = query.order_by(Event.start_time.asc()).all()
-    result = []
-    for event in events:
-        club = db.query(Club).filter(Club.id == event.club_id).first()
-        rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
-        result.append(event_payload(event, club, rsvp_count))
-    return result
+    query = event_rows_query(db)
+    query = apply_event_search(query, search)
+    rows = query.order_by(Event.start_time.asc()).all()
+    return [event_payload(event, club, rsvp_count) for event, club, rsvp_count in rows]
 
 
 @router.get("/feed")
@@ -174,6 +161,12 @@ def get_event_feed(
     type: str = Query("following", pattern="^(following|discover|recommended)$"),
     user_id: Optional[UUID] = Query(None),
     search: Optional[str] = Query(None),
+    tag: Optional[str] = Query(None, pattern="^(TECH|NON_TECH)$"),
+    is_paid: Optional[bool] = Query(None),
+    starts_within_days: Optional[int] = Query(None, ge=0),
+    sort: str = Query("recommended", pattern="^(recommended|soonest|popular)$"),
+    limit: Optional[int] = Query(None, ge=1, le=200),
+    offset: Optional[int] = Query(None, ge=0),
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_optional_user),
 ):
@@ -182,6 +175,8 @@ def get_event_feed(
     - type=following: events from clubs the user follows
     - type=discover: events from clubs the user does NOT follow
     - type=recommended: ranked mixed feed by user interests + recency
+    - sort (soonest/popular) is applied in SQL; the default "recommended"
+      sort keeps the current Python scoring pass, unchanged.
     """
     personalization_user_id = resolve_personalization_user_id(user_id, current_user.id if current_user else None)
 
@@ -196,54 +191,69 @@ def get_event_feed(
         if user:
             interest_tokens = _normalize_user_interests(safe_json_list(user.interests))
 
+    empty_envelope = {"events": [], "total": 0, "upcoming_week_count": 0, "registered_count": 0}
+
+    query = event_rows_query(db, personalization_user_id=personalization_user_id)
+
     if not personalization_user_id:
         # If no user_id, return all events chronologically.
-        query = db.query(Event)
-        query = _apply_event_search(query, search)
-        events = query.order_by(Event.start_time.asc()).all()
+        query = apply_event_search(query, search)
+        query = apply_event_filters(query, tag=tag, is_paid=is_paid, starts_within_days=starts_within_days)
+        effective_sort = "soonest"
     else:
         if type == "following":
             if not followed_club_ids:
-                return []
-            query = db.query(Event).filter(Event.club_id.in_(followed_club_ids))
-            query = _apply_event_search(query, search)
-            events = query.order_by(Event.start_time.asc()).all()
+                return empty_envelope
+            query = query.filter(Event.club_id.in_(followed_club_ids))
+            query = apply_event_search(query, search)
+            query = apply_event_filters(query, tag=tag, is_paid=is_paid, starts_within_days=starts_within_days)
+            effective_sort = "soonest"
         elif type == "discover":
             if followed_club_ids:
-                query = db.query(Event).filter(~Event.club_id.in_(followed_club_ids))
-            else:
-                query = db.query(Event)
-            query = _apply_event_search(query, search)
-            events = query.order_by(Event.start_time.asc()).all()
+                query = query.filter(~Event.club_id.in_(followed_club_ids))
+            query = apply_event_search(query, search)
+            query = apply_event_filters(query, tag=tag, is_paid=is_paid, starts_within_days=starts_within_days)
+            effective_sort = "soonest"
         else:  # recommended
-            query = db.query(Event).filter(Event.end_time >= datetime.utcnow())
-            query = _apply_event_search(query, search)
-            events = query.all()
-            events = sorted(
-                events,
-                key=lambda event: (
-                    -_calculate_recommendation_score(event, interest_tokens, event.club_id in followed_club_ids),
-                    event.start_time or datetime.max,
-                ),
-            )
+            query = query.filter(Event.end_time >= datetime.utcnow())
+            query = apply_event_search(query, search)
+            query = apply_event_filters(query, tag=tag, is_paid=is_paid, starts_within_days=starts_within_days)
+            effective_sort = sort
+
+    if effective_sort == "recommended":
+        # Recommendation scoring only exists in Python, so fetch the full
+        # filtered set, score-sort it, then slice for pagination.
+        rows = query.all()
+        rows = sorted(
+            rows,
+            key=lambda row: (
+                -_calculate_recommendation_score(row.Event, interest_tokens, row.Event.club_id in followed_club_ids),
+                row.Event.start_time or datetime.max,
+            ),
+        )
+        total = len(rows)
+        if limit is not None or offset is not None:
+            start = offset or 0
+            rows = rows[start: start + limit] if limit is not None else rows[start:]
+    else:
+        total = query.count()
+        sorted_query = apply_event_sort(query, effective_sort)
+        if offset is not None:
+            sorted_query = sorted_query.offset(offset)
+        if limit is not None:
+            sorted_query = sorted_query.limit(limit)
+        rows = sorted_query.all()
 
     result = []
-    for event in events:
-        club = db.query(Club).filter(Club.id == event.club_id).first()
-        rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
-        is_rsvped = False
+    for row in rows:
+        event, club, rsvp_count = row.Event, row.Club, row.rsvp_count
         is_from_followed_club = event.club_id in followed_club_ids
+        is_rsvped = False
         recommendation_score = 0.0
         if personalization_user_id:
-            is_rsvped = db.query(RSVP).filter(
-                RSVP.event_id == event.id, RSVP.user_id == personalization_user_id
-            ).first() is not None
+            is_rsvped = row.personal_attended is not None
             if type == "recommended":
-                recommendation_score = _calculate_recommendation_score(
-                    event,
-                    interest_tokens,
-                    is_from_followed_club,
-                )
+                recommendation_score = _calculate_recommendation_score(event, interest_tokens, is_from_followed_club)
 
         result.append(event_payload(
             event, club, rsvp_count,
@@ -251,7 +261,25 @@ def get_event_feed(
             is_from_followed_club=is_from_followed_club,
             recommendation_score=recommendation_score,
         ))
-    return result
+
+    upcoming_week_count = 0
+    registered_count = 0
+    if personalization_user_id:
+        now = datetime.utcnow()
+        week_end = now + timedelta(days=7)
+        upcoming_week_count = db.query(func.count(Event.id)).filter(
+            Event.end_time >= now, Event.start_time >= now, Event.start_time <= week_end
+        ).scalar()
+        registered_count = db.query(func.count(func.distinct(RSVP.event_id))).join(
+            Event, RSVP.event_id == Event.id
+        ).filter(RSVP.user_id == personalization_user_id, Event.end_time >= now).scalar()
+
+    return {
+        "events": result,
+        "total": total,
+        "upcoming_week_count": upcoming_week_count,
+        "registered_count": registered_count,
+    }
 
 
 @router.get("/{event_id}")
@@ -264,31 +292,27 @@ def get_event(
     """Get a single event by ID."""
     personalization_user_id = resolve_personalization_user_id(user_id, current_user.id if current_user else None)
 
-    event = db.query(Event).filter(Event.id == event_id).first()
-    if not event:
+    row = (
+        event_rows_query(db, personalization_user_id=personalization_user_id)
+        .filter(Event.id == event_id)
+        .first()
+    )
+    if not row:
         raise HTTPException(status_code=404, detail="Event not found")
-
-    club = db.query(Club).filter(Club.id == event.club_id).first()
-    rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
-
-    personal_rsvp = None
-    if personalization_user_id:
-        personal_rsvp = db.query(RSVP).filter(
-            RSVP.event_id == event.id, RSVP.user_id == personalization_user_id
-        ).first()
-    is_rsvped = personal_rsvp is not None
+    event, club, rsvp_count = row.Event, row.Club, row.rsvp_count
+    personal_attended = row.personal_attended if personalization_user_id else None
 
     # Live activity: RSVPs in the last hour
     one_hour_ago = datetime.utcnow() - timedelta(hours=1)
-    recent_rsvps = db.query(RSVP).filter(
+    recent_rsvps = db.query(func.count(RSVP.id)).filter(
         RSVP.event_id == event.id,
         RSVP.created_at >= one_hour_ago
-    ).count()
+    ).scalar()
 
     return event_payload(
         event, club, rsvp_count,
-        is_rsvped=is_rsvped,
-        attended=bool(personal_rsvp.attended) if personal_rsvp else False,
+        is_rsvped=personal_attended is not None,
+        attended=bool(personal_attended),
         recent_activity=recent_rsvps,
     )
 
@@ -472,7 +496,8 @@ def update_event(event_id: UUID, event_update: EventUpdate, db: Session = Depend
     db.commit()
     db.refresh(event)
 
-    club = db.query(Club).filter(Club.id == event.club_id).first()
+    # `club` is already held from require_club_admin_access() above and
+    # this endpoint never mutates the club, so no need to re-fetch it.
     rsvp_count = db.query(RSVP).filter(RSVP.event_id == event.id).count()
 
     return event_payload(event, club, rsvp_count)
