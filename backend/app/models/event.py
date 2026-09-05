@@ -10,12 +10,12 @@ class Event(Base):
     __tablename__ = "events"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    club_id = Column(UUID(as_uuid=True), ForeignKey("clubs.id"), nullable=False)
+    club_id = Column(UUID(as_uuid=True), ForeignKey("clubs.id"), nullable=False, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     location = Column(String(255), nullable=True)
-    start_time = Column(DateTime, nullable=False)
-    end_time = Column(DateTime, nullable=False)
+    start_time = Column(DateTime, nullable=False, index=True)
+    end_time = Column(DateTime, nullable=False, index=True)
     tag = Column(String(50), nullable=True)             # "TECH" or "NON_TECH"
     image_url = Column(String(500), nullable=True)
     poster_storage_path = Column(String(700), nullable=True)

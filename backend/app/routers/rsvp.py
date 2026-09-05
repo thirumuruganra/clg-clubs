@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 from app.database import get_db
 from app.models.rsvp import RSVP
@@ -7,15 +8,27 @@ from app.models.event import Event
 from app.models.event_worker import EventWorker
 from app.models.club_member import ClubMember
 from app.models.user import User
+from app.schemas import RSVPUpdate
 from app.core.audit import log_security_event
 from app.core.security import get_current_user
 from app.services.club_admin_access import require_club_admin_access
 from app.utils.academic_year import calculate_year_label, calculate_year_rank
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
+from typing import Optional, List
 from uuid import UUID
 
 router = APIRouter()
+
+
+class AttendanceCheckinRequest(BaseModel):
+    qr_code: str
+    feedback: Optional[str] = Field(None, max_length=100)
+
+
+class BulkRSVPUpdate(BaseModel):
+    rsvp_ids: List[UUID]
+    is_paid: bool
 IST_TZ = ZoneInfo("Asia/Kolkata")
 WORKFORCE_ROLE_MEMBER = "CLUB_MEMBER"
 WORKFORCE_ROLE_VOLUNTEER = "VOLUNTEER"
@@ -36,19 +49,10 @@ def _verify_admin_owns_event(event_id: UUID, db: Session, current_user: User) ->
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    try:
-        require_club_admin_access(event.club_id, current_user, db)
-    except HTTPException as exc:
-        if exc.status_code == 403:
-            log_security_event(
-                "authz.rsvp.denied",
-                actor_user_id=current_user.id,
-                event_id=event_id,
-            )
-        raise
+    require_club_admin_access(event.club_id, current_user, db)
 
 
-def _resolve_attendance_role(event: Event, user_id: UUID, db: Session) -> str:
+def _resolve_attendance_role(event: Event, user_id: UUID, db: Session, *, strict: bool = True) -> str:
     is_club_member = (
         db.query(ClubMember)
         .filter(ClubMember.club_id == event.club_id, ClubMember.user_id == user_id)
@@ -62,7 +66,7 @@ def _resolve_attendance_role(event: Event, user_id: UUID, db: Session) -> str:
         .first()
     )
 
-    if is_club_member and assignment and assignment.role == WORKFORCE_ROLE_VOLUNTEER:
+    if strict and is_club_member and assignment and assignment.role == WORKFORCE_ROLE_VOLUNTEER:
         raise HTTPException(
             status_code=409,
             detail="Attendance conflict: student is both a club member and assigned volunteer. Fix the event assignment before marking attendance.",
@@ -74,27 +78,6 @@ def _resolve_attendance_role(event: Event, user_id: UUID, db: Session) -> str:
     if assignment and assignment.role == WORKFORCE_ROLE_VOLUNTEER:
         return RSVP.ATTENDANCE_ROLE_VOLUNTEER
 
-    return RSVP.ATTENDANCE_ROLE_PARTICIPANT
-
-
-def _infer_attendance_role(event: Event, user_id: UUID, db: Session) -> str:
-    is_club_member = (
-        db.query(ClubMember)
-        .filter(ClubMember.club_id == event.club_id, ClubMember.user_id == user_id)
-        .first()
-        is not None
-    )
-
-    assignment = (
-        db.query(EventWorker)
-        .filter(EventWorker.event_id == event.id, EventWorker.user_id == user_id)
-        .first()
-    )
-
-    if is_club_member:
-        return RSVP.ATTENDANCE_ROLE_CLUB_MEMBER
-    if assignment and assignment.role == WORKFORCE_ROLE_VOLUNTEER:
-        return RSVP.ATTENDANCE_ROLE_VOLUNTEER
     return RSVP.ATTENDANCE_ROLE_PARTICIPANT
 
 
@@ -158,13 +141,39 @@ def _attendance_year_rank(user: dict | None) -> int:
 
 
 def _sorted_rsvp_rows(rsvps: list[RSVP], db: Session) -> list[dict]:
+    # All RSVPs passed in belong to one event (the only caller filters by
+    # event_id), so the club-membership and workforce lookups that
+    # _resolve_attendance_role would otherwise repeat per RSVP can be
+    # prefetched once here instead.
+    club_member_user_ids: set = set()
+    worker_roles_by_user: dict = {}
+
+    sample_event = next((rsvp.event for rsvp in rsvps if rsvp.event is not None), None)
+    if sample_event is not None:
+        club_member_user_ids = {
+            row.user_id
+            for row in db.query(ClubMember.user_id).filter(ClubMember.club_id == sample_event.club_id).all()
+        }
+        worker_roles_by_user = {
+            row.user_id: row.role
+            for row in db.query(EventWorker.user_id, EventWorker.role)
+            .filter(EventWorker.event_id == sample_event.id)
+            .all()
+        }
+
     rows = []
     for rsvp in rsvps:
-        attendance_role = (
-            _infer_attendance_role(rsvp.event, rsvp.user_id, db)
-            if rsvp.event is not None
-            else rsvp.attendance_role
-        )
+        if rsvp.event is not None:
+            # Mirrors _resolve_attendance_role(strict=False): club
+            # membership wins, then an assigned volunteer, else participant.
+            if rsvp.user_id in club_member_user_ids:
+                attendance_role = RSVP.ATTENDANCE_ROLE_CLUB_MEMBER
+            elif worker_roles_by_user.get(rsvp.user_id) == WORKFORCE_ROLE_VOLUNTEER:
+                attendance_role = RSVP.ATTENDANCE_ROLE_VOLUNTEER
+            else:
+                attendance_role = RSVP.ATTENDANCE_ROLE_PARTICIPANT
+        else:
+            attendance_role = rsvp.attendance_role
         rows.append(_serialize_rsvp(rsvp, attendance_role))
 
     def sort_key(row: dict) -> tuple[int, str, int, str]:
@@ -232,7 +241,12 @@ def get_event_rsvps(
     """Get all RSVPs for an event (owning club admin only)."""
     _verify_admin_owns_event(event_id, db, current_user)
 
-    rsvps = db.query(RSVP).filter(RSVP.event_id == event_id).all()
+    rsvps = (
+        db.query(RSVP)
+        .options(joinedload(RSVP.user), joinedload(RSVP.event))
+        .filter(RSVP.event_id == event_id)
+        .all()
+    )
 
     payload = {
         "event_id": event_id,
@@ -246,11 +260,9 @@ def get_event_rsvps(
 @router.get("/rsvps/me/activity")
 def get_user_activity(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get all attended events for the current user."""
-    from app.models.club import Club
     rsvps = (
         db.query(RSVP)
-        .join(Event, RSVP.event_id == Event.id)
-        .join(Club, Event.club_id == Club.id)
+        .options(joinedload(RSVP.event).joinedload(Event.club))
         .filter(RSVP.user_id == current_user.id, RSVP.attended == True)
         .all()
     )
@@ -265,20 +277,9 @@ def get_user_activity(db: Session = Depends(get_db), current_user: User = Depend
         })
     return activities
 
-from pydantic import BaseModel, Field
-
-from typing import Optional
-class RSVPAttendUpdate(BaseModel):
-    attended: Optional[bool] = None
-    is_paid: Optional[bool] = None
-
-
-class AttendanceCheckinRequest(BaseModel):
-    qr_code: str
-    feedback: Optional[str] = Field(None, max_length=100)
 
 @router.patch("/rsvps/{rsvp_id}")
-def update_rsvp_attendance(rsvp_id: UUID, update_data: RSVPAttendUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_rsvp_attendance(rsvp_id: UUID, update_data: RSVPUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Update RSVP attendance status. Requires club admin access (head or delegated admin)."""
     rsvp = db.query(RSVP).filter(RSVP.id == rsvp_id).first()
     if not rsvp:
@@ -304,11 +305,6 @@ def update_rsvp_attendance(rsvp_id: UUID, update_data: RSVPAttendUpdate, db: Ses
     
     return {"status": "success"}
 
-from typing import List
-
-class BulkRSVPUpdate(BaseModel):
-    rsvp_ids: List[UUID]
-    is_paid: bool
 
 @router.post("/events/{event_id}/bulk-payment")
 def bulk_update_payments(event_id: UUID, update_data: BulkRSVPUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

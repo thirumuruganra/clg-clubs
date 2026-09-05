@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.audit import log_security_event
 from app.models.club import Club
 from app.models.club_member import ClubMember
 from app.models.user import User
@@ -31,6 +32,7 @@ def require_club_head(club_id: UUID, current_user: User, db: Session) -> Club:
         raise HTTPException(status_code=404, detail="Club not found")
 
     if not is_club_head(current_user, club):
+        log_security_event("authz.club_head_denied", actor_user_id=current_user.id, club_id=club_id)
         raise HTTPException(status_code=403, detail="You can only manage members for your own club")
 
     return club
@@ -43,6 +45,7 @@ def require_club_admin_access(club_id: UUID, current_user: User, db: Session) ->
         raise HTTPException(status_code=404, detail="Club not found")
 
     if not has_club_admin_access(current_user, club, db):
+        log_security_event("authz.club_admin_access_denied", actor_user_id=current_user.id, club_id=club_id)
         raise HTTPException(status_code=403, detail="You don't have admin access to this club")
 
     return club

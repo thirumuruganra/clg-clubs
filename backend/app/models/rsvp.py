@@ -16,7 +16,7 @@ class RSVP(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    event_id = Column(UUID(as_uuid=True), ForeignKey("events.id"), nullable=False)
+    event_id = Column(UUID(as_uuid=True), ForeignKey("events.id"), nullable=False, index=True)
     attended = Column(Boolean, default=False)
     attended_marked_at = Column(DateTime, nullable=True)
     attendance_role = Column(String(20), nullable=True)

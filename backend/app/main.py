@@ -1,19 +1,15 @@
-import asyncio
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.exception_handlers import http_exception_handler
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from app.database import engine, Base, get_db
 from app.routers import auth, users, events, clubs, rsvp, follow, internal
 from app.core.rate_limit import InMemoryRateLimitMiddleware, RateLimitRule
-from app.services import no_service
+from app.utils.common import parse_csv_env, is_production_environment, require_env
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -32,385 +28,6 @@ load_dotenv()
 # Create all tables in the database
 Base.metadata.create_all(bind=engine)
 
-
-def ensure_event_keywords_column() -> None:
-    """Add the keywords column for older databases that were created before this field existed."""
-    try:
-        inspector = inspect(engine)
-        if "events" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("events")}
-        if "keywords" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE events ADD COLUMN keywords VARCHAR(500)"))
-        print("ℹ️  Added missing 'keywords' column to events table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'keywords' column: {exc}")
-
-
-def ensure_user_interests_column() -> None:
-    """Add the interests column for older databases that were created before this field existed."""
-    try:
-        inspector = inspect(engine)
-        if "users" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("users")}
-        if "interests" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN interests TEXT"))
-        print("ℹ️  Added missing 'interests' column to users table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'interests' column: {exc}")
-
-def ensure_user_register_number_column() -> None:
-    """Add the register_number column for older databases that were created before this field existed."""
-    try:
-        inspector = inspect(engine)
-        if "users" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("users")}
-        if "register_number" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN register_number VARCHAR(50)"))
-        print("ℹ️  Added missing 'register_number' column to users table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'register_number' column: {exc}")
-
-def ensure_user_degree_column() -> None:
-    """Add the degree column for older databases that were created before this field existed."""
-    try:
-        inspector = inspect(engine)
-        if "users" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("users")}
-        if "degree" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN degree VARCHAR(50)"))
-        print("ℹ️  Added missing 'degree' column to users table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'degree' column: {exc}")
-
-def ensure_user_section_column() -> None:
-    """Add the section column for older databases that were created before this field existed."""
-    try:
-        inspector = inspect(engine)
-        if "users" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("users")}
-        if "section" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN section VARCHAR(20)"))
-        print("ℹ️  Added missing 'section' column to users table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'section' column: {exc}")
-
-def ensure_user_google_scopes_column() -> None:
-    """Add the google_scopes column for older databases that were created before this field existed."""
-    try:
-        inspector = inspect(engine)
-        if "users" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("users")}
-        if "google_scopes" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN google_scopes TEXT DEFAULT '[]'"))
-        print("ℹ️  Added missing 'google_scopes' column to users table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'google_scopes' column: {exc}")
-
-def ensure_user_token_version_column() -> None:
-    """Add the token_version column for older databases; used to revoke outstanding JWTs."""
-    try:
-        inspector = inspect(engine)
-        if "users" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("users")}
-        if "token_version" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0"))
-        print("ℹ️  Added missing 'token_version' column to users table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'token_version' column: {exc}")
-
-
-def ensure_rsvp_attended_column() -> None:
-    """Add the attended column for older databases that were created before this field existed."""
-    try:
-        inspector = inspect(engine)
-        if "rsvps" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("rsvps")}
-        if "attended" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE rsvps ADD COLUMN attended BOOLEAN DEFAULT 0"))
-        print("ℹ️  Added missing 'attended' column to rsvps table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'attended' column: {exc}")
-
-
-def ensure_rsvp_attended_marked_at_column() -> None:
-    """Add the attended_marked_at column for older databases."""
-    try:
-        inspector = inspect(engine)
-        if "rsvps" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("rsvps")}
-        if "attended_marked_at" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE rsvps ADD COLUMN attended_marked_at TIMESTAMP"))
-        print("ℹ️  Added missing 'attended_marked_at' column to rsvps table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'attended_marked_at' column: {exc}")
-
-
-def ensure_rsvp_attendance_role_column() -> None:
-    """Add the attendance_role column for older databases."""
-    try:
-        inspector = inspect(engine)
-        if "rsvps" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("rsvps")}
-        if "attendance_role" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE rsvps ADD COLUMN attendance_role VARCHAR(20)"))
-        print("ℹ️  Added missing 'attendance_role' column to rsvps table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'attendance_role' column: {exc}")
-
-
-def ensure_club_member_admin_access_column() -> None:
-    """Add the is_delegated_admin column for older databases that were created before this field existed."""
-    try:
-        inspector = inspect(engine)
-        if "club_members" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("club_members")}
-        if "is_delegated_admin" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE club_members ADD COLUMN is_delegated_admin BOOLEAN NOT NULL DEFAULT FALSE"))
-        print("ℹ️  Added missing 'is_delegated_admin' column to club_members table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'is_delegated_admin' column: {exc}")
-
-
-def ensure_event_attendance_qr_code_column() -> None:
-    """Add the attendance_qr_code column for older databases."""
-    try:
-        inspector = inspect(engine)
-        if "events" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("events")}
-        if "attendance_qr_code" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE events ADD COLUMN attendance_qr_code VARCHAR(64)"))
-        print("ℹ️  Added missing 'attendance_qr_code' column to events table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'attendance_qr_code' column: {exc}")
-
-
-def ensure_event_short_code_column() -> None:
-    """Add the short_code column (for short share links) for older databases."""
-    try:
-        inspector = inspect(engine)
-        if "events" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("events")}
-        if "short_code" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE events ADD COLUMN short_code VARCHAR(10)"))
-            conn.execute(text(
-                "CREATE UNIQUE INDEX IF NOT EXISTS ix_events_short_code "
-                "ON events (short_code) WHERE short_code IS NOT NULL"
-            ))
-        print("ℹ️  Added missing 'short_code' column to events table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'short_code' column: {exc}")
-
-
-def ensure_event_attendance_qr_open_column() -> None:
-    """Add the attendance_qr_open column for older databases."""
-    try:
-        inspector = inspect(engine)
-        if "events" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("events")}
-        if "attendance_qr_open" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE events ADD COLUMN attendance_qr_open BOOLEAN DEFAULT FALSE"))
-        print("ℹ️  Added missing 'attendance_qr_open' column to events table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'attendance_qr_open' column: {exc}")
-
-
-def ensure_event_collect_feedback_column() -> None:
-    """Add the collect_feedback column for older databases."""
-    try:
-        inspector = inspect(engine)
-        if "events" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("events")}
-        if "collect_feedback" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE events ADD COLUMN collect_feedback BOOLEAN DEFAULT FALSE"))
-        print("ℹ️  Added missing 'collect_feedback' column to events table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'collect_feedback' column: {exc}")
-
-
-def ensure_rsvp_feedback_text_column() -> None:
-    """Add the feedback_text column for older databases."""
-    try:
-        inspector = inspect(engine)
-        if "rsvps" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("rsvps")}
-        if "feedback_text" in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE rsvps ADD COLUMN feedback_text VARCHAR(100)"))
-        print("ℹ️  Added missing 'feedback_text' column to rsvps table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add 'feedback_text' column: {exc}")
-
-
-def ensure_event_poster_columns() -> None:
-    """Add event asset metadata columns for Supabase Storage lifecycle if missing."""
-    try:
-        inspector = inspect(engine)
-        if "events" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("events")}
-        statements = []
-
-        if "poster_storage_path" not in existing_columns:
-            statements.append("ALTER TABLE events ADD COLUMN poster_storage_path VARCHAR(700)")
-        if "poster_mime_type" not in existing_columns:
-            statements.append("ALTER TABLE events ADD COLUMN poster_mime_type VARCHAR(100)")
-        if "poster_size_bytes" not in existing_columns:
-            statements.append("ALTER TABLE events ADD COLUMN poster_size_bytes INTEGER")
-        if "poster_uploaded_at" not in existing_columns:
-            statements.append("ALTER TABLE events ADD COLUMN poster_uploaded_at TIMESTAMP")
-        if "poster_deleted_at" not in existing_columns:
-            statements.append("ALTER TABLE events ADD COLUMN poster_deleted_at TIMESTAMP")
-        if "payment_qr_url" not in existing_columns:
-            statements.append("ALTER TABLE events ADD COLUMN payment_qr_url VARCHAR(500)")
-        if "payment_qr_storage_path" not in existing_columns:
-            statements.append("ALTER TABLE events ADD COLUMN payment_qr_storage_path VARCHAR(700)")
-        if "payment_qr_mime_type" not in existing_columns:
-            statements.append("ALTER TABLE events ADD COLUMN payment_qr_mime_type VARCHAR(100)")
-        if "payment_qr_size_bytes" not in existing_columns:
-            statements.append("ALTER TABLE events ADD COLUMN payment_qr_size_bytes INTEGER")
-        if "payment_qr_uploaded_at" not in existing_columns:
-            statements.append("ALTER TABLE events ADD COLUMN payment_qr_uploaded_at TIMESTAMP")
-        if "payment_qr_deleted_at" not in existing_columns:
-            statements.append("ALTER TABLE events ADD COLUMN payment_qr_deleted_at TIMESTAMP")
-
-        if not statements:
-            return
-
-        with engine.begin() as conn:
-            for statement in statements:
-                conn.execute(text(statement))
-
-        print("ℹ️  Added missing event asset metadata columns to events table")
-    except Exception as exc:
-        print(f"⚠️  Could not auto-add event asset metadata columns: {exc}")
-
-
-def normalize_legacy_cse_entries() -> None:
-    """Normalize older user entries: CSE -> Computer Science and Engineering, degree -> B.E."""
-    try:
-        inspector = inspect(engine)
-        if "users" not in inspector.get_table_names():
-            return
-
-        existing_columns = {col["name"] for col in inspector.get_columns("users")}
-        if "department" not in existing_columns or "degree" not in existing_columns:
-            return
-
-        with engine.begin() as conn:
-            updated = conn.execute(
-                text(
-                    """
-                    UPDATE users
-                    SET department = 'Computer Science and Engineering',
-                        degree = 'B.E.'
-                    WHERE lower(trim(coalesce(department, ''))) = 'cse'
-                    """
-                )
-            )
-        if updated.rowcount and updated.rowcount > 0:
-            print(f"ℹ️  Normalized {updated.rowcount} legacy CSE user entries")
-    except Exception as exc:
-        print(f"⚠️  Could not normalize legacy CSE entries: {exc}")
-
-
-ensure_event_keywords_column()
-ensure_user_interests_column()
-ensure_user_token_version_column()
-ensure_user_register_number_column()
-ensure_user_section_column()
-ensure_user_degree_column()
-ensure_user_google_scopes_column()
-ensure_rsvp_attended_column()
-ensure_rsvp_attended_marked_at_column()
-ensure_rsvp_attendance_role_column()
-ensure_club_member_admin_access_column()
-ensure_event_attendance_qr_code_column()
-ensure_event_attendance_qr_open_column()
-ensure_event_short_code_column()
-ensure_event_collect_feedback_column()
-ensure_rsvp_feedback_text_column()
-ensure_event_poster_columns()
-normalize_legacy_cse_entries()
 
 app = FastAPI(
     title="WAVC API",
@@ -462,56 +79,24 @@ class ImmutableStaticFiles(StaticFiles):
         return response
 
 
-def _parse_origins_env(var_name: str, default_origins: list[str]) -> list[str]:
-    raw_value = os.getenv(var_name, "").strip()
-    if not raw_value:
-        return default_origins
-    return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
-
-
-def _parse_csv_env(var_name: str, default_values: list[str]) -> list[str]:
-    raw_value = os.getenv(var_name, "").strip()
-    if not raw_value:
-        return default_values
-    return [value.strip() for value in raw_value.split(",") if value.strip()]
-
-
-_NON_PRODUCTION_APP_ENVS = {"development", "dev", "local", "test", "testing"}
-
-
-def _is_production_environment() -> bool:
-    # Fail closed: anything other than an explicit non-production value is
-    # treated as production, so a missing/misconfigured APP_ENV config var
-    # on the deployment platform can't silently disable Secure cookies,
-    # HTTPS-only sessions, or the dev admin-email allowlist.
-    return os.getenv("APP_ENV", "production").strip().lower() not in _NON_PRODUCTION_APP_ENVS
-
-
-def _require_env(var_name: str) -> str:
-    value = os.getenv(var_name, "").strip()
-    if not value:
-        raise RuntimeError(f"Missing required environment variable: {var_name}")
-    return value
-
-
 default_cors_origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
-cors_allow_origins = _parse_origins_env("CORS_ALLOW_ORIGINS", default_cors_origins)
-cors_allow_methods = _parse_csv_env(
+cors_allow_origins = parse_csv_env("CORS_ALLOW_ORIGINS", default_cors_origins)
+cors_allow_methods = parse_csv_env(
     "CORS_ALLOW_METHODS",
     ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 )
-cors_allow_headers = _parse_csv_env(
+cors_allow_headers = parse_csv_env(
     "CORS_ALLOW_HEADERS",
     ["Authorization", "Content-Type", "Accept", "X-CSRF-Token"],
 )
-is_production_environment = _is_production_environment()
+app_is_production = is_production_environment()
 session_same_site = os.getenv("SESSION_SAMESITE", "lax").strip().lower()
 if session_same_site not in {"lax", "strict", "none"}:
     session_same_site = "lax"
-if session_same_site == "none" and not is_production_environment:
+if session_same_site == "none" and not app_is_production:
     session_same_site = "lax"
 
 app.add_middleware(
@@ -545,15 +130,15 @@ app.add_middleware(GZipMiddleware, minimum_size=1024)
 # Session Middleware for OAuth state
 app.add_middleware(
     SessionMiddleware,
-    secret_key=_require_env("SECRET_KEY"),
+    secret_key=require_env("SECRET_KEY"),
     session_cookie=os.getenv("SESSION_COOKIE_NAME", "wavc_oauth_session"),
     same_site=session_same_site,
-    https_only=is_production_environment,
+    https_only=app_is_production,
 )
 
 # Outermost middleware so headers land on every response, including
 # rate-limit 429s, CORS preflights, and error responses.
-app.add_middleware(SecurityHeadersMiddleware, https_only=is_production_environment)
+app.add_middleware(SecurityHeadersMiddleware, https_only=app_is_production)
 
 # Register all routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
@@ -570,15 +155,6 @@ def short_link_redirect(code: str, db: Session = Depends(get_db)):
     event = db.query(Event).filter(Event.short_code == code).first()
     event_id = event.id if event else code
     return RedirectResponse(url=f"/event?id={event_id}", status_code=302)
-
-
-@app.exception_handler(StarletteHTTPException)
-async def rewrite_access_denied_detail(request: Request, exc: StarletteHTTPException):
-    if exc.status_code == 403 and no_service.should_use_no_service_message(exc.detail):
-        detail = await no_service.fetch_no_service_reason(fallback_detail=str(exc.detail))
-        return JSONResponse(status_code=exc.status_code, content={"detail": detail}, headers=exc.headers)
-
-    return await http_exception_handler(request, exc)
 
 
 frontend_dist_dir = Path(__file__).resolve().parent / "static"

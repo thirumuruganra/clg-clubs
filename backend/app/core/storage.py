@@ -1,7 +1,7 @@
 import os
 from urllib.parse import quote, unquote
 
-import requests
+import httpx
 
 
 def is_supabase_storage_configured() -> bool:
@@ -55,11 +55,11 @@ def upload_storage_object(
         "x-upsert": "true" if upsert else "false",
     }
 
-    response = requests.post(
+    response = httpx.post(
         endpoint,
         params={"cacheControl": str(cache_control_seconds), "upsert": "true" if upsert else "false"},
         headers=headers,
-        data=payload,
+        content=payload,
         timeout=25,
     )
 
@@ -101,7 +101,7 @@ def delete_storage_object(object_path: str) -> bool:
     encoded_path = quote(normalized_path, safe="/")
     endpoint = f"{supabase_url}/storage/v1/object/{bucket}/{encoded_path}"
 
-    response = requests.delete(
+    response = httpx.delete(
         endpoint,
         headers={
             "Authorization": f"Bearer {service_key}",

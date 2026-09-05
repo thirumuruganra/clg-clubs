@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context';
 import StudentSidebar from '../components/student-dashboard/StudentSidebar';
@@ -31,48 +31,6 @@ const SORT_OPTIONS = [
   { value: 'popular', label: 'Most Popular' },
 ];
 
-const eventMatchesSearch = (event, rawQuery) => {
-  const query = rawQuery.trim().toLowerCase();
-  if (!query) return true;
-
-  return [event.title, event.description, event.keywords]
-    .filter(Boolean)
-    .some((field) => field.toLowerCase().includes(query));
-};
-
-const eventMatchesFilter = (event, filter) => {
-  if (filter === 'all') return true;
-  if (filter === 'TECH' || filter === 'NON_TECH') return event.tag === filter;
-  if (filter === 'paid') return Boolean(event.is_paid);
-  if (filter === 'week') {
-    if (!event.start_time) return false;
-    const eventDate = new Date(event.start_time);
-    if (Number.isNaN(eventDate.getTime())) return false;
-    const now = new Date();
-    const nextWeek = new Date();
-    nextWeek.setDate(now.getDate() + 7);
-    return eventDate >= now && eventDate <= nextWeek;
-  }
-  return true;
-};
-
-const sortEvents = (events, sortMode) => {
-  const cloned = [...events];
-  if (sortMode === 'soonest') {
-    cloned.sort((a, b) => {
-      const aTime = a.start_time ? new Date(a.start_time).getTime() : Number.MAX_SAFE_INTEGER;
-      const bTime = b.start_time ? new Date(b.start_time).getTime() : Number.MAX_SAFE_INTEGER;
-      return aTime - bTime;
-    });
-    return cloned;
-  }
-  if (sortMode === 'popular') {
-    cloned.sort((a, b) => (b.rsvp_count || 0) - (a.rsvp_count || 0));
-    return cloned;
-  }
-  return cloned;
-};
-
 const StudentDashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -81,7 +39,10 @@ const StudentDashboard = () => {
   const [sortMode, setSortMode] = useState('recommended');
   const [forYouEvents, setForYouEvents] = useState([]);
   const [discoverEvents, setDiscoverEvents] = useState([]);
+  const [upcomingWeekCount, setUpcomingWeekCount] = useState(0);
+  const [registeredCount, setRegisteredCount] = useState(0);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [pendingRsvpId, setPendingRsvpId] = useState(null);
   const [activities, setActivities] = useState([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
@@ -90,23 +51,39 @@ const StudentDashboard = () => {
   const [sortOpen, setSortOpen] = useState(false);
   const sortMenuRef = useRef(null);
 
+  // Debounce the search box so it doesn't refetch on every keystroke; filter
+  // chips and sort still refetch immediately since they're discrete clicks.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const fetchEvents = useCallback(async () => {
     if (!user?.id) return;
     setLoadingEvents(true);
     try {
-      const recommendedRes = await fetch(`${API}/api/events/feed?type=recommended&user_id=${user.id}`);
+      const params = new URLSearchParams({ type: 'recommended', user_id: user.id, sort: sortMode });
+      if (debouncedSearchQuery.trim()) params.set('search', debouncedSearchQuery.trim());
+      if (activeFilter === 'TECH' || activeFilter === 'NON_TECH') params.set('tag', activeFilter);
+      if (activeFilter === 'paid') params.set('is_paid', 'true');
+      if (activeFilter === 'week') params.set('starts_within_days', '7');
+
+      const recommendedRes = await fetch(`${API}/api/events/feed?${params.toString()}`);
       if (recommendedRes.ok) {
-        const recommendedEvents = await recommendedRes.json();
+        const data = await recommendedRes.json();
+        const recommendedEvents = data.events || [];
         warmPosterCacheForEvents(recommendedEvents);
         setForYouEvents(recommendedEvents);
         setDiscoverEvents(recommendedEvents.filter((event) => !event.is_from_followed_club));
+        setUpcomingWeekCount(data.upcoming_week_count || 0);
+        setRegisteredCount(data.registered_count || 0);
       }
     } catch (err) {
       console.error('Error fetching events:', err);
     } finally {
       setLoadingEvents(false);
     }
-  }, [user]);
+  }, [user, sortMode, activeFilter, debouncedSearchQuery]);
 
   const fetchActivities = useCallback(async () => {
     setLoadingActivities(true);
@@ -185,20 +162,6 @@ const StudentDashboard = () => {
     }
   };
 
-  const filteredForYouEvents = useMemo(() => {
-    const filtered = forYouEvents
-      .filter((event) => eventMatchesSearch(event, searchQuery))
-      .filter((event) => eventMatchesFilter(event, activeFilter));
-    return sortEvents(filtered, sortMode);
-  }, [forYouEvents, searchQuery, activeFilter, sortMode]);
-
-  const filteredDiscoverEvents = useMemo(() => {
-    const filtered = discoverEvents
-      .filter((event) => eventMatchesSearch(event, searchQuery))
-      .filter((event) => eventMatchesFilter(event, activeFilter));
-    return sortEvents(filtered, sortMode);
-  }, [discoverEvents, searchQuery, activeFilter, sortMode]);
-
   if (loading) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background-light dark:bg-background-dark">
@@ -213,8 +176,6 @@ const StudentDashboard = () => {
 
   const name = user?.name || 'Student';
   const currentDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const upcomingWeekCount = forYouEvents.filter((event) => eventMatchesFilter(event, 'week')).length;
-  const registeredCount = forYouEvents.filter((event) => event.is_rsvped).length;
   const selectedSortLabel = SORT_OPTIONS.find((option) => option.value === sortMode)?.label || 'Recommended';
 
   const sidebarNode = <StudentSidebar mobileMenuOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />;
@@ -376,7 +337,7 @@ const StudentDashboard = () => {
               </div>
               <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2 lg:grid-cols-3">
                 {loadingEvents && Array.from({ length: 3 }).map((_, index) => <StudentDashboardEventCardSkeleton key={`for-you-skeleton-${index}`} />)}
-                {!loadingEvents && filteredForYouEvents.length === 0 && (
+                {!loadingEvents && forYouEvents.length === 0 && (
                   <div className="col-span-3">
                     <EmptyState
                       icon="search_off"
@@ -387,7 +348,7 @@ const StudentDashboard = () => {
                     />
                   </div>
                 )}
-                {!loadingEvents && filteredForYouEvents.slice(0, 3).map((event) => (
+                {!loadingEvents && forYouEvents.slice(0, 3).map((event) => (
                   <StudentDashboardEventCard
                     key={event.id}
                     event={event}
@@ -407,7 +368,7 @@ const StudentDashboard = () => {
               </div>
               <div className="grid grid-cols-1 gap-4 px-4 md:grid-cols-2">
                 {loadingEvents && Array.from({ length: 2 }).map((_, index) => <StudentDashboardEventCardSkeleton key={`discover-skeleton-${index}`} />)}
-                {!loadingEvents && filteredDiscoverEvents.length === 0 && (
+                {!loadingEvents && discoverEvents.length === 0 && (
                   <div className="col-span-2">
                     <EmptyState
                       icon="interests"
@@ -418,7 +379,7 @@ const StudentDashboard = () => {
                     />
                   </div>
                 )}
-                {!loadingEvents && filteredDiscoverEvents.slice(0, 4).map((event) => (
+                {!loadingEvents && discoverEvents.slice(0, 4).map((event) => (
                   <StudentDashboardDiscoverItem
                     key={event.id}
                     event={event}
